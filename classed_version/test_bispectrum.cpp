@@ -43,19 +43,9 @@ int main()
     }
     
     // BispectrumCalculator test_class(cosmo,200,2,false);
-    // std::cout << "test \n";
     // std::cout << test_class.bkappa(1000.,1000.,1000.)*pow(1000.,3) << "\n";
     // std::cout << test_class.bkappa(2.055e+03, 5.472e+02, 2.602e+03)*pow(1000.,3) << "\n";
-    GammaCalculator test_class_gamma(cosmo, 0.05, 3.5, false, 200, 2);
-    double x[3] = {M_PI/180./60.*110,M_PI/180./60.*100,M_PI/180./60.*50};
-    // #pragma omp parallel for
-    for(int i=0;i<3;i++)
-    {
-        std::complex<double> test = test_class_gamma.gamma0(x[i%3],x[(i+1)%3],x[(i+2)%3]);
-        printf("%.3e, %.3e, %.3e, %.3e, %.3e \n",x[i%3],x[(i+1)%3],x[(i+2)%3],real(test),imag(test));
-    }
-    // std::complex<double> test = test_class_gamma.gamma0(M_PI/180./60.*110,M_PI/180./60.*100,M_PI/180./60.*50);
-    // printf("%.3e, %.3e \n",real(test),imag(test));
+
 /*
          ###############################################################################################
      ######## THIS COMPUTES 3pcf for all triangles #################################################
@@ -87,8 +77,8 @@ int main()
 
 //     #pragma omp parallel for collapse(3)
 //     for(int i=0;i<steps;i++){
-//         for(int j=5;j<usteps;j+=4){
-//         	for(int k=0;k<1;k++){
+//         for(int j=0;j<usteps;j++){
+//         	for(int k=0;k<vsteps;k++){
 // //                 printf("\b\b\b\b\b\b[%3d%%]",static_cast<int>(100*i*j*k/(steps*usteps*vsteps)));
 //         		fflush(stdout);
 
@@ -126,11 +116,11 @@ int main()
 //      FILE *fp;
 //      if(slics)
 //      {
-//          fp = fopen("/home/sven/Documents/code/3pcf/results/results_slics.dat","w");
+//          fp = fopen("../results/results_slics.dat","w");
 //      }
 //      else
 //      {
-//          fp = fopen("/home/sven/Documents/code/3pcf/results/results_millennium_short_classed.dat","w");
+//          fp = fopen("../results/results_millennium_short_classed.dat","w");
 //      }
 //      for(int i=0;i<steps;i++){
 //          for(int j=0;j<usteps;j++){
