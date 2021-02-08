@@ -176,7 +176,23 @@ double BispectrumCalculator::n_of_z(double z){
     // return n_z_array_data[pos_z]*(1.-diff_z)+n_z_array_data[pos_z+1]*diff_z;
 }
 
+double BispectrumCalculator::bispectrum_analytic_single_a(double l1, double l2, double phi, double a){
+        // FOR TESTING
+	    double bis_pref = -pow(M_PI,2)/(8*72*pow(a,8));
+	    double pref = pow(l1,2)*pow(l2,2)*(pow(l1,2)+pow(l2,2)+2*l1*l2*cos(phi));
+	    double expon = exp(-(pow(l1,2)+pow(l2,2)+l1*l2*cos(phi))/(6*a));
+	//     if(isnan(bis_pref*pref*expon/pow(2.*M_PI,3.)/2.)) printf("%lf %lf %lf -- %lf %lf %lf\n",l1,l2,phi, bis_pref, pref, expon);
+	    return bis_pref*pref*expon; // /pow(2.*M_PI,3.)/2.;
+}
+
+
 double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
+
+  if(test_analytical){
+		double phi = acos((ell1*ell1+ell2*ell2-ell3*ell3)/(2*ell1*ell2));
+    return bispectrum_analytic_single_a(ell1,ell2,phi,1.0e+6);
+  }
+  else{
     // printf("%lf %lf %lf \n",ell1,ell2,ell3);
     assert(isfinite(ell1) && isfinite(ell2) && isfinite(ell3));
 
@@ -207,18 +223,8 @@ double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
     {
       fprintf(stderr,"Error at ells: %.6e %.6e %.6e \n",ells.ell1,ells.ell2,ells.ell3);
     }
-    // else
-    // {
-    //   fprintf(stderr,"No error at ells: %.6e %.6e %.6e \n",ells.ell1,ells.ell2,ells.ell3);
-    // }
-    
-    // }
-    // return result;
-
-
-
-
     return prefactor*result;
+  }
 }
 
 

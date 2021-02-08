@@ -62,6 +62,7 @@ double GammaCalculator::angle(double x,double y){
     return res;
 }
 
+
 double GammaCalculator::bispectrum(double l1, double l2, double phi){
     double l3 = sqrt(l1*l1+l2*l2-2*l1*l2*cos(phi));
     if(isnan(l3))
@@ -244,4 +245,23 @@ std::complex<double> GammaCalculator::gamma0(double x1, double x2, double x3){
     // std::complex<double> result(integral1,integral2);
 
   return result/(2*pow(2*M_PI,3));
+}
+
+
+std::complex<double> GammaCalculator::ggg_single_a(std::complex<double> x, std::complex<double> y, double a){
+    // FOR TESTING COMPARISON
+    std::complex<double> z = y-x;
+    const std::complex<double> i(0,1);
+    double phi1 = atan2(imag(x),real(x));
+    double phi2 = atan2(-imag(y),-real(y));
+    double phi3 = atan2(imag(z),real(z));
+    std::complex<double> pref = pow((x-2.*y)*(x+y)*(y-2.*x),2);
+    std::complex<double> expon = pow(abs(x),2)+pow(abs(y),2)-real(x)*real(y)-imag(x)*imag(y);
+    std::complex<double> phase = exp(-2.*i*(phi1+phi2+phi3));
+    std::complex<double> temp_result = pref*exp(-2*a*expon)*phase;
+    return pref*exp(-2*a*expon)*phase;
+}
+
+std::complex<double> GammaCalculator::ggg(std::complex<double> x, std::complex<double> y){
+    return ggg_single_a(x,y,1.0e-6);
 }

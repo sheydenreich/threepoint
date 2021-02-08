@@ -11,6 +11,7 @@
 // use slics cosmology (false -> millennium cosmology)
 // TODO: Implenment redshift distribution for Euclid-like SLICS
 #define slics false
+#define test_analytical true
 
 struct cosmology
 {
@@ -82,6 +83,11 @@ private:
     double* n_z_array_data;
     double* n_z_array_z;
     int len_n_z_array = 100;
+
+
+// For testing the gamma-integration
+    double bispectrum_analytic_single_a(double l1, double l2, double phi, double a);
+
 
 // This is the workspace to integrate bispec to bkappa
     gsl_integration_workspace * w_bkappa = gsl_integration_workspace_alloc(1000);

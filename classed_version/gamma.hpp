@@ -92,6 +92,8 @@ public:
     std::complex<double> gamma0(double x1, double x2, double x3);
     // For testing: analytical ggg correlation
     std::complex<double> ggg(std::complex<double> x, std::complex<double> y); // FOR TESTING
+    std::complex<double> ggg_single_a(std::complex<double> x, std::complex<double> y, double a);
+
     GammaCalculator(cosmology cosmo, double prec_h, double prec_k, bool fast_calculations_arg, int n_z, double z_max);
 };
 

@@ -42,7 +42,7 @@ int main()
         cosmo.ow = 1.-cosmo.om;
     }
     
-    // BispectrumCalculator test_class(cosmo,200,2,false);
+    BispectrumCalculator test_class(cosmo,200,2,false);
     // std::cout << test_class.bkappa(1000.,1000.,1000.)*pow(1000.,3) << "\n";
     // std::cout << test_class.bkappa(2.055e+03, 5.472e+02, 2.602e+03)*pow(1000.,3) << "\n";
 
@@ -59,11 +59,11 @@ int main()
 //     // Reading the triangle configurations
 //     if(slics)
 //     {
-//         infile = "/home/sven/Documents/code/3pcf/necessary_files/triangles_slics.dat";
+//         infile = "../necessary_files/triangles_slics.dat";
 //     }
 //     else
 //     {
-//         infile = "/home/sven/Documents/code/3pcf/necessary_files/triangles_millennium.dat";
+//         infile = "../necessary_files/triangles_millennium.dat";
 //     }
 
 //     GammaCalculator class_gamma(cosmo, 0.2, 3.5, false, 200, 2);
@@ -134,4 +134,60 @@ int main()
 //      }
 //      fclose(fp);
 //      printf("Done.\n");
+
+
+    // ###############################################################################################
+    // ######## THIS IS FOR TESTING THE KAPPA - GAMMA INTEGRATION ####################################
+    // ###############################################################################################
+    int steps = 10;
+    int usteps = 10;
+    int vsteps = 11;
+   	double r_array[steps] = {0.65763, 1.1376, 1.968, 3.4044, 5.8893, 10.188, 17.624, 30.488, 52.741, 91.237};
+   	double u_array[usteps] = {0.05  ,  0.15 ,   0.25  ,  0.39229 , 0.45  ,  0.55  ,  0.63257,  0.79057,  0.89457,  0.95};
+   	double v_array[vsteps] = {0.045455 ,  0.13636 ,  0.22727 ,  0.31818 ,  0.40909  , 0.5     ,  0.59091 , 0.68182  , 0.77273 ,  0.86364 , 0.95455};
+
+
+    GammaCalculator class_gamma(cosmo, 0.2, 3.5, false, 200, 2);
+
+
+        for(int i=0;i<steps;i++){
+            for(int j=0;j<usteps;j++){
+//            	 printf("[%3d%%]\n",static_cast<int>(10*i+j));
+                for(int k=0;k<vsteps;k++){
+   //                 printf("\b\b\b\b\b\b[%3d%%]",static_cast<int>(100*i*j*k/(steps*usteps*vsteps)));
+
+   //                  printf("%3f\n",i*100./steps);
+                    // TODO: Do the triangle-averaging-steps in u,v,r instead of r1,r2,r3
+                    double r,u,v;
+
+                    r = r_array[i]; //THIS IS THE BINNING BY JARVIS. FROM THE WEBSITE, NOT THE PAPER.
+                    u = u_array[j];
+                    v = v_array[k];
+
+					 double r2 = r*M_PI/(60*180.); //THIS IS THE BINNING BY JARVIS. FROM THE WEBSITE, NOT THE PAPER.
+					 double r3 = r2*u;
+					 double r1 = v*r3+r2;
+
+					 std::complex<double> res_temp = class_gamma.gamma0(r1, r2, r3);
+					 if(isnan(real(res_temp)) || isnan(imag(res_temp))){
+						 printf("%lf %lf %lf %lf %lf \n",r1,r2,r3,real(res_temp),imag(res_temp));
+						 res_temp = (0,0);
+					 }
+					 std::complex<double> X(r1,0);
+					 double height = (r1+r2+r3)*(r2+r3-r1)*(r1-r2+r3)*(r1+r2-r3);
+					 height = sqrt(height)/(2.*r1);
+					 double rest_of_r1 = sqrt(r2*r2-height*height);
+					 std::complex<double> Y(rest_of_r1,height);
+					 std::complex<double> comp_temp;
+					 comp_temp = class_gamma.ggg(Y,X);
+
+					 printf("[%d, %d, %d, %.4e, %.4e, %.4e, %.4e],",i,j,k,
+							 real(res_temp),imag(res_temp),real(comp_temp),imag(comp_temp));
+
+				 }
+			 }
+		 }
+        printf("\n Done. \n");
+
+
 }
