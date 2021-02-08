@@ -190,7 +190,7 @@ double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
 
   if(test_analytical){
 		double phi = acos((ell1*ell1+ell2*ell2-ell3*ell3)/(2*ell1*ell2));
-    return bispectrum_analytic_single_a(ell1,ell2,phi,1.0e+6);
+    return bispectrum_analytic_single_a(ell1,ell2,phi,1.0e+6)*(3.*pow(2*M_PI,2));
   }
   else{
     // printf("%lf %lf %lf \n",ell1,ell2,ell3);

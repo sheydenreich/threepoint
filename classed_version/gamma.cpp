@@ -128,7 +128,7 @@ std::complex<double> GammaCalculator::integrand_phi_psi(double phi, double psi, 
     double varpsi = varpsifunc(x1,x2,x3);
     double A3 = A(psi,x1,x2,phi,varpsi);
     double bis;
-    if(A3>0.001)
+    if(true)
     {
         // perform bessel integration according to Ogata et al.
         bis = integrated_bispec(psi,phi,A3);
@@ -263,5 +263,5 @@ std::complex<double> GammaCalculator::ggg_single_a(std::complex<double> x, std::
 }
 
 std::complex<double> GammaCalculator::ggg(std::complex<double> x, std::complex<double> y){
-    return ggg_single_a(x,y,1.0e-6);
+    return ggg_single_a(x,y,1.0e+6);
 }
