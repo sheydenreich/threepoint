@@ -147,7 +147,7 @@ int main()
    	double v_array[vsteps] = {0.045455 ,  0.13636 ,  0.22727 ,  0.31818 ,  0.40909  , 0.5     ,  0.59091 , 0.68182  , 0.77273 ,  0.86364 , 0.95455};
 
 
-    GammaCalculator class_gamma(cosmo, 0.2, 3.5, false, 200, 2);
+    GammaCalculator class_gamma(cosmo, 0.05, 3.5, false, 200, 2);
 
 
         for(int i=0;i<steps;i++){
