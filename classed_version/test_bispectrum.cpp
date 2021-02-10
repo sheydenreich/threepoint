@@ -171,7 +171,7 @@ int main()
 					 std::complex<double> res_temp = class_gamma.gamma0(r1, r2, r3);
 					 if(isnan(real(res_temp)) || isnan(imag(res_temp))){
 						 printf("%lf %lf %lf %lf %lf \n",r1,r2,r3,real(res_temp),imag(res_temp));
-						 res_temp = (0,0);
+						 res_temp = std::complex<double>(0,0);
 					 }
 					 std::complex<double> X(r1,0);
 					 double height = (r1+r2+r3)*(r2+r3-r1)*(r1-r2+r3)*(r1+r2-r3);
