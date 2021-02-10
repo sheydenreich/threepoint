@@ -507,6 +507,10 @@ double BispectrumCalculator::window(double x, int i)
   if(i==0) return 3.0/pow(x,3)*(sin(x)-x*cos(x));  // top hat
   if(i==1) return exp(-0.5*x*x);   // gaussian
   if(i==2) return x*exp(-0.5*x*x);  // 1st derivative gaussian
+
+  // This is only reached, if i is not a valid value between 0 and 2
+  std::cerr << "BispectrumCalculator::window: Window function not specified. Exiting \n";
+  exit(1);
 }
 
 
