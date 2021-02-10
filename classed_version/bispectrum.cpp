@@ -559,12 +559,18 @@ double BispectrumCalculator::lgr(double z)  // linear growth factor at z (not no
 double BispectrumCalculator::lgr_func(int j, double la, double y[2])
 {
   if(j==0) return y[1];
-  
-  double g,a;
-  a=exp(la);
-  g=-0.5*(5.*om+(5.-3*w)*ow*pow(a,-3.*w))*y[1]-1.5*(1.-w)*ow*pow(a,-3.*w)*y[0];
-  g=g/(om+ow*pow(a,-3.*w));
-  if(j==1) return g;
+  if(j==1)
+    {
+      double g,a;
+      a=exp(la);
+      g=-0.5*(5.*om+(5.-3*w)*ow*pow(a,-3.*w))*y[1]-1.5*(1.-w)*ow*pow(a,-3.*w)*y[0];
+      g=g/(om+ow*pow(a,-3.*w));
+      return g;
+    };
+
+   // This is only reached, if j is not a valid value
+  std::cerr << "BispectrumCalculator::lgr_func: j not a valid value. Exiting \n";
+  exit(1);
 }
 
 int BispectrumCalculator::compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff){
