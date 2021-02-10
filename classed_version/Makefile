@@ -4,6 +4,9 @@ GCC = g++
 # define various compiler flags
 CFLAGS = -std=c++11 -fopenmp -W -Wall -Wpointer-arith -Wformat-nonliteral -Winit-self -g
 
+# ignoring of compiler flags for certain files
+Levin.o : CFLAGS+=-Wno-implicit-fallthrough
+
 # define directories containing header files other than /usr/include
 INCLUDES = -I ./
 
