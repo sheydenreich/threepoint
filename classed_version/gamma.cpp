@@ -259,7 +259,7 @@ std::complex<double> GammaCalculator::ggg_single_a(std::complex<double> x, std::
     std::complex<double> expon = pow(abs(x),2)+pow(abs(y),2)-real(x)*real(y)-imag(x)*imag(y);
     std::complex<double> phase = exp(-2.*i*(phi1+phi2+phi3));
     std::complex<double> temp_result = pref*exp(-2*a*expon)*phase;
-    return pref*exp(-2*a*expon)*phase;
+    return temp_result;
 }
 
 std::complex<double> GammaCalculator::ggg(std::complex<double> x, std::complex<double> y){
