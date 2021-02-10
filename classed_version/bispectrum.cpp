@@ -267,6 +267,7 @@ double BispectrumCalculator::bispec(double k1, double k2, double k3, double z, i
 {
   // if(isnan(k1) || isnan(k2) || isnan(k3)) printf("NAN in bispec!\n");
   int i,j;
+  // Why is kmin, kmid, kmax not used? What are they?
   double q[4],qt,logsigma8z,r1,r2,kmin,kmid,kmax;
   double an,bn,cn,en,fn,gn,hn,mn,nn,pn,alphan,betan,mun,nun,BS1h,BS3h,PSE[4];
   double r_sigma,n_eff,D1;
@@ -330,6 +331,7 @@ double BispectrumCalculator::bispec(double k1, double k2, double k3, double z, i
 
 double BispectrumCalculator::bispec_tree(double k1, double k2, double k3, double z, double D1)  // tree-level BS [(Mpc/h)^6]
 {
+  //Why is z not used here?
   return pow(D1,4)*2.*(F2_tree(k1,k2,k3)*linear_pk(k1)*linear_pk(k2)
 		      +F2_tree(k2,k3,k1)*linear_pk(k2)*linear_pk(k3)
 		      +F2_tree(k3,k1,k2)*linear_pk(k3)*linear_pk(k1));
@@ -396,6 +398,7 @@ double BispectrumCalculator::baryon_ratio(double k1, double k2, double k3, doubl
   
 double BispectrumCalculator::calc_r_sigma(double z, double D1)  // return r_sigma[Mpc/h] (=1/k_sigma)
 {
+  // Why is z not used here?
   double k,k1,k2;
 
   k1=k2=1.;
@@ -460,6 +463,7 @@ double BispectrumCalculator::linear_pk_eh(double k)   // Eisenstein & Hu (1999) 
 
 double BispectrumCalculator::sigmam(double r, int j)   // r[Mpc/h]
 {
+  //What is l and x and why are they not used?
   int n,i,l;
   double k1,k2,xx,xxp,xxpp,k,a,b,hh,x;
 

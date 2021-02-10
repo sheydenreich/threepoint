@@ -12,6 +12,7 @@ struct treecorr_bin
 
 int read_triangle_configurations(std::string& infile, treecorr_bin* triangle_config, int rbins, int ubins, int vbins)
 {
+  //This should include a check that the array triangle_config is actually large enough! Or use a c++ vector, into which the values are pushed
 	std::ifstream fin(infile);
 	std::cout << "Reading " << infile << "\n";
 	if(!fin.is_open()) //checking if file can be opened
