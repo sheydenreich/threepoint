@@ -2,7 +2,7 @@
 GCC = g++
 
 # define various compiler flags
-CFLAGS = -std=c++11 -fopenmp -W -Wall -Wpointer-arith -Wformat-nonliteral -Winit-self -g
+CFLAGS = -std=c++17 -fopenmp -W -Wall -Wpointer-arith -Wformat-nonliteral -Winit-self -g
 
 # ignoring of compiler flags for certain files
 Levin.o : CFLAGS+=-Wno-implicit-fallthrough
