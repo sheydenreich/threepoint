@@ -25,7 +25,7 @@ private:
     double integrated_bispec(double psi, double phi, double A3);
     // std::complex<double> integrand_phi(double psi, double x1, double x2, double x3, double phi);
     // std::complex<double> integrand_psi(double psi, double x1, double x2, double x3);
-    std::complex<double> integrand_phi_psi(double psi, double x1, double x2, double x3, double phi);
+  std::complex<double> integrand_phi_psi(double phi, double psi, double x1, double x2, double x3);
     std::complex<double> exponential(double x1, double x2, double x3, double psi, double phi, double varpsi);
     std::complex<double> prefactor_phi(double psi, double phi);
 
