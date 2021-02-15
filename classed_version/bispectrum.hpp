@@ -19,8 +19,8 @@
 struct cosmology
 {
   double h; /**< dimensionless Hubble constant*/
-  double sigma8; /**< Powerspectrum normalisation \f$\sigma_8$\f*/
-  double omb; /**< dimensionless baryon density parameter \f$\Omega_b$\f*/
+  double sigma8; /**< Powerspectrum normalisation \f$\sigma_8\f$*/
+  double omb; /**< dimensionless baryon density parameter \f$\Omega_b\f$*/
   double omc; /**< dimensionless density parameter of CDM*/
   double ns; /**< Power spectrum spectral index*/
   double w; /**< Eq. of state of Dark Energy*/
@@ -72,7 +72,7 @@ private:
 
   /**
    * Gives tree-level bispectrum
-   * Uses \f $B(\vec{k}_1, \vec{k}_2, \vec{k}_3)= 2 D(z)^4 (F(k_1, k_2, k_3) P(k_1) P(k_2) + F(k_2, k_3, k_1) P(k_2) P(k_3) + F(k_3, k_1, k_2) P(k_3) P(k_1))$\f
+   * Uses   \f$B(\vec{k}_1, \vec{k}_2, \vec{k}_3)= 2 D(z)^4 (F(k_1, k_2, k_3) P(k_1) P(k_2) + F(k_2, k_3, k_1) P(k_2) P(k_3) + F(k_3, k_1, k_2) P(k_3) P(k_1))\f$ 
    * @param k1 Absolute value of first mode [h/Mpc]
    * @param k2 Absolute value of second mode [h/Mpc]
    * @param k3 Absolute value of third mode [h/Mpc]
@@ -88,7 +88,7 @@ private:
 
   /**
    * Mode coupling function for tree-level Bispectrum.
-   * \f$F_2(k_1, k_2, k_3) = \frac{5}{7} + \frac{2}{7}\frac{(\vec{k}_1\cdot\vec{k}_2)^2}{k_1^2k_2^2} + \frac{1}{2}\frac{\vec{k}_1\cdot\vec{k}_2}{k_1k_2}(k_1/k_2 + k_2/k_1)$\f
+   *  \f$F_2(k_1, k_2, k_3) =  \frac{5}{7} +  \frac{2}{7} \frac{(\vec{k}_1\cdot\vec{k}_2)^2}{k_1^2k_2^2} + \frac{1}{2}\frac{\vec{k}_1\cdot\vec{k}_2}{k_1k_2}(k_1/k_2 + k_2/k_1)\f$
       * @param k1 Absolute value of first mode [h/Mpc]
    * @param k2 Absolute value of second mode [h/Mpc]
    * @param k3 Absolute value of third mode [h/Mpc]
@@ -177,21 +177,21 @@ private:
    * Currently includes only SLICS distribution, or all sources at z=1.
    * Uses slics distribution, if slics=True
    * @param z redshift
-   * @return n(z), normalized sich that \f$\int_0^{z_{max}} dz n(z) = 1$\f
+   * @return n(z), normalized sich that  \f$\int_0^{z_{max}} dz n(z) = 1\f$ 
    */
   double n_of_z(double z);
 
   /**
-   * Comoving angular diameter distance \f$f_k$\f
+   * Comoving angular diameter distance  \f$f_k\f$ 
    * Uses Gaussian quadrature of E_inv
    * @param z redshift
-   * @return \f$f_k$\f [h/Mpc]
+   * @return  \f$f_k\f$  [h/Mpc]
    */
     double f_K_at_z(double z);
 
   /**
    * Expansion function, for flat Universe
-   * \f$ E(z) = \sqrt{\Omega_m (1+z)^3 + \Omega_\Lambda}$\f
+   *  \f$ E(z) = \sqrt{\Omega_m (1+z)^3 + \Omega_\Lambda}\f$ 
    * @param z redshift
    */
     double E(double z);
@@ -297,7 +297,7 @@ private:
    * Defined here, to avoid overhead, since otherwise the function needs to be casted to a static function every time before use
    * @param a lower border of redshift integral
    * @param b upper border of redshift integral
-   * @return \f$\int_a^b dz \frac{1}{E(z)}
+   * @return  \f$\int_a^b dz \frac{1}{E(z)}\f$
    */
   double GQ96_of_Einv(double a,double b);
 
