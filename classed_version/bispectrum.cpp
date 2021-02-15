@@ -86,7 +86,7 @@ void BispectrumCalculator::set_cosmology(cosmology cosmo)
         z_now = i*dz;
 
         D1_array[i]=lgr(z_now)/lgr(0.);   // linear growth factor
-        r_sigma_array[i]=calc_r_sigma(z_now,D1_array[i]);  // =1/k_NL [Mpc/h] in Eq.(B1)
+        r_sigma_array[i]=calc_r_sigma(D1_array[i]);  // =1/k_NL [Mpc/h] in Eq.(B1)
         n_eff_array[i]=-3.+2.*pow(D1_array[i]*sigmam(r_sigma_array[i],2),2);   // n_eff in Eq.(B2)
     }
     printf("\n Done \n");
@@ -265,15 +265,13 @@ double BispectrumCalculator::f_K_interpolated(int idx, double didx){
 
 double BispectrumCalculator::bispec(double k1, double k2, double k3, double z, int idx, double didx)   // non-linear BS w/o baryons [(Mpc/h)^6]
 {
-  // if(isnan(k1) || isnan(k2) || isnan(k3)) printf("NAN in bispec!\n");
   int i,j;
-  // Why is kmin, kmid, kmax not used? What are they?
-  double q[4],qt,logsigma8z,r1,r2,kmin,kmid,kmax;
+  double q[4],qt,logsigma8z,r1,r2;
   double an,bn,cn,en,fn,gn,hn,mn,nn,pn,alphan,betan,mun,nun,BS1h,BS3h,PSE[4];
   double r_sigma,n_eff,D1;
   compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff);
 
-  if(z>10.) return bispec_tree(k1,k2,k3,z,D1); 
+  if(z>10.) return bispec_tree(k1,k2,k3, D1); 
 
   
   q[1]=k1*r_sigma, q[2]=k2*r_sigma, q[3]=k3*r_sigma;  // dimensionless wavenumbers
@@ -329,9 +327,8 @@ double BispectrumCalculator::bispec(double k1, double k2, double k3, double z, i
 }
 
 
-double BispectrumCalculator::bispec_tree(double k1, double k2, double k3, double z, double D1)  // tree-level BS [(Mpc/h)^6]
+double BispectrumCalculator::bispec_tree(double k1, double k2, double k3, double D1)  // tree-level BS [(Mpc/h)^6]
 {
-  //Why is z not used here?
   return pow(D1,4)*2.*(F2_tree(k1,k2,k3)*linear_pk(k1)*linear_pk(k2)
 		      +F2_tree(k2,k3,k1)*linear_pk(k2)*linear_pk(k3)
 		      +F2_tree(k3,k1,k2)*linear_pk(k3)*linear_pk(k1));
@@ -396,9 +393,9 @@ double BispectrumCalculator::baryon_ratio(double k1, double k2, double k3, doubl
 }
 
   
-double BispectrumCalculator::calc_r_sigma(double z, double D1)  // return r_sigma[Mpc/h] (=1/k_sigma)
+double BispectrumCalculator::calc_r_sigma(double D1)  // return r_sigma[Mpc/h] (=1/k_sigma)
 {
-  // Why is z not used here?
+
   double k,k1,k2;
 
   k1=k2=1.;
@@ -463,9 +460,8 @@ double BispectrumCalculator::linear_pk_eh(double k)   // Eisenstein & Hu (1999) 
 
 double BispectrumCalculator::sigmam(double r, int j)   // r[Mpc/h]
 {
-  //What is l and x and why are they not used?
-  int n,i,l;
-  double k1,k2,xx,xxp,xxpp,k,a,b,hh,x;
+  int n,i;
+  double k1,k2,xx,xxp,xxpp,k,a,b,hh;
 
   k1=2.*M_PI/r;
   k2=2.*M_PI/r;

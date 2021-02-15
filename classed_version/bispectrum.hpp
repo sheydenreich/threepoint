@@ -47,11 +47,11 @@ private:
 // These functions are necessary to compute the delta-Bispectrum via Takahashi et al.
     double h,sigma8,omb,omc,ns,w,om,ow,norm;
     double eps=1.e-4;
-    double bispec_tree(double k1, double k2, double k3, double z, double D1);
+  double bispec_tree(double k1, double k2, double k3, double D1);
     double F2(double k1, double k2, double k3, double z, double D1, double r_sigma);
     double F2_tree(double k1, double k2, double k3);
     double baryon_ratio(double k1, double k2, double k3, double z);
-    double calc_r_sigma(double z, double D1);
+    double calc_r_sigma(double D1);
     double sigmam(double r, int j); 
     double window(double x, int i);
     double linear_pk(double k); 
