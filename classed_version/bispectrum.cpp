@@ -229,13 +229,10 @@ double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
 
 
 double BispectrumCalculator::integrand_bkappa(double z, ell_params p){
-    // struct ell_params * p = (struct ell_params*) params;
-    // printf("got here \n");
-    // fflush(stdout);
     double ell1 = (p.ell1);
     double ell2 = (p.ell2);
     double ell3 = (p.ell3);
-    // printf("%f, %f, %f \n",ell1,ell2,ell3);
+
 
     if(z==0) return 0.;
     double didx = z/z_max*(n_redshift_bins-1);
@@ -249,7 +246,7 @@ double BispectrumCalculator::integrand_bkappa(double z, ell_params p){
     double f_K_value = f_K_interpolated(idx,didx);
     double result = pow(g_value*(1.+z),3)*bispec(ell1/f_K_value,ell2/f_K_value,ell3/f_K_value,z,idx,didx)/f_K_value/E(z);
     assert(isfinite(result));
-    // printf("%.3e\n",result);
+
     return result;
 }
 
@@ -573,7 +570,7 @@ double BispectrumCalculator::lgr_func(int j, double la, double y[2])
   exit(1);
 }
 
-int BispectrumCalculator::compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff){
+void BispectrumCalculator::compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff){
     // Computes the non-linear scales on a grid that can be interpolated
     *D1 = D1_array[idx]*(1-didx) + D1_array[idx+1]*didx;
     *r_sigma = r_sigma_array[idx]*(1-didx) + r_sigma_array[idx+1]*didx;
@@ -582,8 +579,6 @@ int BispectrumCalculator::compute_coefficients(int idx, double didx, double *D1,
     // printf("D1: %lf - %lf %lf %lf \n",D1_array[idx],D1_array[idx+1],D1,lgr(z)/lgr(0.));
     // printf("rsigma: %lf - %lf %lf %lf \n",r_sigma_array[idx],r_sigma_array[idx+1],r_sigma,calc_r_sigma(z));
     // printf("neff: %lf - %lf %lf %lf \n", n_eff_array[idx],n_eff_array[idx+1],n_eff,-3.+2.*pow(D1*sigmam(calc_r_sigma(z),2),2));
-
-    return 1;
 }
 
 
