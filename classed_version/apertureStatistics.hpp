@@ -32,18 +32,18 @@ private:
 
   /*****Integral borders******/
   
-  double phiMin=1e-4;//< Minimal phi [rad]
-  double phiMax=6.28; //< Maximal phi [rad]
-  double lMin=1e-6; //<Minimal ell
-  double lMax=1e4; //< Maximal ell
+  double phiMin=1e-4;//!< Minimal phi [rad]
+  double phiMax=6.28; //!< Maximal phi [rad]
+  double lMin=1e-6; //!<Minimal ell
+  double lMax=1e4; //!< Maximal ell
 
   /*****Temporary variables for integrations****/
   
-  double l1_; //<Temporary ell1
-  double l2_; //<Temporary ell2
-  double theta1_; //< Aperture radius [rad]
-  double theta2_; //< Aperture radius [rad]
-  double theta3_; //< Aperture radius [rad]
+  double l1_; //!<Temporary ell1
+  double l2_; //!<Temporary ell2
+  double theta1_; //!< Aperture radius [rad]
+  double theta2_; //!< Aperture radius [rad]
+  double theta3_; //!< Aperture radius [rad]
 
   /**
    * @brief Bispectrum for which MapMapMap is calculated 
