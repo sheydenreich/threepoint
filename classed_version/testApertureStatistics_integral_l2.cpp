@@ -69,7 +69,7 @@ int main()
   // Set up thetas
 
   double theta=10./60./180.*3.1416; //10 arcmin in rad
-  apertureStatistics.theta1_=2*theta;
+  apertureStatistics.theta1_=theta;
   apertureStatistics.theta2_=theta;
   apertureStatistics.theta3_=theta;
   apertureStatistics.lMax=10./theta;
