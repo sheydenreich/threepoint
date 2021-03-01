@@ -10,7 +10,9 @@ BispectrumCalculator::BispectrumCalculator()
 
 BispectrumCalculator::BispectrumCalculator(cosmology cosmo, int n_z, double z_max_arg, bool fast_calculations_arg)
 {
+  std::cout<<"Start initializing Bispectrum"<<std::endl;
   initialize(cosmo, n_z, z_max_arg, fast_calculations_arg);
+  std::cout<<"Finished initializing Bispectrum"<<std::endl;
 }
 
 
@@ -21,75 +23,77 @@ void BispectrumCalculator::initialize(cosmology cosmo, int n_z, double z_max_arg
     n_redshift_bins = n_z;
     z_max = z_max_arg;
     dz = z_max / ((double) n_redshift_bins);
-    printf("Initializing BispectrumCalculator... Filling the arrays... \n");
+    //  printf("Initializing BispectrumCalculator... Filling the arrays... \n");
     // Allocate memory
+    std::cout<<"Allocating Memory"<<std::endl;
     f_K_array = new double[n_redshift_bins];
     g_array = new double[n_redshift_bins];
     D1_array = new double[n_redshift_bins];
     r_sigma_array = new double[n_redshift_bins];
     n_eff_array = new double[n_redshift_bins];
+    std::cout<<"Memory is allocated"<<std::endl;
     set_cosmology(cosmo);
     initialized = true;
 }
 
 void BispectrumCalculator::set_cosmology(cosmology cosmo)
 {
-    // Necessary temporary variables
-    double z_now;
-    // Assign the correct cosmology
-    h = cosmo.h;
-    sigma8 = cosmo.sigma8;
-    omb = cosmo.omb;
-    omc = cosmo.omc;
-    ns = cosmo.ns;
-    w = cosmo.w;
-    om = cosmo.om;
-    ow = cosmo.ow;
-    // Calculate f_K(z) and g(z) on a grid
-    for(int i=0;i<n_redshift_bins;i++){ //fill the chi arrays
-        z_now = i*dz;
-        f_K_array[i] = f_K_at_z(z_now);
-        assert(isfinite(f_K_array[i]));
+  std::cout<<"Started setting cosmology"<<std::endl;
+  // Necessary temporary variables
+  double z_now;
+  // Assign the correct cosmology
+  h = cosmo.h;
+  sigma8 = cosmo.sigma8;
+  omb = cosmo.omb;
+  omc = cosmo.omc;
+  ns = cosmo.ns;
+  w = cosmo.w;
+  om = cosmo.om;
+  ow = cosmo.ow;
+  // Calculate f_K(z) and g(z) on a grid
+  for(int i=0;i<n_redshift_bins;i++){ //fill the chi arrays
+    z_now = i*dz;
+    f_K_array[i] = f_K_at_z(z_now);
+    assert(isfinite(f_K_array[i]));
     }
-    
-    for(int i=0;i<n_redshift_bins;i++){ //fill the lenseff arrays
-        g_array[i] = 0;
-        for(int j=i;j<n_redshift_bins;j++){
-            z_now = j*dz;
-            if(j==i || j==n_redshift_bins-1){
-                g_array[i] += n_of_z(z_now)*(f_K_array[j]-f_K_array[i])/f_K_array[j]/2;
-            }
-            else{
-                g_array[i] += n_of_z(z_now)*(f_K_array[j]-f_K_array[i])/f_K_array[j];
-            }
+  
+  for(int i=0;i<n_redshift_bins;i++){ //fill the lenseff arrays
+    g_array[i] = 0;
+    for(int j=i;j<n_redshift_bins;j++){
+      z_now = j*dz;
+      if(j==i || j==n_redshift_bins-1){
+	g_array[i] += n_of_z(z_now)*(f_K_array[j]-f_K_array[i])/f_K_array[j]/2;
+      }
+      else{
+	g_array[i] += n_of_z(z_now)*(f_K_array[j]-f_K_array[i])/f_K_array[j];
+      }
             // if(z_now>=1 && z_now<1+dz)
             // {
             //   printf("%.3f \n",z_now);
             // // if(n_of_z(z_now)!=0)
             //   printf("%.3e \n",n_of_z(z_now));
             // }
-        }
-        g_array[i] = g_array[i]*dz;
-        // printf("%.3f \n",g_array[i]);
     }
-    g_array[0] = 1.;
-    // printf("%3f \n",n_of_z(1.));
-    // Compute normalization of power spectrum
-    norm=1.;
-    norm*=sigma8/sigmam(8.,0);
-    // Computation of non-linear scales on a grid
-    printf("Computing nonlinear scales...\n");
-    // Fill the allocated arrays
-    for(int i=0; i<n_redshift_bins;i++){
-        printf("\b\b\b\b\b\b\b\b %3d/%3d",i,n_redshift_bins);
-        fflush(stdout);
-        z_now = i*dz;
-
-        D1_array[i]=lgr(z_now)/lgr(0.);   // linear growth factor
-        r_sigma_array[i]=calc_r_sigma(D1_array[i]);  // =1/k_NL [Mpc/h] in Eq.(B1)
-        n_eff_array[i]=-3.+2.*pow(D1_array[i]*sigmam(r_sigma_array[i],2),2);   // n_eff in Eq.(B2)
+    g_array[i] = g_array[i]*dz;
+    // printf("%.3f \n",g_array[i]);
     }
-    printf("\n Done \n");
+  g_array[0] = 1.;
+  // Compute normalization of power spectrum
+  norm=1.;
+  norm*=sigma8/sigmam(8.,0);
+  // Computation of non-linear scales on a grid
+  printf("Computing nonlinear scales...\n");
+  // Fill the allocated arrays
+  for(int i=0; i<n_redshift_bins;i++){
+    printf("\b\b\b\b\b\b\b\b %3d/%3d",i,n_redshift_bins);
+    fflush(stdout);
+    z_now = i*dz;
+    
+    D1_array[i]=lgr(z_now)/lgr(0.);   // linear growth factor
+    r_sigma_array[i]=calc_r_sigma(D1_array[i]);  // =1/k_NL [Mpc/h] in Eq.(B1)
+    n_eff_array[i]=-3.+2.*pow(D1_array[i]*sigmam(r_sigma_array[i],2),2);   // n_eff in Eq.(B2)
+  }
+  std::cout<<"Finished setting Cosmology"<<std::endl;
 }
 
 
@@ -194,6 +198,18 @@ double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
   }
   else{
     // printf("%lf %lf %lf \n",ell1,ell2,ell3);
+    if(!isfinite(ell1))
+      {
+	std::cout<<"ell1 not finite:"<<ell1<<std::endl;
+      };
+    if(!isfinite(ell2))
+      {
+	std::cout<<"ell2 not finite:"<<ell2<<std::endl;
+      };
+    if(!isfinite(ell3))
+      {
+	std::cout<<"ell3 not finite:"<<ell3<<std::endl;
+      };
     assert(isfinite(ell1) && isfinite(ell2) && isfinite(ell3));
 
     double result,error;
@@ -222,9 +238,10 @@ double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
     if(status)
     {
       fprintf(stderr,"Error at ells: %.6e %.6e %.6e \n",ells.ell1,ells.ell2,ells.ell3);
+      std::cerr<<"Errorcode:"<<gsl_strerror(status)<<std::endl;
     }
     return prefactor*result;
-  }
+    }
 }
 
 
@@ -244,7 +261,25 @@ double BispectrumCalculator::integrand_bkappa(double z, ell_params p){
     }
     double g_value = g_interpolated(idx,didx);
     double f_K_value = f_K_interpolated(idx,didx);
+    if(f_K_value==0)
+      {
+	std::cerr<<"integrand_bkappa: f_K becomes 0"<<std::endl;
+	std::cerr<<"idx:"<<idx<<std::endl;
+	std::cerr<<"didx:"<<didx<<std::endl;
+	std::cerr<<"z:"<<z<<std::endl;
+	exit(1);
+      };
     double result = pow(g_value*(1.+z),3)*bispec(ell1/f_K_value,ell2/f_K_value,ell3/f_K_value,z,idx,didx)/f_K_value/E(z);
+
+    if(!isfinite(result))
+      {
+	std::cout<<g_value<<" "
+		 <<z<<" "
+		 <<ell1<<" "
+		 <<ell2<<" "
+		 <<ell3<<" "
+		 <<f_K_value<<std::endl;
+      };
     assert(isfinite(result));
 
     return result;

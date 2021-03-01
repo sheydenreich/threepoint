@@ -11,7 +11,7 @@
 // use slics cosmology (false -> millennium cosmology)
 // TODO: Implenment redshift distribution for Euclid-like SLICS
 #define slics false
-#define test_analytical true
+#define test_analytical false
 
 /**
  *  @brief This structure contains parameters of a wCDM cosmology
