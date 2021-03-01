@@ -20,7 +20,7 @@ LIBS = -lm -lgsl -lgslcblas
 SRCS = $(wildcard *.cpp)
 
 # define the executables (ADD ALL EXECUTABLES HERE!!!!)
-EXECS = test_bispectrum.x
+EXECS = test_bispectrum.x calculateApertureStatistics.x testApertureStatistics_integrand.x testApertureStatistics_bispectrum.x testApertureStatistics_integral_phi.x testApertureStatistics_integral_l2.x testApertureStatistics_integral_l1.x
 
 # define the object files
 OBJS = $(SRCS:.cpp=.o)
@@ -35,7 +35,7 @@ all:	$(EXECS)
 
 # Linking of all .o Files to create the EXECS
 $(EXECS): $(OBJS)
-	$(GCC) $(CFLAGS) $(INCLUDES) $(OBJS) -o $@ $(LFLAGS) $(LIBS)
+	$(GCC) $(CFLAGS) $(INCLUDES) $(filter-out $(EXECS:.x=.o), $(OBJS)) $(@:.x=.o) -o $@ $(LFLAGS) $(LIBS)
 
 # Include all .d files
 -include $(DEPS)
