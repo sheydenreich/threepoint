@@ -1,7 +1,7 @@
 #include "apertureStatistics.hpp"
-
+#include "../cubature-1.0.3/cubature.h"
 #include <cmath>
-
+#include <omp.h>
 
 double ApertureStatistics::uHat(const double& eta)
 {
@@ -12,6 +12,14 @@ double ApertureStatistics::uHat(const double& eta)
 double ApertureStatistics::integrand(const double& l1, const double& l2, const double& phi)
 {
   double l3=sqrt(l1*l1+l2*l2+2*l1*l2*cos(phi));
+
+  if(!isfinite(l1) || !isfinite(l2) || !isfinite(l3))
+    {
+      std::cerr<<"ApertureStatistics::integrand: One of the l's not finite"<<std::endl;
+      std::cerr<<l1<<" "<<l2<<" "<<l3<<" "<<phi<<std::endl;
+      exit(1);
+    };
+  
   return l1*l2*Bispectrum_->bkappa(l1, l2, l3)*(uHat(l1*theta1_)*uHat(l2*theta2_)*uHat(l3*theta3_)
 					       +uHat(l1*theta2_)*uHat(l2*theta3_)*uHat(l3*theta1_)
 					       +uHat(l1*theta3_)*uHat(l2*theta1_)*uHat(l3*theta2_));
@@ -94,6 +102,25 @@ double ApertureStatistics::integral_l1()
   return result;
 }
 
+int ApertureStatistics::integrand(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value)
+{
+  ApertureStatistics* apertureStatistics = (ApertureStatistics*) thisPtr;
+  std::cout<<"Current Function Evaluations:"<<npts<<std::endl;
+  //#pragma omp parallel for num_threads(12) //DONT PARALLELIZE! BISPEC IS NOT THREAD SAFE!!!
+  for( unsigned int i=0; i<npts; i++)
+    {
+      double ell1=vars[i*ndim];
+      double ell2=vars[i*ndim+1];
+      double phi=vars[i*ndim+2];
+  
+      value[i]=apertureStatistics->integrand(ell1, ell2, phi);
+    }
+  
+  return 0; //Success :)
+}
+
+
+
 
 ApertureStatistics::ApertureStatistics(BispectrumCalculator* Bispectrum)
 {
@@ -117,9 +144,23 @@ double ApertureStatistics::MapMapMap(const double& theta1, const double& theta2,
   theta3_=theta3;
 
   //Set maximal l value such, that theta*l <= 10
-  double thetaMax=std::min({theta1, theta2, theta3});
-  lMax=10./thetaMax;
+  double thetaMin=std::min({theta1, theta2, theta3});
+  lMax=10./thetaMin;
 
 
-  return integral_l1()/248.050213442; //Divided by (2*pi)³
+  double result;
+
+#if CUBATURE //Do cubature integration
+  double vals_min[3]={lMin, lMin, phiMin};
+  double vals_max[3]={lMax, lMax, phiMax};
+
+  double error;
+
+  hcubature_v(1, integrand, this, 3, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
+  
+#else //Do standard GSL integration
+    result= integral_l1(); 
+#endif
+  
+  return result/248.050213442;//Divided by (2*pi)³
 }

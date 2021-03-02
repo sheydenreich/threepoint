@@ -1,7 +1,7 @@
 #ifndef APERTURESTATISTICS_HPP
 #define APERTURESTATISTICS_HPP
 
-
+#define CUBATURE true
 #include "bispectrum.hpp"
 
 
@@ -30,25 +30,7 @@ private:
    */
   gsl_integration_workspace * w_phi;
 
-  /*****Integral borders******/
-  
-  double phiMin=1e-4;//!< Minimal phi [rad]
-  double phiMax=6.28; //!< Maximal phi [rad]
-  double lMin=1e-6; //!<Minimal ell
-  double lMax=1e4; //!< Maximal ell
 
-  /*****Temporary variables for integrations****/
-  
-  double l1_; //!<Temporary ell1
-  double l2_; //!<Temporary ell2
-  double theta1_; //!< Aperture radius [rad]
-  double theta2_; //!< Aperture radius [rad]
-  double theta3_; //!< Aperture radius [rad]
-
-  /**
-   * @brief Bispectrum for which MapMapMap is calculated 
-   */
-  BispectrumCalculator* Bispectrum_;
 
   /**
    * @brief Filter function in Fourier space
@@ -58,8 +40,29 @@ private:
    */
   double uHat(const double& eta);
 
-public: //Once debugging is finished, these functions should be private!
+public: //Once debugging is finished, these members should be private!
 
+
+  /**
+   * @brief Bispectrum for which MapMapMap is calculated 
+   */
+  BispectrumCalculator* Bispectrum_;
+  
+    /*****Temporary variables for integrations****/
+  
+  double l1_; //!<Temporary ell1
+  double l2_; //!<Temporary ell2
+    double theta1_; //!< Aperture radius [rad]
+  double theta2_; //!< Aperture radius [rad]
+  double theta3_; //!< Aperture radius [rad]
+
+    /*****Integral borders******/
+  
+  double phiMin=1e-4;//!< Minimal phi [rad]
+  double phiMax=6.28; //!< Maximal phi [rad]
+  double lMin=1e-6; //!<Minimal ell
+  double lMax=1e4; //!< Maximal ell
+  
   /**
    * @brief Integrand of MapMapMap
    * Given in Schneider, Kilbinger & Lombardi (2003), Eq. 58
@@ -118,10 +121,21 @@ public: //Once debugging is finished, these functions should be private!
    * @param l1 ell1
    * @param thisPtr Pointer to ApertureStatistics class that is integrated
    */
-  static double integrand_l1(double l1, void* params);
+  static double integrand_l1(double l1, void* thisPtr);
 
 
- 
+  /**
+   * @brief Integrand for cubature library
+   * See https://github.com/stevengj/cubature for documentation
+   * @param ndim Number of dimensions of integral (here: 3, automatically assigned by integration)
+   * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+   * @param vars Array containing integration variables
+   * @param thisPts Pointer to ApertureStatistics Instance that is integrated
+   * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration)
+   * @param value Value of integral
+   * @return 0 on success
+   */
+  static int integrand(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value); 
   
 public:
 
@@ -133,6 +147,8 @@ public:
 
   /**
    * @brief Aperturestatistics calculated from Bispectrum using Eq. 58 from Schneider, Kilbinger & Lombardi (2003)
+   * If CUBATURE is true, this uses the pcubature routine from the cubature library
+   * If CUBATURE is false / not defined, this uses GSL and three separate integrals over each dimension (SLOOOOOW AF)
    * @param theta1 Aperture Radius 1 [rad]
    * @param theta2 Aperture Radius 2 [rad]
    * @param theta3 Aperture Radius 3 [rad]

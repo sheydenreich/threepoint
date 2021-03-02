@@ -7,11 +7,14 @@
  * @warning output is written in file "../tests/TestMapMapMap.dat"
  * @todo Thetas should be read from command line
  * @todo Outputfilename should be read from command line
+ * @todo Parallelize calculation of MapMapMap for different points
  */
 
 
 #include "apertureStatistics.hpp"
 #include <fstream>
+
+
 int main()
 {
   // Set Up Cosmology
@@ -59,11 +62,18 @@ int main()
 
   //Set up output
   std::ofstream out;
-  out.open("../tests/TestMapMapMap.dat");
 
 
+#if CUBATURE
+  std::cout<<"Using cubature for integration"<<std::endl;
+  out.open("../tests/TestMapMapMapCubature.dat");
+#else
+  std::cout<<"Using GSL for integration"<<std::endl;
+  out.open("../tests/TestMapMapMapGSL.dat");
+ #endif
   //Calculate <MapMapMap>(theta1, theta2, theta3) and output
-  for (unsigned int i=0; i<thetas.size(); i++)
+  //This could be parallelized (But take care of output!)
+    for (unsigned int i=0; i<thetas.size(); i++)
     {
       double theta1=thetas[i]*3.1416/180./60; //Conversion to rad
       
@@ -71,10 +81,10 @@ int main()
 	{
 	  double theta2=thetas[j]*3.1416/180./60.;
 
-	  for(unsigned int k=0; j<thetas.size(); k++)
+	  for(unsigned int k=0; k<thetas.size(); k++)
 	    {
 	      double theta3=thetas[k]*3.1416/180./60.;
-
+	      std::cout<<"Calculating MapMapMap for "<<thetas[i]<<" "<<thetas[j]<<" "<<thetas[k]<<std::endl;
 	      out<<thetas[i]<<" "
 		 <<thetas[j]<<" "
 		 <<thetas[k]<<" "
@@ -83,6 +93,8 @@ int main()
 	    };
 	};
     };
+  
+
 
 
   return 0;
