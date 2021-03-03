@@ -52,16 +52,16 @@ public: //Once debugging is finished, these members should be private!
   
   double l1_; //!<Temporary ell1
   double l2_; //!<Temporary ell2
-    double theta1_; //!< Aperture radius [rad]
+  double theta1_; //!< Aperture radius [rad]
   double theta2_; //!< Aperture radius [rad]
   double theta3_; //!< Aperture radius [rad]
 
     /*****Integral borders******/
   
-  double phiMin=1e-4;//!< Minimal phi [rad]
-  double phiMax=6.28; //!< Maximal phi [rad]
-  double lMin=1e-6; //!<Minimal ell
-  double lMax=1e4; //!< Maximal ell
+  double phiMin=0;//!< Minimal phi [rad]
+  double phiMax=6.28318; //!< Maximal phi [rad]
+  double lMin=1; //!<Minimal ell
+  double lMax=1e4; //!< Maximal ell (Overwritten by 10/min(theta) in inegration)
   
   /**
    * @brief Integrand of MapMapMap

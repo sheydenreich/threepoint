@@ -105,8 +105,8 @@ double ApertureStatistics::integral_l1()
 int ApertureStatistics::integrand(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value)
 {
   ApertureStatistics* apertureStatistics = (ApertureStatistics*) thisPtr;
-  std::cout<<"Current Function Evaluations:"<<npts<<std::endl;
-  //#pragma omp parallel for num_threads(12) //DONT PARALLELIZE! BISPEC IS NOT THREAD SAFE!!!
+  //  std::cout<<"Current Function Evaluations:"<<npts<<std::endl;
+  //#pragma omp parallel for num_threads(12) //DONT PARALLELIZE! SOMETHING IS NOT THREAD SAFE!!!
   for( unsigned int i=0; i<npts; i++)
     {
       double ell1=vars[i*ndim];

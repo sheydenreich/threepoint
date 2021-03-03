@@ -58,7 +58,7 @@ int main()
   ApertureStatistics apertureStatistics(&bispectrum);
 
   // Set up thetas for which ApertureStatistics are calculated
-  std::vector<double> thetas{4, 8, 16, 32, 64}; //Thetas in arcmin
+  std::vector<double> thetas{0.5, 1, 2, 4, 8, 16, 32}; //Thetas in arcmin
 
   //Set up output
   std::ofstream out;
