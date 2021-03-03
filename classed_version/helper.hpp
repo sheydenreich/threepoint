@@ -1,3 +1,6 @@
+#ifndef HELPER_HPP
+#define HELPER_HPP
+
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -32,3 +35,6 @@ int read_triangle_configurations(std::string& infile, treecorr_bin* triangle_con
 	return 1;
 
 }
+
+
+#endif //HELPER_HPP
