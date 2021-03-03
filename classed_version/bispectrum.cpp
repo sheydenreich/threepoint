@@ -106,18 +106,18 @@ double BispectrumCalculator::E_inv(double z)
 
 double BispectrumCalculator::f_K_at_z(double z)
 {
-    // gsl_integration_workspace * w = gsl_integration_workspace_alloc(1000);
-    double result; //,error;
+    gsl_integration_workspace * w = gsl_integration_workspace_alloc(10000);
+    double result,error;
 
-    // BispectrumCalculator* ptr2 = this;
-    // auto ptr = [=](double x)->double{return ptr2->E_inv(x);};
-    // gsl_function_pp<decltype(ptr)> Fp(ptr);
-    // gsl_function *F = static_cast<gsl_function*>(&Fp);
-    // gsl_integration_qag(F, 0, z, 0, 1.0e-4, 1000, 1, w, &result, &error);
-    // gsl_integration_workspace_free(w);
+    BispectrumCalculator* ptr2 = this;
+    auto ptr = [=](double x)->double{return ptr2->E_inv(x);};
+    gsl_function_pp<decltype(ptr)> Fp(ptr);
+    gsl_function *F = static_cast<gsl_function*>(&Fp);
+    gsl_integration_qag(F, 0, z, 0, 1.0e-6, 10000, 1, w, &result, &error);
+    gsl_integration_workspace_free(w);
     // printf("%.3f -- %.3f \n",z,result);
     // printf("%.3f, %.3f \n",om,ow);
-    result = GQ96_of_Einv(0,z);
+    // result = GQ96_of_Einv(0,z);
 
     return c_over_H0*result;
 }
@@ -187,15 +187,21 @@ double BispectrumCalculator::bispectrum_analytic_single_a(double l1, double l2, 
 
 
 double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
-
+  if(ell1 <= 80 || ell2 <= 80 || ell3 <= 80) return 0; //WARNING! THIS MIGHT SCREW WITH THE INTEGRATION ROUTINE!
   if(test_analytical){
 		double phi = acos((ell1*ell1+ell2*ell2-ell3*ell3)/(2*ell1*ell2));
-    return bispectrum_analytic_single_a(ell1,ell2,phi,1.0e+6)*(3.*pow(2*M_PI,2));
+    
+    double weights[9] = {0,1.0e+8,1.0e+6,1.0e+4,1.0e+2,1.0e+0,5.0e-3,1.0e-5,1.0e-6};
+    double a_vals[9] = {3.0e+3,1.0e+4,3.0e+4,1.0e+5,3.0e+5,1.0e+6,3.0e+6,1.0e+7,3.0e+7};
+    
+    double temp = 0;
+    for(int i=0;i<9;i++)
+    {
+        temp += weights[i]*bispectrum_analytic_single_a(ell1,ell2,phi,a_vals[i]);
+    }
+    return temp*(3.*pow(2*M_PI,2));
   }
   else{
-    // printf("%lf %lf %lf \n",ell1,ell2,ell3);
-    assert(isfinite(ell1) && isfinite(ell2) && isfinite(ell3));
-
     double result,error;
     double prefactor = 27./8. * pow(om,3) * pow(H0_over_c,5);
     struct ell_params ells = {ell1,ell2,ell3};
@@ -210,19 +216,15 @@ double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
     gsl_function_pp<decltype(ptr)> Fp(ptr);
     gsl_function *F = static_cast<gsl_function*>(&Fp);   
 
-    // if(fast_calculations)
+    size_t neval;
+    gsl_integration_qng(F, 0, z_max, 0, 1.0e-3, &result, &error, &neval);
+
+    // gsl_set_error_handler_off();
+    // int status = gsl_integration_qag(F, 0, z_max, 0, 1.0e-4, 1000, 1, w_bkappa, &result, &error);
+    // if(status)
     // {
-        // size_t neval;
-        // gsl_integration_qng(F, 0, z_max, 0, 1.0e-4, &result, &error, &neval);
+    //   fprintf(stderr,"Error at ells: %.6e %.6e %.6e \n",ells.ell1,ells.ell2,ells.ell3);
     // }
-    // else
-    // {
-    gsl_set_error_handler_off();
-    int status = gsl_integration_qag(F, 0, z_max, 0, 1.0e-4, 1000, 1, w_bkappa, &result, &error);
-    if(status)
-    {
-      fprintf(stderr,"Error at ells: %.6e %.6e %.6e \n",ells.ell1,ells.ell2,ells.ell3);
-    }
     return prefactor*result;
   }
 }
@@ -230,7 +232,6 @@ double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
 
 double BispectrumCalculator::integrand_bkappa(double z, ell_params p){
     // struct ell_params * p = (struct ell_params*) params;
-    // printf("got here \n");
     // fflush(stdout);
     double ell1 = (p.ell1);
     double ell2 = (p.ell2);
@@ -273,6 +274,7 @@ double BispectrumCalculator::bispec(double k1, double k2, double k3, double z, i
   compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff);
 
   if(z>10.) return bispec_tree(k1,k2,k3,z,D1); 
+  // return bispec_tree(k1,k2,k3,z,D1);
 
   
   q[1]=k1*r_sigma, q[2]=k2*r_sigma, q[3]=k3*r_sigma;  // dimensionless wavenumbers

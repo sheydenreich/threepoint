@@ -5,7 +5,8 @@
 #include <gsl/gsl_sf_bessel.h>
 #include <gsl/gsl_math.h>
 #include <complex>
-#include "Levin.h"
+#include <boost/math/quadrature/trapezoidal.hpp>
+// #include "Levin.h"
 
 const std::complex<double> i_complex(0,1);
 
@@ -18,14 +19,11 @@ private:
     double psip(double t);
     double angle(double x,double y);
     double bispectrum(double l1, double l2, double phi);
-    double A(double psi, double x1, double x2, double phi, double varpsi);
     double alpha(double psi, double x1, double x2, double phi, double varpsi);
     double betabar(double psi, double phi);
-    double varpsifunc(double an1, double an2, double opp);
     double integrated_bispec(double psi, double phi, double A3);
     // std::complex<double> integrand_phi(double psi, double x1, double x2, double x3, double phi);
     // std::complex<double> integrand_psi(double psi, double x1, double x2, double x3);
-    std::complex<double> integrand_phi_psi(double psi, double x1, double x2, double x3, double phi);
     std::complex<double> exponential(double x1, double x2, double x3, double psi, double phi, double varpsi);
     std::complex<double> prefactor_phi(double psi, double phi);
 
@@ -33,7 +31,7 @@ private:
     double GQ96_bkappa(double psi, double phi, double A3);
     double bkappa_rcubed_j6(double r, double psi, double phi, double A3);
     // try: integration via levin's method
-    Levin lp;
+    // Levin lp;
 
     // integration precision for bessel integral
     double prec_h;
@@ -89,12 +87,23 @@ private:
 
 
 public:
-    std::complex<double> gamma0(double x1, double x2, double x3);
+    std::complex<double> gamma0(double x1, double x2, double x3); //x1,x2,x3 in rad
     // For testing: analytical ggg correlation
     std::complex<double> ggg(std::complex<double> x, std::complex<double> y); // FOR TESTING
     std::complex<double> ggg_single_a(std::complex<double> x, std::complex<double> y, double a);
+    std::complex<double> integrand_phi_psi(double phi, double psi, double x1, double x2, double x3);
+    double A(double psi, double x1, double x2, double phi, double varpsi);
+    double varpsifunc(double an1, double an2, double opp);
 
     GammaCalculator(cosmology cosmo, double prec_h, double prec_k, bool fast_calculations_arg, int n_z, double z_max);
+
+
+    std::complex<double> Trapz2D_phi_psi(double x1,double x2, double x3);
+    std::complex<double> integrand_psi(double psi, double x1, double x2, double x3);
+    std::complex<double> integrand_x_psi(double x, double psi, double x1, double x2, double x3);
+    double r_integral(double phi, double psi, double x1, double x2, double x3);
+
+
 };
 
 
