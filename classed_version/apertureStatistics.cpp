@@ -19,10 +19,8 @@ double ApertureStatistics::integrand(const double& l1, const double& l2, const d
       std::cerr<<l1<<" "<<l2<<" "<<l3<<" "<<phi<<std::endl;
       exit(1);
     };
-  
-  return l1*l2*Bispectrum_->bkappa(l1, l2, l3)*(uHat(l1*theta1_)*uHat(l2*theta2_)*uHat(l3*theta3_)
-					       +uHat(l1*theta2_)*uHat(l2*theta3_)*uHat(l3*theta1_)
-					       +uHat(l1*theta3_)*uHat(l2*theta1_)*uHat(l3*theta2_));
+
+  return l1*l2*Bispectrum_->bkappa(l1, l2, l3)*(uHat(l1*theta1_)*uHat(l2*theta2_)*uHat(l3*theta3_);
 }
 
 

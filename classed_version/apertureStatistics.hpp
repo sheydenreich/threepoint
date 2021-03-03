@@ -65,8 +65,8 @@ public: //Once debugging is finished, these members should be private!
   
   /**
    * @brief Integrand of MapMapMap
-   * Given in Schneider, Kilbinger & Lombardi (2003), Eq. 58
-   * \f$ \ell_1 \ell_2 b(\ell_1, \ell_2, \phi)[\hat{u}(\theta_1\ell_1)\hat{u}(\theta_2\ell_2)\hat{u}(\theta_3\ell_3) + \mathrm{2 terms}]\f$
+   * @warning This is different from Eq 58 in Schneider, Kilbinger & Lombardi (2003) because the Bispectrum is defined differently!
+   * \f$ \ell_1 \ell_2 b(\ell_1, \ell_2, \phi)[\hat{u}(\theta_1\ell_1)\hat{u}(\theta_2\ell_2)\hat{u}(\theta_3\ell_3)]\f$
    * @param l1 ell1
    * @param l2 ell2
    * @param phi angle between l1 and l2 [rad]
