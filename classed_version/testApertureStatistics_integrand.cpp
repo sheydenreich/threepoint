@@ -73,10 +73,10 @@ int main()
 
   //Set up thetas
   double theta=10./60./180.*2*3.1416; //10 arcmin in rad
-  apertureStatistics.theta1_=theta;
-  apertureStatistics.theta2_=theta;
-  apertureStatistics.theta3_=theta;
 
+  double thetas[3]={theta, theta, theta};
+
+  
   //Calculate integrand and print result
   for(unsigned int i=0; i<ls.size(); i++)
     {
@@ -90,7 +90,7 @@ int main()
 	      out<<l1<<" "
 		 <<l2<<" "
 		 <<phi<<" "
-		 <<apertureStatistics.integrand(l1, l2, phi)<<std::endl;
+		 <<apertureStatistics.integrand(l1, l2, phi, thetas)<<std::endl;
 	    };
 	};
     };

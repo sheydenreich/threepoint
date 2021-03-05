@@ -55,10 +55,9 @@ int main()
   ApertureStatistics apertureStatistics(&bispectrum);
 
   //Ls for which integral is calculated
-  std::vector<double> ls{1.00000000e-03, 5.99484250e-03, 3.59381366e-02,
-			 2.15443469e-01, 1.29154967e+00, 7.74263683e+00,
-			 4.64158883e+01, 2.78255940e+02, 1.66810054e+03,
-			 1.00000000e+04};
+  std::vector<double> ls{1.00000000e+00, 3.59381366e+00, 1.29154967e+01, 4.64158883e+01,
+       1.66810054e+02, 5.99484250e+02, 2.15443469e+03, 7.74263683e+03,
+       2.78255940e+04, 1.00000000e+05};
 
   //Set up output
   std::ofstream out;
@@ -67,9 +66,7 @@ int main()
 
   // Set up thetas
   double theta=10./60./180.*3.1416; //10 arcmin in rad
-  apertureStatistics.theta1_=theta;
-  apertureStatistics.theta2_=theta;
-  apertureStatistics.theta3_=theta;
+  double thetas[3]={theta, theta, theta};
 
   // Calculate integral and give the result
   for(unsigned int i=0; i<ls.size(); i++)
@@ -80,7 +77,7 @@ int main()
 	  double l2=ls.at(j);
 	  out<<l1<<" "
 	     <<l2<<" "
-	     <<apertureStatistics.integral_phi(l1, l2)<<std::endl;
+	     <<apertureStatistics.integral_phi(l1, l2, thetas)<<std::endl;
 
 	};
     };

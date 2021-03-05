@@ -52,9 +52,6 @@ public: //Once debugging is finished, these members should be private!
   
   double l1_; //!<Temporary ell1
   double l2_; //!<Temporary ell2
-  double theta1_; //!< Aperture radius [rad]
-  double theta2_; //!< Aperture radius [rad]
-  double theta3_; //!< Aperture radius [rad]
 
     /*****Integral borders******/
   
@@ -72,7 +69,7 @@ public: //Once debugging is finished, these members should be private!
    * @param phi angle between l1 and l2 [rad]
    * @return value of integrand
    */
-  double integrand(const double& l1, const double& l2, const double& phi);
+  double integrand(const double& l1, const double& l2, const double& phi, double* thetas);
 
   /**
    * @brief MapMapMap integrand, integrated over phi
@@ -81,7 +78,7 @@ public: //Once debugging is finished, these members should be private!
    * @param l2 ell2
    * @return value of integrand
    */
-  double integral_phi(double l1, double l2);
+  double integral_phi(double l1, double l2, double* thetas);
 
     /**
    * @brief MapMapMap integrand, integrated over phi and l2
@@ -89,14 +86,14 @@ public: //Once debugging is finished, these members should be private!
    * @param l1 ell1
    * @return value of integrand
    */
-  double integral_l2(double l1);
+  double integral_l2(double l1, double* thetas);
 
   /**
    * @brief MapMapMap integrand, integrated over phi, l2 and l1
    * \f$ \int \mathrm{d} \ell_1 \int \mathrm{d} \ell_2 \int \mathrm{d}\phi \ell_1 \ell_2 b(\ell_1, \ell_2, \phi)[\hat{u}(\theta_1\ell_1)\hat{u}(\theta_2\ell_2)\hat{u}(\theta_3\ell_3) + \mathrm{2 terms}]\f$
    * @return value of integrand
    */
-  double integral_l1();
+  double integral_l1(double* thetas);
 
 
   /**
@@ -153,13 +150,23 @@ public:
    * @param theta2 Aperture Radius 2 [rad]
    * @param theta3 Aperture Radius 3 [rad]
    */
-   double MapMapMap(const double& theta1, const double& theta2, const double& theta3);
+   double MapMapMap(double* thetas);
 };
 
 
 
+/**
+ * @brief This struct contains an instance of the aperture statistics and aperture radii
+ * It is needed for the integration with cubature
+ */
+struct ApertureStatisticsContainer
+{
+  /** Aperturestatistics to be calculated*/
+  ApertureStatistics* aperturestatistics;
 
-
+  /** Apertureradii [rad]*/
+  double* thetas;
+};
 
 
 

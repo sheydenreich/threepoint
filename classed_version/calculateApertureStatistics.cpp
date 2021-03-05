@@ -84,11 +84,12 @@ int main()
 	  for(unsigned int k=0; k<thetas.size(); k++)
 	    {
 	      double theta3=thetas[k]*3.1416/180./60.;
+	      double thetas[3]={theta1, theta2, theta3};
 	      std::cout<<"Calculating MapMapMap for "<<thetas[i]<<" "<<thetas[j]<<" "<<thetas[k]<<std::endl;
 	      out<<thetas[i]<<" "
 		 <<thetas[j]<<" "
 		 <<thetas[k]<<" "
-		 <<apertureStatistics.MapMapMap(theta1, theta2, theta3)
+		 <<apertureStatistics.MapMapMap(thetas)
 		 <<std::endl;	      
 	    };
 	};

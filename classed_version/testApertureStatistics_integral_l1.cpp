@@ -61,14 +61,12 @@ int main()
 
   // Set up thetas
   double theta=10./60./180.*3.1416; //10 arcmin in rad
-  apertureStatistics.theta1_=theta;
-  apertureStatistics.theta2_=theta;
-  apertureStatistics.theta3_=theta;
+  double thetas[3]={theta, theta, theta};
   apertureStatistics.lMax=10./theta;
   apertureStatistics.lMin=1e-6;
 
   // Calculate integral
-  out	 <<apertureStatistics.integral_l1()<<std::endl;
+  out	 <<apertureStatistics.integral_l1(thetas)<<std::endl;
 
 
   return 0;
