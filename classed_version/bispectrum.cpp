@@ -187,7 +187,7 @@ double BispectrumCalculator::bispectrum_analytic_single_a(double l1, double l2, 
 
 
 double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
-  if(ell1 <= 80 || ell2 <= 80 || ell3 <= 80) return 0; //WARNING! THIS MIGHT SCREW WITH THE INTEGRATION ROUTINE!
+  if(ell1 == 0 || ell2 == 0 || ell3 == 0) return 0; //WARNING! THIS MIGHT SCREW WITH THE INTEGRATION ROUTINE!
   if(test_analytical){
 		double phi = acos((ell1*ell1+ell2*ell2-ell3*ell3)/(2*ell1*ell2));
     

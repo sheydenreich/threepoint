@@ -75,7 +75,6 @@ private:
     double E_inv(double z);
     double g_interpolated(int idx,double didx);
     double f_K_interpolated(int idx,double didx);
-    double integrand_bkappa(double z, ell_params p);
     void read_nofz(char filename[255]);
     void normalize_nofz();
     double* f_K_array;
@@ -130,6 +129,7 @@ private:
 public:
     void set_cosmology(cosmology cosmo);
     void initialize(cosmology cosmo, int n_z, double z_max, bool fast_calculations);
+    double integrand_bkappa(double z, ell_params p);
 
     double bispec(double k1, double k2, double k3, double z, int idx, double didx);
     double bkappa(double ell1,double ell2, double ell3);

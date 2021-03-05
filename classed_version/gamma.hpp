@@ -6,6 +6,7 @@
 #include <gsl/gsl_math.h>
 #include <complex>
 #include <boost/math/quadrature/trapezoidal.hpp>
+#include "../cubature/cubature.h"
 // #include "Levin.h"
 
 const std::complex<double> i_complex(0,1);
@@ -102,8 +103,22 @@ public:
     std::complex<double> integrand_psi(double psi, double x1, double x2, double x3);
     std::complex<double> integrand_x_psi(double x, double psi, double x1, double x2, double x3);
     double r_integral(double phi, double psi, double x1, double x2, double x3);
+    std::complex<double> integrand_r_phi_psi_one_x(double r, double phi, double psi, double x1, double x2, double x3);
+    double integrand_imag(double r, double phi, double psi, double z, double x1, double x2, double x3);
+    double integrand_real(double r, double phi, double psi, double z, double x1, double x2, double x3);
+
+    static int integrand_imag(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value);
+    static int integrand_real(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value);
+    std::complex<double> gamma0_from_cubature(double x1, double x2, double x3);
 
 
+};
+
+struct integration_parameter
+{
+    
+    double x1,x2,x3;
+    GammaCalculator* gammaCalculator;
 };
 
 

@@ -367,3 +367,109 @@ std::complex<double> GammaCalculator::ggg(std::complex<double> x, std::complex<d
     }
     return temp;
 }
+
+std::complex<double> GammaCalculator::integrand_r_phi_psi_one_x(double r, double phi, double psi, double x1, double x2, double x3)
+{
+    double varpsi = varpsifunc(x1,x2,x3);
+    double A3 = A(psi,x1,x2,phi,varpsi);
+    assert(isfinite(A3));
+    std::complex<double> prefactor = exponential(x1,x2,x3,psi,phi,varpsi)*prefactor_phi(psi,phi);
+    return prefactor*gsl_sf_bessel_Jn(6, A3*r);
+}
+
+double GammaCalculator::integrand_imag(double r, double phi, double psi, double z, double x1, double x2, double x3)
+{
+    double ell1 = r*cos(psi);
+    double ell2 = r*sin(psi);
+    double ell3 = sqrt(ell1*ell1+ell2*ell2-2*ell1*ell2*cos(phi));
+    struct ell_params ells = {ell1,ell2,ell3};
+    return Bispectrum_Class.integrand_bkappa(z,ells)*imag(integrand_r_phi_psi_one_x(r, phi, psi, x1, x2, x3)+integrand_r_phi_psi_one_x(r, phi, psi, x2, x3, x1)+integrand_r_phi_psi_one_x(r, phi, psi, x3, x1, x2));
+}
+
+double GammaCalculator::integrand_real(double r, double phi, double psi, double z, double x1, double x2, double x3)
+{
+    double ell1 = r*cos(psi);
+    double ell2 = r*sin(psi);
+    double ell3 = sqrt(ell1*ell1+ell2*ell2-2*ell1*ell2*cos(phi));
+    // std::cout << ell1 << ", " << ell2 << ", " << ell3 << std::endl;
+    struct ell_params ells = {ell1,ell2,ell3};
+    return Bispectrum_Class.integrand_bkappa(z,ells)*real(integrand_r_phi_psi_one_x(r, phi, psi, x1, x2, x3)+integrand_r_phi_psi_one_x(r, phi, psi, x2, x3, x1)+integrand_r_phi_psi_one_x(r, phi, psi, x3, x1, x2));
+}
+
+int GammaCalculator::integrand_real(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value)
+{
+    struct integration_parameter params = *((integration_parameter*) fdata);
+
+    GammaCalculator* gammaCalculator = params.gammaCalculator;
+    double x1 = params.x1;
+    double x2 = params.x2;
+    double x3 = params.x3;
+
+
+    // GammaCalculator* gammaCalculator = (GammaCalculator*) fdata;
+    // double x1 = 10*M_PI/180./60.;
+    // double x2 = x1;
+    // double x3 = x1;
+    for( unsigned int i=0; i<npts; i++)
+    {
+      double r=vars[i*ndim];
+      double phi=vars[i*ndim+1];
+      double psi=vars[i*ndim+2];
+      double z=vars[i*ndim+3];
+      value[i]=gammaCalculator->integrand_real(r,phi,psi,z,x1,x2,x3);
+    //   value[i] = 1.;
+    //   std::cout << r << "," << phi << "," << psi << "," << z << ":" << value[i] << std::endl ;
+    }
+
+    return 0;
+    // std::cout << std::endl;
+}
+
+int GammaCalculator::integrand_imag(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value)
+{
+    struct integration_parameter params = *((integration_parameter*) fdata);
+
+    GammaCalculator* gammaCalculator = params.gammaCalculator;
+    double x1 = params.x1;
+    double x2 = params.x2;
+    double x3 = params.x3;
+
+
+    // GammaCalculator* gammaCalculator = (GammaCalculator*) fdata;
+    // double x1 = 10*M_PI/180./60.;
+    // double x2 = x1;
+    // double x3 = x1;
+    for( unsigned int i=0; i<npts; i++)
+    {
+      double r=vars[i*ndim];
+      double phi=vars[i*ndim+1];
+      double psi=vars[i*ndim+2];
+      double z=vars[i*ndim+3];
+      value[i]=gammaCalculator->integrand_imag(r,phi,psi,z,x1,x2,x3);
+    //   value[i] = 1.;
+    //   std::cout << r << "," << phi << "," << psi << "," << z << ":" << value[i] << std::endl ;
+    }
+
+    return 0;
+    // std::cout << std::endl;
+}
+
+
+
+std::complex<double> GammaCalculator::gamma0_from_cubature(double x1, double x2, double x3)
+{
+    double vals_min[4] = {0,0,0,0};
+    double vals_max[4] = {40000,2*M_PI,M_PI/2,1};
+    double result_real,error_real,result_imag,error_imag;
+    struct integration_parameter params;
+    params.gammaCalculator = this;
+    params.x1 = x1;
+    params.x2 = x2;
+    params.x3 = x3;
+    hcubature_v(1,integrand_real,&params,4,vals_min,vals_max,0,0,1e-4,ERROR_L1,&result_real,&error_real);
+    hcubature_v(1,integrand_imag,&params,4,vals_min,vals_max,0,0,1e-4,ERROR_L1,&result_imag,&error_imag);
+
+    std::cout << result_real << " + " << result_imag << " i +/- " << error_real << " + " << error_imag <<" i" << std::endl;
+
+    return std::complex<double>(result_real,result_imag);
+}
