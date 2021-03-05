@@ -59,44 +59,129 @@ int main()
 
   // Set up thetas for which ApertureStatistics are calculated
   std::vector<double> thetas{0.5, 1, 2, 4, 8, 16, 32}; //Thetas in arcmin
-
-  //Set up output
-  std::ofstream out;
+  int N=thetas.size();
+  
+  // Set up vector for aperture statistics
+  std::vector<double> MapMapMaps(N*N*N);
+  
 
 
 #if CUBATURE
   std::cout<<"Using cubature for integration"<<std::endl;
-  out.open("../tests/TestMapMapMapCubature.dat");
 #else
   std::cout<<"Using GSL for integration"<<std::endl;
-  out.open("../tests/TestMapMapMapGSL.dat");
  #endif
-  //Calculate <MapMapMap>(theta1, theta2, theta3) and output
-  //This could be parallelized (But take care of output!)
-    for (unsigned int i=0; i<thetas.size(); i++)
-    {
-      double theta1=thetas[i]*3.1416/180./60; //Conversion to rad
-      
-      for (unsigned int j=0; j<thetas.size(); j++)
-	{
-	  double theta2=thetas[j]*3.1416/180./60.;
 
-	  for(unsigned int k=0; k<thetas.size(); k++)
+
+
+#if PARALLEL_RADII
+  std::cout<<"Parallelized over different aperture radii"<<std::endl;
+#pragma omp parallel for collapse(3)
+  //Calculate <MapMapMap>(theta1, theta2, theta3) 
+  //This also does the calculation only for theta1<=theta2<=theta3, but because of
+  //the properties of omp collapse, the for-loops are defined starting from 0
+  for (int i=0; i<N; i++)
+    {   
+      for (int j=0; j<N; j++)
+	{
+	  for(int k=0; k<N; k++)
 	    {
-	      double theta3=thetas[k]*3.1416/180./60.;
-	      double thetas[3]={theta1, theta2, theta3};
-	      std::cout<<"Calculating MapMapMap for "<<thetas[i]<<" "<<thetas[j]<<" "<<thetas[k]<<std::endl;
-	      out<<thetas[i]<<" "
-		 <<thetas[j]<<" "
-		 <<thetas[k]<<" "
-		 <<apertureStatistics.MapMapMap(thetas)
-		 <<std::endl;	      
+	      if(j>=i && k>=j) //Only do calculation for theta1<=theta2<=theta3
+		{
+		  //Thetas are defined here, because auf omp collapse
+		  double theta1=thetas.at(i)*3.1416/180./60; //Conversion to rad
+		  double theta2=thetas.at(j)*3.1416/180./60.;
+		  double theta3=thetas.at(k)*3.1416/180./60.;
+		  double thetas_calc[3]={theta1, theta2, theta3};
+
+		  double MapMapMap=apertureStatistics.MapMapMap(thetas_calc); //Do calculation
+		  // Do assigment (including permutations)
+		  MapMapMaps.at(i*N*N+j*N+k)=MapMapMap;
+		  MapMapMaps.at(i*N*N+k*N+j)=MapMapMap;
+		  MapMapMaps.at(j*N*N+i*N+k)=MapMapMap;
+		  MapMapMaps.at(j*N*N+k*N+i)=MapMapMap;
+		  MapMapMaps.at(k*N*N+i*N+j)=MapMapMap;
+		  MapMapMaps.at(k*N*N+j*N+i)=MapMapMap;
+		};
 	    };
 	};
     };
+  std::cout<<std::endl;
+#else
+  #if PARALLEL_INTEGRATION
+  std::cout<<"Parallelization over Integration"<<std::endl;
+  #else
+  std::cout<<"No Parallelizaion"<<std::endl;
+  #endif
+  //Needed for monitoring
+  int Ntotal=N*(N+1)*(N+2)/6.; //Total number of bins that need to be calculated, = (N+3+1) ncr 3
+  int step=0;
+
+  //Calculate <MapMapMap>(theta1, theta2, theta3) in three loops
+  // Calculation only for theta1<=theta2<=theta3, other combinations are assigned
+  for (int i=0; i<N; i++)
+    {
+      double theta1=thetas.at(i)*3.1416/180./60; //Conversion to rad
+      
+      for (int j=i; j<N; j++)
+	{
+	  double theta2=thetas.at(j)*3.1416/180./60.;
+
+	  for(int k=j; k<N; k++)
+	    {
+
+	      double theta3=thetas.at(k)*3.1416/180./60.;
+	      double thetas_calc[3]={theta1, theta2, theta3};
+
+	      //Progress for the impatient user
+	      step+=1;
+	      std::cout<<step<<"/"<<Ntotal<<": Thetas:"<<thetas.at(i)<<" "<<thetas.at(j)<<" "<<thetas.at(k);
+	      std::cout.flush();
+
+	      double MapMapMap=apertureStatistics.MapMapMap(thetas_calc); //Do calculation
+	      
+	      // Do assigment (including permutations)
+	      MapMapMaps.at(i*N*N+j*N+k)=MapMapMap;
+	      MapMapMaps.at(i*N*N+k*N+j)=MapMapMap;
+	      MapMapMaps.at(j*N*N+i*N+k)=MapMapMap;
+	      MapMapMaps.at(j*N*N+k*N+i)=MapMapMap;
+	      MapMapMaps.at(k*N*N+i*N+j)=MapMapMap;
+	      MapMapMaps.at(k*N*N+j*N+i)=MapMapMap;
+	    };
+	};
+    };
+  std::cout<<std::endl;
+#endif
+
   
 
+    //Output
+    std::string outfn;
+    std::ofstream out;
+#if CUBATURE
+    outfn="../tests/TestMapMapMapCubature.dat";
+#else
+    outfn="../tests/TestMapMapMapGSL:dat";
+#endif
+    std::cout<<"Writing results to "<<outfn<<std::endl;
+    out.open(outfn.c_str());
 
+    //Print out ==> Should not be parallelized!!!
+    for (int i=0; i<N; i++)
+      {
+	for(int j=0; j<N; j++)
+	  {
+	    for(int k=0; k<N; k++)
+	      {
+		out<<thetas[i]<<" "
+		   <<thetas[j]<<" "
+		   <<thetas[k]<<" "
+		   <<MapMapMaps.at(k*N*N+i*N+j)<<" "
+		   <<std::endl;
+	      };
+	  };
+      };
+    
 
   return 0;
 }

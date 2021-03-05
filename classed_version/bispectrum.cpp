@@ -218,10 +218,10 @@ double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
        
 
     // this is a fixed 96-point gaussian quadrature integral. This is threadsafe.
-    // result = GQ96_of_bdelta(0,z_max,ells);
+    result = GQ96_of_bdelta(0,z_max,ells);
     
     // This computes an adaptive gaussian quadrature integral. It is NOT threadsafe.
-    BispectrumCalculator* ptr2 = this;
+    /*    BispectrumCalculator* ptr2 = this;
     auto ptr = [=](double x)->double{return ptr2->integrand_bkappa(x,ells);};
     gsl_function_pp<decltype(ptr)> Fp(ptr);
     gsl_function *F = static_cast<gsl_function*>(&Fp);   
@@ -239,7 +239,7 @@ double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
     {
       fprintf(stderr,"Error at ells: %.6e %.6e %.6e \n",ells.ell1,ells.ell2,ells.ell3);
       std::cerr<<"Errorcode:"<<gsl_strerror(status)<<std::endl;
-    }
+      }*/
     return prefactor*result;
     }
 }

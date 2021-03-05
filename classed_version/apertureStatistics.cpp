@@ -131,8 +131,9 @@ int ApertureStatistics::integrand(unsigned ndim, size_t npts, const double* vars
   ApertureStatistics* apertureStatistics = container->aperturestatistics;
   double* thetas = container->thetas;
   
-  //  std::cout<<"Current Function Evaluations:"<<npts<<std::endl;
-  //#pragma omp parallel for num_threads(12) //DONT PARALLELIZE! SOMETHING IS NOT THREAD SAFE!!!
+#if PARALLEL_INTEGRATION
+#pragma omp parallel for
+#endif
   for( unsigned int i=0; i<npts; i++)
     {
       double ell1=vars[i*ndim];

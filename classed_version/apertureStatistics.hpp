@@ -2,6 +2,10 @@
 #define APERTURESTATISTICS_HPP
 
 #define CUBATURE true
+//Switches for Parallelization
+//Make sure at the most on is on!!! Also: NO PARALLELIZATION IF GSL IS USED FOR BISPEC INTEGRATION!!!
+#define PARALLEL_INTEGRATION false
+#define PARALLEL_RADII false
 #include "bispectrum.hpp"
 
 
