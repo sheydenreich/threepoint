@@ -2,12 +2,13 @@
  * @file calculateApertureStatistics.cpp
  * This executable calculates <MapMapMap> for predefined thetas from the
  * Takahashi+ Bispectrum
+ * If PARALLEL_INTEGRATION is true, the code is parallelized over the integration point calculation
+ * If PARALLEL_RADII is true, the code is parallelized over the aperture radii
  * @author Laila Linke
  * @warning thetas currently hardcoded
  * @warning output is written in file "../tests/TestMapMapMap.dat"
  * @todo Thetas should be read from command line
  * @todo Outputfilename should be read from command line
- * @todo Parallelize calculation of MapMapMap for different points
  */
 
 
@@ -78,7 +79,7 @@ int main()
   std::cout<<"Parallelized over different aperture radii"<<std::endl;
 #pragma omp parallel for collapse(3)
   //Calculate <MapMapMap>(theta1, theta2, theta3) 
-  //This also does the calculation only for theta1<=theta2<=theta3, but because of
+  //This does the calculation only for theta1<=theta2<=theta3, but because of
   //the properties of omp collapse, the for-loops are defined starting from 0
   for (int i=0; i<N; i++)
     {   
@@ -135,8 +136,7 @@ int main()
 
 	      //Progress for the impatient user
 	      step+=1;
-	      std::cout<<step<<"/"<<Ntotal<<": Thetas:"<<thetas.at(i)<<" "<<thetas.at(j)<<" "<<thetas.at(k);
-	      std::cout.flush();
+	      std::cout<<step<<"/"<<Ntotal<<": Thetas:"<<thetas.at(i)<<" "<<thetas.at(j)<<" "<<thetas.at(k)<<std::endl;
 
 	      double MapMapMap=apertureStatistics.MapMapMap(thetas_calc); //Do calculation
 	      
