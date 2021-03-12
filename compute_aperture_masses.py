@@ -7,6 +7,33 @@ from multiprocessing import Process, Pool
 import sys
 from astropy.io import fits
 
+"""
+positions of files:
+millennium simulations: 
+- /vol/aibn1113/data1/sven/millenium/ (can be read by using the function get_millennium)
+- ascii-files, can best be accessed with np.loadtxt
+- 4096x4096 grid of gamma1, gamma2 and kappa values at z=1 for 64 lines of sight spanning 4x4 deg
+- can be brought into that form by np.reshape(get_millennium(los),(4096,4096,5)), then
+    - 1st column: x-position
+    - 2nd column: y-position
+    - 3rd column: gamma1
+    - 4th column: gamma2
+    - 5th column: kappa
+
+SLICS without masks(euclid-like number density and redshift distribution):
+- /vol/euclid7/euclid7_2/sven/slics_lsst
+- .fits files, can best be accessed with fits from astropy.io
+- example: get_slics function
+- dictionary galaxy catalogue, relevant entries are x_arcmin,y_arcmin,shear1 and shear2
+- in total 958 lines-of-sight spanning 10x10 degree
+
+cosmo-SLICS without masks (euclid-like number density and redshift distribution):
+- /vol/euclid7/euclid7_2/sven/cosmoslics_lsst/$cosmo_$lett
+- file format same as SLICS
+- 26 cosmologies, 2 N-body simulations each (denoted by _a/ and _f/), and 10 semi-independent lines-of-sight per N-body simulation
+
+SLICS and cosmo-SLICS tiled to the DES_Y1 data are on /vol/euclid7/euclid7_1, but they have a different file format, if you need them just ask :)
+"""
 
 def compute_map_millennium(los):
     ac = aperture_mass_computer(4096,1,4*60)
@@ -36,7 +63,7 @@ def compute_map_slics(los):
 
 def get_millennium(los):
     """
-    returns 4096^2 x 5 array
+    returns (4096^2 , 5) array
     [:,0]: x-pos [arcmin]
     [:,1]: y-pos [arcmin]
     [:,2]: gamma1
