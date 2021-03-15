@@ -158,10 +158,10 @@ int main()
     //Output
     std::string outfn;
     std::ofstream out;
-#if CUBATURE
-    outfn="../tests/TestMapMapMapCubature.dat";
+#if slics
+    outfn="../results_SLICS/MapMapMap_bispec.dat";
 #else
-    outfn="../tests/TestMapMapMapGSL:dat";
+    outfn="../results_MR/MapMapMap_bispec.dat";
 #endif
     std::cout<<"Writing results to "<<outfn<<std::endl;
     out.open(outfn.c_str());
