@@ -1,10 +1,10 @@
 #include "gamma.hpp"
+#include "bispectrum.hpp"
 
 GammaCalculator::GammaCalculator(cosmology cosmo, double prec_h, double prec_k, bool fast_calculations_arg, int n_z, double z_max)
 {
     Bispectrum_Class.initialize(cosmo,n_z,z_max,fast_calculations_arg);
     initialize_bessel(prec_h,prec_k);
-    // lp.initialize(0,8,16);
 }
 
 
@@ -32,8 +32,6 @@ int GammaCalculator::initialize_bessel(double prec_h_arg, double prec_k_arg){
         array_psip[i] = psip(prec_h*pi_bessel_zeros[i]);
         array_w[i] = 2/(M_PI*bessel_zeros[i]*pow(gsl_sf_bessel_Jn(7,bessel_zeros[i]),2));
         array_product[i] = array_w[i]*pow(array_psi[i],3)*array_bessel[i]*array_psip[i];
-
-        // printf("%.8e, %.8e, %.8e\n",array_w[i],pi_bessel_zeros[i],array_psip[i]);
     }
     printf("Done \n");
     return 1;
@@ -55,13 +53,6 @@ double GammaCalculator::psip(double t){
     return zahler/nenner;
     // return tanh(0.5*M_PI*sinh(t))+0.5*M_PI*t*cosh(t); // /pow(cosh(0.5*M_PI*sinh(t)),2);
 }
-
-double GammaCalculator::angle(double x,double y){
-    double res = atan2(y,x);
-    if(res<0) res = res+2*M_PI;
-    return res;
-}
-
 
 double GammaCalculator::bispectrum(double l1, double l2, double phi){
     double l3 = sqrt(l1*l1+l2*l2-2*l1*l2*cos(phi));
@@ -101,13 +92,13 @@ double GammaCalculator::A(double psi, double x1, double x2, double phi, double v
 double GammaCalculator::alpha(double psi, double x1, double x2, double phi, double varpsi){
     double zahler = (cos(psi)*x2-sin(psi)*x1)*sin((phi+varpsi)/2);
     double nenner = (cos(psi)*x2+sin(psi)*x1)*cos((phi+varpsi)/2);
-    return angle(nenner,zahler);
+    return atan2(zahler,nenner);
 }
 
 double GammaCalculator::betabar(double psi, double phi){
     double zahler = cos(2*psi)*sin(phi);
     double nenner = cos(phi)+sin(2*psi);
-    return 0.5*angle(nenner,zahler);
+    return 0.5*atan2(zahler,nenner);
 }
 
 double GammaCalculator::varpsifunc(double an1, double an2, double opp){
@@ -116,12 +107,12 @@ double GammaCalculator::varpsifunc(double an1, double an2, double opp){
 
 std::complex<double> GammaCalculator::exponential(double x1, double x2, double x3, double psi, double phi, double varpsi)
 {
-    return exp(i_complex*(varpsifunc(x2,x3,x1)-varpsifunc(x1,x3,x2)-6*alpha(psi,x1,x2,phi,varpsi)));
+    return exp(std::complex<double>(0,(varpsifunc(x2,x3,x1)-varpsifunc(x1,x3,x2)-6*alpha(psi,x1,x2,phi,varpsi))));
 }
 
 std::complex<double> GammaCalculator::prefactor_phi(double psi, double phi)
 {
-    return exp(i_complex*betabar(psi,phi)*2.);
+    return exp(std::complex<double>(0,betabar(psi,phi)*2.));
 }
 
 std::complex<double> GammaCalculator::integrand_phi_psi(double phi, double psi, double x1, double x2, double x3){
@@ -153,6 +144,7 @@ std::complex<double> GammaCalculator::integrand_phi_psi(double phi, double psi, 
 }
 
 double GammaCalculator::r_integral(double phi, double psi, double x1, double x2, double x3){
+    /* returns int_0^oo dr r^3 b(r cos(psi),r sin(psi), phi)J_6(A_3 r) */
     double varpsi = varpsifunc(x1,x2,x3);
     double A3 = A(psi,x1,x2,phi,varpsi);
     if(isnan(A3))
@@ -227,8 +219,8 @@ double GammaCalculator::GQ96_bkappa(double psi, double phi, double A3)
 { /* 96-pt Gauss qaudrature integrates bkappa_rcubed_j6(x,psi,phi,A3) from x=a to x=b */
   int i;
   double cx,dx,q;
-  double a = 40000;
-  double b = 0;
+  double a = 0;
+  double b = 40000;
   cx=(a+b)/2;
   dx=(b-a)/2;
   q=0;
@@ -351,8 +343,8 @@ std::complex<double> GammaCalculator::ggg_single_a(std::complex<double> x, std::
     double phi3 = atan2(imag(z),real(z));
     std::complex<double> pref = pow((x-2.*y)*(x+y)*(y-2.*x),2);
     std::complex<double> expon = pow(abs(x),2)+pow(abs(y),2)-real(x)*real(y)-imag(x)*imag(y);
-    std::complex<double> phase = exp(-2.*i*(phi1+phi2+phi3));
-    std::complex<double> temp_result = pref*exp(-2*a*expon)*phase;
+    std::complex<double> phase = exp(2.*i*(phi1+phi2+phi3)); //adjusted, should get correct imaginary part now
+    // std::complex<double> temp_result = pref*exp(-2*a*expon)*phase;
     return pref*exp(-2*a*expon)*phase;
 }
 
@@ -374,29 +366,20 @@ std::complex<double> GammaCalculator::integrand_r_phi_psi_one_x(double r, double
     double A3 = A(psi,x1,x2,phi,varpsi);
     assert(isfinite(A3));
     std::complex<double> prefactor = exponential(x1,x2,x3,psi,phi,varpsi)*prefactor_phi(psi,phi);
-    return prefactor*gsl_sf_bessel_Jn(6, A3*r);
+    return sin(2*psi)*prefactor*gsl_sf_bessel_Jn(6, A3*r);
 }
 
-double GammaCalculator::integrand_imag(double r, double phi, double psi, double z, double x1, double x2, double x3)
-{
-    double ell1 = r*cos(psi);
-    double ell2 = r*sin(psi);
-    double ell3 = sqrt(ell1*ell1+ell2*ell2-2*ell1*ell2*cos(phi));
-    struct ell_params ells = {ell1,ell2,ell3};
-    return Bispectrum_Class.integrand_bkappa(z,ells)*imag(integrand_r_phi_psi_one_x(r, phi, psi, x1, x2, x3)+integrand_r_phi_psi_one_x(r, phi, psi, x2, x3, x1)+integrand_r_phi_psi_one_x(r, phi, psi, x3, x1, x2));
-}
-
-double GammaCalculator::integrand_real(double r, double phi, double psi, double z, double x1, double x2, double x3)
+std::complex<double> GammaCalculator::integrand(double r, double phi, double psi, double z, double x1, double x2, double x3)
 {
     double ell1 = r*cos(psi);
     double ell2 = r*sin(psi);
     double ell3 = sqrt(ell1*ell1+ell2*ell2-2*ell1*ell2*cos(phi));
     // std::cout << ell1 << ", " << ell2 << ", " << ell3 << std::endl;
     struct ell_params ells = {ell1,ell2,ell3};
-    return Bispectrum_Class.integrand_bkappa(z,ells)*real(integrand_r_phi_psi_one_x(r, phi, psi, x1, x2, x3)+integrand_r_phi_psi_one_x(r, phi, psi, x2, x3, x1)+integrand_r_phi_psi_one_x(r, phi, psi, x3, x1, x2));
+    return Bispectrum_Class.integrand_bkappa(z,ells)*pow(r,3)*(integrand_r_phi_psi_one_x(r, phi, psi, x1, x2, x3)+integrand_r_phi_psi_one_x(r, phi, psi, x2, x3, x1)+integrand_r_phi_psi_one_x(r, phi, psi, x3, x1, x2));
 }
 
-int GammaCalculator::integrand_real(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value)
+int GammaCalculator::integrand(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value)
 {
     struct integration_parameter params = *((integration_parameter*) fdata);
 
@@ -405,53 +388,21 @@ int GammaCalculator::integrand_real(unsigned ndim, size_t npts, const double* va
     double x2 = params.x2;
     double x3 = params.x3;
 
+    // std::cout << "Batch-size for evaluation: " << npts << std::endl;
 
-    // GammaCalculator* gammaCalculator = (GammaCalculator*) fdata;
-    // double x1 = 10*M_PI/180./60.;
-    // double x2 = x1;
-    // double x3 = x1;
+    #pragma omp parallel for
     for( unsigned int i=0; i<npts; i++)
     {
       double r=vars[i*ndim];
       double phi=vars[i*ndim+1];
       double psi=vars[i*ndim+2];
       double z=vars[i*ndim+3];
-      value[i]=gammaCalculator->integrand_real(r,phi,psi,z,x1,x2,x3);
-    //   value[i] = 1.;
-    //   std::cout << r << "," << phi << "," << psi << "," << z << ":" << value[i] << std::endl ;
+      std::complex<double> temp = gammaCalculator->integrand(r,phi,psi,z,x1,x2,x3);
+      value[fdim*i]=real(temp);
+      value[fdim*i+1]=imag(temp);
     }
 
     return 0;
-    // std::cout << std::endl;
-}
-
-int GammaCalculator::integrand_imag(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value)
-{
-    struct integration_parameter params = *((integration_parameter*) fdata);
-
-    GammaCalculator* gammaCalculator = params.gammaCalculator;
-    double x1 = params.x1;
-    double x2 = params.x2;
-    double x3 = params.x3;
-
-
-    // GammaCalculator* gammaCalculator = (GammaCalculator*) fdata;
-    // double x1 = 10*M_PI/180./60.;
-    // double x2 = x1;
-    // double x3 = x1;
-    for( unsigned int i=0; i<npts; i++)
-    {
-      double r=vars[i*ndim];
-      double phi=vars[i*ndim+1];
-      double psi=vars[i*ndim+2];
-      double z=vars[i*ndim+3];
-      value[i]=gammaCalculator->integrand_imag(r,phi,psi,z,x1,x2,x3);
-    //   value[i] = 1.;
-    //   std::cout << r << "," << phi << "," << psi << "," << z << ":" << value[i] << std::endl ;
-    }
-
-    return 0;
-    // std::cout << std::endl;
 }
 
 
@@ -459,17 +410,166 @@ int GammaCalculator::integrand_imag(unsigned ndim, size_t npts, const double* va
 std::complex<double> GammaCalculator::gamma0_from_cubature(double x1, double x2, double x3)
 {
     double vals_min[4] = {0,0,0,0};
-    double vals_max[4] = {40000,2*M_PI,M_PI/2,1};
-    double result_real,error_real,result_imag,error_imag;
+    double vals_max[4] = {500000,2*M_PI,M_PI/2,1};
+    double result[2];
+    double error[2];
     struct integration_parameter params;
     params.gammaCalculator = this;
     params.x1 = x1;
     params.x2 = x2;
     params.x3 = x3;
-    hcubature_v(1,integrand_real,&params,4,vals_min,vals_max,0,0,1e-4,ERROR_L1,&result_real,&error_real);
-    hcubature_v(1,integrand_imag,&params,4,vals_min,vals_max,0,0,1e-4,ERROR_L1,&result_imag,&error_imag);
+    double epsabs = 0;
+    if(test_analytical) epsabs = 1.0e-8;
+    hcubature_v(2,integrand,&params,4,vals_min,vals_max,0,epsabs,1e-3,ERROR_L1,result,error);
 
-    std::cout << result_real << " + " << result_imag << " i +/- " << error_real << " + " << error_imag <<" i" << std::endl;
+    if(!test_analytical) std::cout << x1 << ", " << x2 << ", " << x3 << ": " << result[0] << " + " << result[1] << " i +/- " << error[0] << " + " << error[1] <<" i" << std::endl;
 
-    return std::complex<double>(result_real,result_imag);
+    return std::complex<double>(result[0],result[1]);
+}
+
+std::complex<double> GammaCalculator::integrand_ell1_ell2_phi_one_x(double ell1, double ell2, double phi, double x1, double x2, double x3)
+{
+    double psi = atan2(ell2,ell1);
+    double varpsi = varpsifunc(x1,x2,x3);
+    double A3 = A(psi,x1,x2,phi,varpsi);
+    assert(isfinite(A3));
+    std::complex<double> prefactor = exponential(x1,x2,x3,psi,phi,varpsi)*prefactor_phi(psi,phi);
+    return ell1*ell2*prefactor*gsl_sf_bessel_Jn(6, A3*sqrt(ell1*ell1+ell2*ell2));
+}
+
+std::complex<double> GammaCalculator::integrand_ell(double ell1, double ell2, double phi, double z, double x1, double x2, double x3)
+{
+    double ell3 = sqrt(ell1*ell1+ell2*ell2-2*ell1*ell2*cos(phi));
+    // std::cout << ell1 << ", " << ell2 << ", " << ell3 << std::endl;
+    struct ell_params ells = {ell1,ell2,ell3};
+    return Bispectrum_Class.integrand_bkappa(z,ells)*(integrand_ell1_ell2_phi_one_x(ell1, ell2, phi, x1, x2, x3)+integrand_ell1_ell2_phi_one_x(ell1, ell2, phi, x2, x3, x1)+integrand_ell1_ell2_phi_one_x(ell1, ell2, phi, x3, x1, x2));
+}
+
+int GammaCalculator::integrand_ell(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value)
+{
+    struct integration_parameter params = *((integration_parameter*) fdata);
+
+    GammaCalculator* gammaCalculator = params.gammaCalculator;
+    double x1 = params.x1;
+    double x2 = params.x2;
+    double x3 = params.x3;
+
+    // std::cout << "Batch-size for evaluation: " << npts << std::endl;
+
+    #pragma omp parallel for
+    for( unsigned int i=0; i<npts; i++)
+    {
+      double ell1=vars[i*ndim];
+      double ell2=vars[i*ndim+1];
+      double phi=vars[i*ndim+2];
+      double z=vars[i*ndim+3];
+      std::complex<double> temp = gammaCalculator->integrand_ell(ell1,ell2,phi,z,x1,x2,x3);
+      value[fdim*i]=real(temp);
+      value[fdim*i+1]=imag(temp);
+    }
+
+    return 0;
+    // std::cout << std::endl;
+}
+
+std::complex<double> GammaCalculator::gamma0_from_cubature_ell(double x1, double x2, double x3)
+{
+    double vals_min[4] = {0,0,0,0};
+    double vals_max[4] = {40000,40000,2*M_PI,1};
+    double result[2];
+    double error[2];
+    struct integration_parameter params;
+    params.gammaCalculator = this;
+    params.x1 = x1;
+    params.x2 = x2;
+    params.x3 = x3;
+    double epsabs = 0;
+    if(test_analytical) epsabs = 1.0e-8;
+    hcubature_v(2,integrand_ell,&params,4,vals_min,vals_max,0,epsabs,1e-4,ERROR_L1,result,error);
+
+    if(!test_analytical) std::cout << x1 << ", " << x2 << ", " << x3 << ": " << result[0] << " + " << result[1] << " i +/- " << error[0] << " + " << error[1] <<" i" << std::endl;
+
+    return std::complex<double>(result[0],result[1]);
+}
+
+
+
+double GammaCalculator::integrated_bdelta_times_rcubed_J6(double z, double phi, double psi, double A3)
+{ /* this computes int_0^oo dR R^3 b_delta(R cos(psi), R sin(psi), phi) J_6(A_3' R) */
+    double bis = 0;
+    double cpsi = cos(psi);
+    double spsi = sin(psi);
+    double ell1,ell2,ell3,temp;
+
+    for(unsigned long int k=1;k<prec_k;k++){
+        ell1 = array_psi[k]/A3*cpsi;
+        ell2 = array_psi[k]/A3*spsi;
+        ell3 = sqrt(ell1*ell1+ell2*ell2-2*ell1*ell2*cos(phi));
+        struct ell_params ells = {ell1,ell2,ell3};
+
+        temp = Bispectrum_Class.integrand_bkappa(z,ells)*array_product[k];
+        assert(isfinite(temp));
+        bis += temp;
+    }
+
+    bis = bis*M_PI;
+    return bis;
+}
+
+std::complex<double> GammaCalculator::integrand_z_phi_psi_one_x(double z, double phi, double psi, double x1, double x2, double x3)
+{
+    double varpsi = varpsifunc(x1,x2,x3);
+    double A3 = A(psi,x1,x2,phi,varpsi);
+    assert(isfinite(A3));
+    std::complex<double> prefactor = sin(2*psi)*exponential(x1,x2,x3,psi,phi,varpsi)*prefactor_phi(psi,phi)/pow(A3,4);
+    std::cout << integrated_bdelta_times_rcubed_J6(z, phi, psi, A3) << std::endl;
+    return prefactor*integrated_bdelta_times_rcubed_J6(z, phi, psi, A3);
+}
+
+std::complex<double> GammaCalculator::integrand_z_phi_psi(double z, double phi, double psi, double x1, double x2, double x3)
+{
+    return integrand_z_phi_psi_one_x(z, phi, psi, x1, x2, x3)+integrand_z_phi_psi_one_x(z, phi, psi, x2, x3, x1)+integrand_z_phi_psi_one_x(z, phi, psi, x3, x1, x2);
+}
+
+int GammaCalculator::integrand_2(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value)
+{
+    struct integration_parameter params = *((integration_parameter*) fdata);
+
+    GammaCalculator* gammaCalculator = params.gammaCalculator;
+    double x1 = params.x1;
+    double x2 = params.x2;
+    double x3 = params.x3;
+
+    #pragma omp parallel for
+    for( unsigned int i=0; i<npts; i++)
+    {
+      double z=vars[i*ndim];
+      double phi=vars[i*ndim+1];
+      double psi=vars[i*ndim+2];
+      std::complex<double> temp = gammaCalculator->integrand_z_phi_psi(z, phi, psi, x1, x2, x3);
+      value[i*fdim]=real(temp);
+      value[i*fdim+1] = imag(temp);
+    }
+
+    return 0;
+}
+
+
+std::complex<double> GammaCalculator::gamma0_from_cubature_and_ogata(double x1, double x2, double x3)
+{
+    double vals_min[3] = {0,0,0};
+    double vals_max[3] = {1,2*M_PI,M_PI/2};
+    double result[2];
+    double error[2];
+    struct integration_parameter params;
+    params.gammaCalculator = this;
+    params.x1 = x1;
+    params.x2 = x2;
+    params.x3 = x3;
+    double epsabs = 0;
+    if(test_analytical) epsabs = 1.0e-8;
+    hcubature_v(2,integrand_2,&params,3,vals_min,vals_max,0,epsabs,1e-4,ERROR_L1,result,error);
+    if(!test_analytical) std::cout << x1 << ", " << x2 << ", " << x3 << ": " << result[0] << " + " << result[1] << " i +/- " << error[0] << " + " << error[1] <<" i" << std::endl;
+
+    return std::complex<double>(result[0],result[1]);
 }

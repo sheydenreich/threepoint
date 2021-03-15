@@ -1,4 +1,5 @@
 #include "bispectrum.hpp"
+#include <cmath>
 #include <gsl/gsl_errno.h>
 
 // Constructor for bispectrum class
@@ -231,13 +232,28 @@ double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
 
 
 double BispectrumCalculator::integrand_bkappa(double z, ell_params p){
-    // struct ell_params * p = (struct ell_params*) params;
-    // fflush(stdout);
     double ell1 = (p.ell1);
     double ell2 = (p.ell2);
     double ell3 = (p.ell3);
-    // printf("%f, %f, %f \n",ell1,ell2,ell3);
 
+  if(test_analytical)
+  { /* Returns bkappa_analytical if z<1, else returns 0 */
+    if(z>1) return 0; //fix normalization: int_0^1 f(y) dx = f(y)
+		double phi = acos((ell1*ell1+ell2*ell2-ell3*ell3)/(2*ell1*ell2));
+    if(isnan(phi)) phi=0;
+    
+    double weights[9] = {0,1.0e+8,1.0e+6,1.0e+4,1.0e+2,1.0e+0,5.0e-3,1.0e-5,1.0e-6};
+    double a_vals[9] = {3.0e+3,1.0e+4,3.0e+4,1.0e+5,3.0e+5,1.0e+6,3.0e+6,1.0e+7,3.0e+7};
+    
+    double temp = 0;
+    for(int i=0;i<9;i++)
+    {
+        temp += weights[i]*bispectrum_analytic_single_a(ell1,ell2,phi,a_vals[i]);
+    }
+    return temp*(3.*pow(2*M_PI,2));
+  }
+  else 
+  {
     if(z==0) return 0.;
     double didx = z/z_max*(n_redshift_bins-1);
     int idx = didx;
@@ -249,9 +265,13 @@ double BispectrumCalculator::integrand_bkappa(double z, ell_params p){
     double g_value = g_interpolated(idx,didx);
     double f_K_value = f_K_interpolated(idx,didx);
     double result = pow(g_value*(1.+z),3)*bispec(ell1/f_K_value,ell2/f_K_value,ell3/f_K_value,z,idx,didx)/f_K_value/E(z);
-    assert(isfinite(result));
-    // printf("%.3e\n",result);
+    if(!isfinite(result))
+    {
+      std::cout << "integrand_bkappa not finite!" << result << ", " << ell1 << ", " << ell2 << ", " << ell3 << ", " << z << std::endl;
+      return 0;
+    }
     return result;
+  }
 }
 
 double BispectrumCalculator::g_interpolated(int idx, double didx){
