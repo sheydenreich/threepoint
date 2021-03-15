@@ -220,7 +220,6 @@ private:
    */
     double f_K_interpolated(int idx,double didx);
 
-
   /**
    * Integrand of two-dimensional bispectrum in Limber equation
    * @param z redshift
@@ -327,6 +326,7 @@ public:
    * @param fast_calculations switch deciding if calculations should be sped up (doesn't do anything right now)
    */
     void initialize(cosmology cosmo, int n_z, double z_max, bool fast_calculations);
+    double integrand_bkappa(double z, ell_params p);
 
 
   /**
