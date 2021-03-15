@@ -1,5 +1,5 @@
 #include "apertureStatistics.hpp"
-#include "../cubature-1.0.3/cubature.h"
+#include "cubature.h"
 #include <cmath>
 #include <omp.h>
 

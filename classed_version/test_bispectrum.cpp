@@ -59,9 +59,8 @@ int main()
 
     GammaCalculator class_gamma(cosmo, 0.2, 3.5, false, 200, 2);
 
-    treecorr_bin* triangle_configurations;
-    triangle_configurations = new treecorr_bin [steps*usteps*vsteps];
-    read_triangle_configurations(infile, triangle_configurations, steps, usteps, vsteps);
+    std::vector<treecorr_bin> triangle_configurations;
+    read_triangle_configurations(infile, triangle_configurations);
 
     std::complex<double> result[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
     printf("Computing 3pcf. This might take a day or so ...\n");
@@ -89,7 +88,7 @@ int main()
                     std::complex<double> res_temp = class_gamma.gamma0(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
                     if(isnan(real(res_temp)) || isnan(imag(res_temp))){
                         printf("%lf %lf %lf %lf %lf \n",r1,r2,r3,real(res_temp),imag(res_temp));
-                        res_temp = (0,0);
+                        res_temp = std::complex(0.0,0.0);
                     }
                     result[id_x] = res_temp;
              }

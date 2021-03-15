@@ -220,12 +220,6 @@ private:
    */
     double f_K_interpolated(int idx,double didx);
 
-  /**
-   * Integrand of two-dimensional bispectrum in Limber equation
-   * @param z redshift
-   * @param p ell- values of bispectrum
-   */
-    double integrand_bkappa(double z, ell_params p);
 
 
   /**
@@ -312,6 +306,13 @@ private:
 public:
 
   /**
+   * Integrand of two-dimensional bispectrum in Limber equation
+   * @param z redshift
+   * @param p ell- values of bispectrum
+   */
+    double integrand_bkappa(double z, ell_params p);
+  
+  /**
    * Set cosmology and initialize Bispectrum.
    * Assigns cosmology to internal variables, calculates f_k, g, D1, r_sigma and n_eff on grid
    * @param cosmo cosmology that is to be used
@@ -326,7 +327,7 @@ public:
    * @param fast_calculations switch deciding if calculations should be sped up (doesn't do anything right now)
    */
     void initialize(cosmology cosmo, int n_z, double z_max, bool fast_calculations);
-    double integrand_bkappa(double z, ell_params p);
+
 
 
   /**

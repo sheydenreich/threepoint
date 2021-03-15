@@ -8,7 +8,7 @@ CFLAGS = -std=c++17 -fopenmp -W -Wall -Wpointer-arith -Wformat-nonliteral -Winit
 Levin.o : CFLAGS+=-Wno-implicit-fallthrough
 
 # define directories containing header files other than /usr/include
-INCLUDES = -I ./
+INCLUDES = -I ./ -I ~/.local/boost_1_75_0/
 
 # define library paths in addition to /usr/lib
 LFLAGS= -L
@@ -43,7 +43,7 @@ $(EXECS): $(OBJS)
 # Build target for every single object file
 # -MMD flag creates a .d file with the same name as the .o file
 %.o: %.cpp
-	$(GCC) $(CFLAGS) -MMD -c $< -o $@ $(LIBS)
+	$(GCC) $(CFLAGS) $(INCLUDES) -MMD -c $< -o $@ $(LIBS)
 
 # Cleaning of directory, removes .o, .x, and .d files
 clean:

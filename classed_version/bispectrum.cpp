@@ -296,7 +296,7 @@ double BispectrumCalculator::bispec(double k1, double k2, double k3, double z, i
   double r_sigma,n_eff,D1;
   compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff);
 
-  if(z>10.) return bispec_tree(k1,k2,k3,z,D1); 
+  if(z>10.) return bispec_tree(k1,k2,k3,D1); 
 
 
   
