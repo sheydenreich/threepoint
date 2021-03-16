@@ -653,3 +653,13 @@ double BispectrumCalculator::GQ96_of_bdelta(double a,double b,ell_params ells)
     q+=W96[i]*(integrand_bkappa(cx-dx*A96[i],ells)+integrand_bkappa(cx+dx*A96[i],ells));
   return(q*dx);
   }
+
+double BispectrumCalculator::get_om()
+  {
+    return om;
+  }
+
+double BispectrumCalculator::get_z_max()
+  {
+    return z_max;
+  }

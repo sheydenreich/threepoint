@@ -311,6 +311,17 @@ public:
    * @param p ell- values of bispectrum
    */
     double integrand_bkappa(double z, ell_params p);
+
+  /**
+   * Returns the omega_matter density parameter of the BispectrumCalculator
+   */
+  double get_om();
+
+  /**
+   * Returns the maximum redshift of the BispectrumCalculator
+   */
+  double get_z_max();
+
   
   /**
    * Set cosmology and initialize Bispectrum.

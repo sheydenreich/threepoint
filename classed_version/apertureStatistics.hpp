@@ -2,6 +2,7 @@
 #define APERTURESTATISTICS_HPP
 
 #define CUBATURE true
+#define INTEGRATE4D false
 //Switches for Parallelization
 //Make sure at the most one is on!!! Also: NO PARALLELIZATION IF GSL IS USED FOR BISPEC INTEGRATION!!!
 #define PARALLEL_INTEGRATION true
@@ -77,6 +78,20 @@ public: //Once debugging is finished, these members should be private!
   double integrand(const double& l1, const double& l2, const double& phi, double* thetas);
 
   /**
+   * @brief 4d- Integrand of MapMapMap (combining limber-integration with the integrand function)
+   * @warning This is different from Eq 58 in Schneider, Kilbinger & Lombardi (2003) because the Bispectrum is defined differently!
+   * \f$ \ell_1 \ell_2 b(\ell_1, \ell_2, \phi)[\hat{u}(\theta_1\ell_1)\hat{u}(\theta_2\ell_2)\hat{u}(\theta_3\ell_3)]\f$
+   * @param l1 ell1
+   * @param l2 ell2
+   * @param phi angle between l1 and l2 [rad]
+   * @param z redshift
+   * @param thetas Aperture radii [rad]
+   * @return value of integrand
+   */
+  double integrand_4d(const double& l1, const double& l2, const double& phi, const double& z, double* thetas);
+
+
+  /**
    * @brief MapMapMap integrand, integrated over phi
    * \f$ \int \mathrm{d}\phi \ell_1 \ell_2 b(\ell_1, \ell_2, \phi)[\hat{u}(\theta_1\ell_1)\hat{u}(\theta_2\ell_2)\hat{u}(\theta_3\ell_3) + \mathrm{2 terms}]\f$
    * @param l1 ell1
@@ -141,6 +156,20 @@ public: //Once debugging is finished, these members should be private!
    * @return 0 on success
    */
   static int integrand(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value); 
+
+  /**
+   * @brief Integrand for cubature library, same as the integrand-function, but the limber-integration is also performed via cubature
+   * See https://github.com/stevengj/cubature for documentation
+   * @param ndim Number of dimensions of integral (here: 3, automatically assigned by integration)
+   * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+   * @param vars Array containing integration variables
+   * @param thisPts Pointer to ApertureStatisticsContainer instance
+   * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration)
+   * @param value Value of integral
+   * @return 0 on success
+   */
+  static int integrand_4d(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value); 
+
   
 public:
 

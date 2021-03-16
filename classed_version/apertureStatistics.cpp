@@ -23,6 +23,26 @@ double ApertureStatistics::integrand(const double& l1, const double& l2, const d
   return l1*l2*Bispectrum_->bkappa(l1, l2, l3)*uHat(l1*thetas[0])*uHat(l2*thetas[1])*uHat(l3*thetas[2]);
 }
 
+double ApertureStatistics::integrand_4d(const double& l1, const double& l2, const double& phi, const double& z, double* thetas)
+{
+  double l3=sqrt(l1*l1+l2*l2+2*l1*l2*cos(phi));
+
+  if(!isfinite(l1) || !isfinite(l2) || !isfinite(l3))
+    {
+      std::cerr<<"ApertureStatistics::integrand: One of the l's not finite"<<std::endl;
+      std::cerr<<l1<<" "<<l2<<" "<<l3<<" "<<phi<<std::endl;
+      exit(1);
+    };
+
+  struct ell_params ells;
+  ells.ell1 = l1;
+  ells.ell2 = l2;
+  ells.ell3 = l3;
+
+  return l1*l2*Bispectrum_->integrand_bkappa(z,ells)*uHat(l1*thetas[0])*uHat(l2*thetas[1])*uHat(l3*thetas[2]);
+}
+
+
 
 double ApertureStatistics::integrand_phi(double phi, void * thisPtr)
 {
@@ -146,6 +166,44 @@ int ApertureStatistics::integrand(unsigned ndim, size_t npts, const double* vars
   return 0; //Success :)
 }
 
+int ApertureStatistics::integrand_4d(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value)
+{
+  if(fdim != 1)
+    {
+      std::cerr<<"ApertureStatistics::integrand: Wrong number of function dimensions"<<std::endl;
+      exit(1);
+    };
+  ApertureStatisticsContainer* container = (ApertureStatisticsContainer*) thisPtr;
+
+  ApertureStatistics* apertureStatistics = container->aperturestatistics;
+  double* thetas = container->thetas;
+  
+#if PARALLEL_INTEGRATION
+#pragma omp parallel for
+#endif
+  for( unsigned int i=0; i<npts; i++)
+    {
+      double ell1=vars[i*ndim];
+      double ell2=vars[i*ndim+1];
+      double phi=vars[i*ndim+2];
+      double z=vars[i*ndim+3];
+  
+      value[i]=apertureStatistics->integrand_4d(ell1, ell2, phi, z, thetas);
+    }
+
+  // for(unsigned int i=0; i<npts; i++)
+  // {
+  //     double ell1=vars[i*ndim];
+  //     double ell2=vars[i*ndim+1];
+  //     double phi=vars[i*ndim+2];
+  //     double z=vars[i*ndim+3];
+
+  //     std::cout << ell1 << ", " << ell2 << ", " << phi << ", " << z << ", " << value[i] << std::endl;
+  // }
+  
+  return 0; //Success :)
+}
+
 
 
 
@@ -176,16 +234,23 @@ double ApertureStatistics::MapMapMap(double* thetas)
   ApertureStatisticsContainer container;
   container.aperturestatistics=this;
   container.thetas=thetas;
-  double result;
+  double result,error;
 
 #if CUBATURE //Do cubature integration
-  double vals_min[3]={lMin, lMin, phiMin};
-  double vals_max[3]={lMax, lMax, phiMax};
 
-  double error;
+  #if INTEGRATE4D //do limber integration via cubature
+    double vals_min[4]={lMin, lMin, phiMin, 0};
+    double vals_max[4]={lMax, lMax, phiMax, Bispectrum_->get_z_max()};
 
-  hcubature_v(1, integrand, &container, 3, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
-  
+    hcubature_v(1, integrand_4d, &container, 4, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
+    result *= 27/8*pow(Bispectrum_->get_om(),3)*pow(100./299792.,5); //account for prefactor of limber integration
+
+  #else //do limber integration separately
+    double vals_min[3]={lMin, lMin, phiMin};
+    double vals_max[3]={lMax, lMax, phiMax};
+
+    hcubature_v(1, integrand, &container, 3, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
+  #endif
 #else //Do standard GSL integration
     result= integral_l1(); 
 #endif
