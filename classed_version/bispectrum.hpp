@@ -10,7 +10,7 @@
 
 // use slics cosmology (false -> millennium cosmology)
 // TODO: Implenment redshift distribution for Euclid-like SLICS
-#define slics false
+#define slics true
 #define test_analytical false
 
 struct cosmology
