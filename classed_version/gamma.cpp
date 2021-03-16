@@ -72,8 +72,7 @@ double GammaCalculator::integrated_bispec(double psi, double phi, double A3){
     double spsi = sin(psi);
     double r1,r2,temp;
 
-
-    for(unsigned long int k=1;k<prec_k;k++){
+    for(int k=1;k<prec_k;k++){
         r1 = array_psi[k]/A3*cpsi;
         r2 = array_psi[k]/A3*spsi;
         temp = bispectrum(r1, r2, phi)*array_product[k];

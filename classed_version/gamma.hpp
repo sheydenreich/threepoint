@@ -6,7 +6,7 @@
 #include <gsl/gsl_math.h>
 #include <complex>
 #include <boost/math/quadrature/trapezoidal.hpp>
-#include "../cubature/cubature.h"
+#include "cubature.h"
 // #include "Levin.h"
 
 const std::complex<double> i_complex(0,1);
@@ -87,15 +87,15 @@ private:
 
 
 public:
-    std::complex<double> gamma0(double x1, double x2, double x3); //x1,x2,x3 in rad
-    // For testing: analytical ggg correlation
-    std::complex<double> ggg(std::complex<double> x, std::complex<double> y); // FOR TESTING
-    std::complex<double> ggg_single_a(std::complex<double> x, std::complex<double> y, double a);
-    std::complex<double> integrand_phi_psi(double phi, double psi, double x1, double x2, double x3);
-    double A(double psi, double x1, double x2, double phi, double varpsi);
-    double varpsifunc(double an1, double an2, double opp);
+  std::complex<double> gamma0(double x1, double x2, double x3); //x1,x2,x3 in rad
+  // For testing: analytical ggg correlation
+  std::complex<double> ggg(std::complex<double> x, std::complex<double> y); // FOR TESTING
+  std::complex<double> ggg_single_a(std::complex<double> x, std::complex<double> y, double a);
+  std::complex<double> integrand_phi_psi(double phi, double psi, double x1, double x2, double x3);
+  double A(double psi, double x1, double x2, double phi, double varpsi);
+  double varpsifunc(double an1, double an2, double opp);
 
-    GammaCalculator(cosmology cosmo, double prec_h, double prec_k, bool fast_calculations_arg, int n_z, double z_max);
+  GammaCalculator(cosmology cosmo, double prec_h, double prec_k, bool fast_calculations_arg, int n_z, double z_max);
 
 
     std::complex<double> Trapz2D_phi_psi(double x1,double x2, double x3);

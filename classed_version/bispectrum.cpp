@@ -11,7 +11,9 @@ BispectrumCalculator::BispectrumCalculator()
 
 BispectrumCalculator::BispectrumCalculator(cosmology cosmo, int n_z, double z_max_arg, bool fast_calculations_arg)
 {
+  std::cout<<"Start initializing Bispectrum"<<std::endl;
   initialize(cosmo, n_z, z_max_arg, fast_calculations_arg);
+  std::cout<<"Finished initializing Bispectrum"<<std::endl;
 }
 
 
@@ -22,75 +24,77 @@ void BispectrumCalculator::initialize(cosmology cosmo, int n_z, double z_max_arg
     n_redshift_bins = n_z;
     z_max = z_max_arg;
     dz = z_max / ((double) n_redshift_bins);
-    printf("Initializing BispectrumCalculator... Filling the arrays... \n");
+    //  printf("Initializing BispectrumCalculator... Filling the arrays... \n");
     // Allocate memory
+    std::cout<<"Allocating Memory"<<std::endl;
     f_K_array = new double[n_redshift_bins];
     g_array = new double[n_redshift_bins];
     D1_array = new double[n_redshift_bins];
     r_sigma_array = new double[n_redshift_bins];
     n_eff_array = new double[n_redshift_bins];
+    std::cout<<"Memory is allocated"<<std::endl;
     set_cosmology(cosmo);
     initialized = true;
 }
 
 void BispectrumCalculator::set_cosmology(cosmology cosmo)
 {
-    // Necessary temporary variables
-    double z_now;
-    // Assign the correct cosmology
-    h = cosmo.h;
-    sigma8 = cosmo.sigma8;
-    omb = cosmo.omb;
-    omc = cosmo.omc;
-    ns = cosmo.ns;
-    w = cosmo.w;
-    om = cosmo.om;
-    ow = cosmo.ow;
-    // Calculate f_K(z) and g(z) on a grid
-    for(int i=0;i<n_redshift_bins;i++){ //fill the chi arrays
-        z_now = i*dz;
-        f_K_array[i] = f_K_at_z(z_now);
-        assert(isfinite(f_K_array[i]));
+  std::cout<<"Started setting cosmology"<<std::endl;
+  // Necessary temporary variables
+  double z_now;
+  // Assign the correct cosmology
+  h = cosmo.h;
+  sigma8 = cosmo.sigma8;
+  omb = cosmo.omb;
+  omc = cosmo.omc;
+  ns = cosmo.ns;
+  w = cosmo.w;
+  om = cosmo.om;
+  ow = cosmo.ow;
+  // Calculate f_K(z) and g(z) on a grid
+  for(int i=0;i<n_redshift_bins;i++){ //fill the chi arrays
+    z_now = i*dz;
+    f_K_array[i] = f_K_at_z(z_now);
+    assert(isfinite(f_K_array[i]));
     }
-    
-    for(int i=0;i<n_redshift_bins;i++){ //fill the lenseff arrays
-        g_array[i] = 0;
-        for(int j=i;j<n_redshift_bins;j++){
-            z_now = j*dz;
-            if(j==i || j==n_redshift_bins-1){
-                g_array[i] += n_of_z(z_now)*(f_K_array[j]-f_K_array[i])/f_K_array[j]/2;
-            }
-            else{
-                g_array[i] += n_of_z(z_now)*(f_K_array[j]-f_K_array[i])/f_K_array[j];
-            }
+  
+  for(int i=0;i<n_redshift_bins;i++){ //fill the lenseff arrays
+    g_array[i] = 0;
+    for(int j=i;j<n_redshift_bins;j++){
+      z_now = j*dz;
+      if(j==i || j==n_redshift_bins-1){
+	g_array[i] += n_of_z(z_now)*(f_K_array[j]-f_K_array[i])/f_K_array[j]/2;
+      }
+      else{
+	g_array[i] += n_of_z(z_now)*(f_K_array[j]-f_K_array[i])/f_K_array[j];
+      }
             // if(z_now>=1 && z_now<1+dz)
             // {
             //   printf("%.3f \n",z_now);
             // // if(n_of_z(z_now)!=0)
             //   printf("%.3e \n",n_of_z(z_now));
             // }
-        }
-        g_array[i] = g_array[i]*dz;
-        // printf("%.3f \n",g_array[i]);
     }
-    g_array[0] = 1.;
-    // printf("%3f \n",n_of_z(1.));
-    // Compute normalization of power spectrum
-    norm=1.;
-    norm*=sigma8/sigmam(8.,0);
-    // Computation of non-linear scales on a grid
-    printf("Computing nonlinear scales...\n");
-    // Fill the allocated arrays
-    for(int i=0; i<n_redshift_bins;i++){
-        printf("\b\b\b\b\b\b\b\b %3d/%3d",i,n_redshift_bins);
-        fflush(stdout);
-        z_now = i*dz;
-
-        D1_array[i]=lgr(z_now)/lgr(0.);   // linear growth factor
-        r_sigma_array[i]=calc_r_sigma(z_now,D1_array[i]);  // =1/k_NL [Mpc/h] in Eq.(B1)
-        n_eff_array[i]=-3.+2.*pow(D1_array[i]*sigmam(r_sigma_array[i],2),2);   // n_eff in Eq.(B2)
+    g_array[i] = g_array[i]*dz;
+    // printf("%.3f \n",g_array[i]);
     }
-    printf("\n Done \n");
+  g_array[0] = 1.;
+  // Compute normalization of power spectrum
+  norm=1.;
+  norm*=sigma8/sigmam(8.,0);
+  // Computation of non-linear scales on a grid
+  printf("Computing nonlinear scales...\n");
+  // Fill the allocated arrays
+  for(int i=0; i<n_redshift_bins;i++){
+    printf("\b\b\b\b\b\b\b\b %3d/%3d",i,n_redshift_bins);
+    fflush(stdout);
+    z_now = i*dz;
+    
+    D1_array[i]=lgr(z_now)/lgr(0.);   // linear growth factor
+    r_sigma_array[i]=calc_r_sigma(D1_array[i]);  // =1/k_NL [Mpc/h] in Eq.(B1)
+    n_eff_array[i]=-3.+2.*pow(D1_array[i]*sigmam(r_sigma_array[i],2),2);   // n_eff in Eq.(B2)
+  }
+  std::cout<<"Finished setting Cosmology"<<std::endl;
 }
 
 
@@ -203,16 +207,18 @@ double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
     return temp*(3.*pow(2*M_PI,2));
   }
   else{
+    assert(isfinite(ell1) && isfinite(ell2) && isfinite(ell3));
+
     double result,error;
     double prefactor = 27./8. * pow(om,3) * pow(H0_over_c,5);
     struct ell_params ells = {ell1,ell2,ell3};
        
 
     // this is a fixed 96-point gaussian quadrature integral. This is threadsafe.
-    // result = GQ96_of_bdelta(0,z_max,ells);
+    result = GQ96_of_bdelta(0,z_max,ells);
     
     // This computes an adaptive gaussian quadrature integral. It is NOT threadsafe.
-    BispectrumCalculator* ptr2 = this;
+    /*    BispectrumCalculator* ptr2 = this;
     auto ptr = [=](double x)->double{return ptr2->integrand_bkappa(x,ells);};
     gsl_function_pp<decltype(ptr)> Fp(ptr);
     gsl_function *F = static_cast<gsl_function*>(&Fp);   
@@ -225,9 +231,11 @@ double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
     // if(status)
     // {
     //   fprintf(stderr,"Error at ells: %.6e %.6e %.6e \n",ells.ell1,ells.ell2,ells.ell3);
-    // }
+    //      std::cerr<<"Errorcode:"<<gsl_strerror(status)<<std::endl;
+    //  }*/
+    
     return prefactor*result;
-  }
+    }
 }
 
 
@@ -264,12 +272,27 @@ double BispectrumCalculator::integrand_bkappa(double z, ell_params p){
     }
     double g_value = g_interpolated(idx,didx);
     double f_K_value = f_K_interpolated(idx,didx);
+    if(f_K_value==0)
+      {
+	std::cerr<<"integrand_bkappa: f_K becomes 0"<<std::endl;
+	std::cerr<<"idx:"<<idx<<std::endl;
+	std::cerr<<"didx:"<<didx<<std::endl;
+	std::cerr<<"z:"<<z<<std::endl;
+	exit(1);
+      };
     double result = pow(g_value*(1.+z),3)*bispec(ell1/f_K_value,ell2/f_K_value,ell3/f_K_value,z,idx,didx)/f_K_value/E(z);
+
     if(!isfinite(result))
-    {
-      std::cout << "integrand_bkappa not finite!" << result << ", " << ell1 << ", " << ell2 << ", " << ell3 << ", " << z << std::endl;
-      return 0;
-    }
+      {
+	std::cout<<g_value<<" "
+		 <<z<<" "
+		 <<ell1<<" "
+		 <<ell2<<" "
+		 <<ell3<<" "
+		 <<f_K_value<<std::endl;
+      };
+    assert(isfinite(result));
+
     return result;
   }
 }
@@ -286,15 +309,14 @@ double BispectrumCalculator::f_K_interpolated(int idx, double didx){
 
 double BispectrumCalculator::bispec(double k1, double k2, double k3, double z, int idx, double didx)   // non-linear BS w/o baryons [(Mpc/h)^6]
 {
-  // if(isnan(k1) || isnan(k2) || isnan(k3)) printf("NAN in bispec!\n");
   int i,j;
-  double q[4],qt,logsigma8z,r1,r2,kmin,kmid,kmax;
+  double q[4],qt,logsigma8z,r1,r2;
   double an,bn,cn,en,fn,gn,hn,mn,nn,pn,alphan,betan,mun,nun,BS1h,BS3h,PSE[4];
   double r_sigma,n_eff,D1;
   compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff);
 
-  if(z>10.) return bispec_tree(k1,k2,k3,z,D1); 
-  // return bispec_tree(k1,k2,k3,z,D1);
+  if(z>10.) return bispec_tree(k1,k2,k3,D1); 
+
 
   
   q[1]=k1*r_sigma, q[2]=k2*r_sigma, q[3]=k3*r_sigma;  // dimensionless wavenumbers
@@ -350,7 +372,7 @@ double BispectrumCalculator::bispec(double k1, double k2, double k3, double z, i
 }
 
 
-double BispectrumCalculator::bispec_tree(double k1, double k2, double k3, double z, double D1)  // tree-level BS [(Mpc/h)^6]
+double BispectrumCalculator::bispec_tree(double k1, double k2, double k3, double D1)  // tree-level BS [(Mpc/h)^6]
 {
   return pow(D1,4)*2.*(F2_tree(k1,k2,k3)*linear_pk(k1)*linear_pk(k2)
 		      +F2_tree(k2,k3,k1)*linear_pk(k2)*linear_pk(k3)
@@ -416,8 +438,9 @@ double BispectrumCalculator::baryon_ratio(double k1, double k2, double k3, doubl
 }
 
   
-double BispectrumCalculator::calc_r_sigma(double z, double D1)  // return r_sigma[Mpc/h] (=1/k_sigma)
+double BispectrumCalculator::calc_r_sigma(double D1)  // return r_sigma[Mpc/h] (=1/k_sigma)
 {
+
   double k,k1,k2;
 
   k1=k2=1.;
@@ -482,8 +505,8 @@ double BispectrumCalculator::linear_pk_eh(double k)   // Eisenstein & Hu (1999) 
 
 double BispectrumCalculator::sigmam(double r, int j)   // r[Mpc/h]
 {
-  int n,i,l;
-  double k1,k2,xx,xxp,xxpp,k,a,b,hh,x;
+  int n,i;
+  double k1,k2,xx,xxp,xxpp,k,a,b,hh;
 
   k1=2.*M_PI/r;
   k2=2.*M_PI/r;
@@ -529,6 +552,10 @@ double BispectrumCalculator::window(double x, int i)
   if(i==0) return 3.0/pow(x,3)*(sin(x)-x*cos(x));  // top hat
   if(i==1) return exp(-0.5*x*x);   // gaussian
   if(i==2) return x*exp(-0.5*x*x);  // 1st derivative gaussian
+
+  // This is only reached, if i is not a valid value between 0 and 2
+  std::cerr << "BispectrumCalculator::window: Window function not specified. Exiting \n";
+  exit(1);
 }
 
 
@@ -577,15 +604,21 @@ double BispectrumCalculator::lgr(double z)  // linear growth factor at z (not no
 double BispectrumCalculator::lgr_func(int j, double la, double y[2])
 {
   if(j==0) return y[1];
-  
-  double g,a;
-  a=exp(la);
-  g=-0.5*(5.*om+(5.-3*w)*ow*pow(a,-3.*w))*y[1]-1.5*(1.-w)*ow*pow(a,-3.*w)*y[0];
-  g=g/(om+ow*pow(a,-3.*w));
-  if(j==1) return g;
+  if(j==1)
+    {
+      double g,a;
+      a=exp(la);
+      g=-0.5*(5.*om+(5.-3*w)*ow*pow(a,-3.*w))*y[1]-1.5*(1.-w)*ow*pow(a,-3.*w)*y[0];
+      g=g/(om+ow*pow(a,-3.*w));
+      return g;
+    };
+
+   // This is only reached, if j is not a valid value
+  std::cerr << "BispectrumCalculator::lgr_func: j not a valid value. Exiting \n";
+  exit(1);
 }
 
-int BispectrumCalculator::compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff){
+void BispectrumCalculator::compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff){
     // Computes the non-linear scales on a grid that can be interpolated
     *D1 = D1_array[idx]*(1-didx) + D1_array[idx+1]*didx;
     *r_sigma = r_sigma_array[idx]*(1-didx) + r_sigma_array[idx+1]*didx;
@@ -594,8 +627,6 @@ int BispectrumCalculator::compute_coefficients(int idx, double didx, double *D1,
     // printf("D1: %lf - %lf %lf %lf \n",D1_array[idx],D1_array[idx+1],D1,lgr(z)/lgr(0.));
     // printf("rsigma: %lf - %lf %lf %lf \n",r_sigma_array[idx],r_sigma_array[idx+1],r_sigma,calc_r_sigma(z));
     // printf("neff: %lf - %lf %lf %lf \n", n_eff_array[idx],n_eff_array[idx+1],n_eff,-3.+2.*pow(D1*sigmam(calc_r_sigma(z),2),2));
-
-    return 1;
 }
 
 

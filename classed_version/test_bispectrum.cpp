@@ -7,35 +7,34 @@
 int main()
 {
     
-    struct cosmology cosmo;
+  struct cosmology cosmo;
 
-    if(slics)
+  if(slics)
     {
-        printf("using SLICS cosmology...");
-        cosmo.h=0.6898;     // Hubble parameter
-        cosmo.sigma8=0.826; // sigma 8
-        cosmo.omb=0.0473;   // Omega baryon
-        cosmo.omc=0.2905-cosmo.omb;   // Omega CDM
-        cosmo.ns=0.969;    // spectral index of linear P(k)
-        cosmo.w=-1.0;
-        cosmo.om = cosmo.omb+cosmo.omc;
-        cosmo.ow = 1-cosmo.om;
+      printf("using SLICS cosmology...");
+      cosmo.h=0.6898;     // Hubble parameter
+      cosmo.sigma8=0.826; // sigma 8
+      cosmo.omb=0.0473;   // Omega baryon
+      cosmo.omc=0.2905-cosmo.omb;   // Omega CDM
+      cosmo.ns=0.969;    // spectral index of linear P(k)
+      cosmo.w=-1.0;
+      cosmo.om = cosmo.omb+cosmo.omc;
+      cosmo.ow = 1-cosmo.om;
     }
-    else
+  else
     {
-        printf("using Millennium cosmology...");
-        cosmo.h = 0.73;
-        cosmo.sigma8 = 0.9;
-        cosmo.omb = 0.045;
-        cosmo.omc = 0.25 - cosmo.omb;
-        cosmo.ns = 1.;
-        cosmo.w = -1.0;
-        cosmo.om = cosmo.omc+cosmo.omb;
-        cosmo.ow = 1.-cosmo.om;
+      printf("using Millennium cosmology...");
+      cosmo.h = 0.73;
+      cosmo.sigma8 = 0.9;
+      cosmo.omb = 0.045;
+      cosmo.omc = 0.25 - cosmo.omb;
+      cosmo.ns = 1.;
+      cosmo.w = -1.0;
+      cosmo.om = cosmo.omc+cosmo.omb;
+      cosmo.ow = 1.-cosmo.om;
     }
-    
-    // BispectrumCalculator test_class(cosmo,200,2,false);
-    // std::cout << test_class.bkappa(1000.,100.,950.) << test_class.bkappa(100.,1000.,950.) << "\n";
+     BispectrumCalculator test_class(cosmo,200,2,false);
+    // std::cout << test_class.bkappa(1000.,1000.,1000.)*pow(1000.,3) << "\n";
     // std::cout << test_class.bkappa(2.055e+03, 5.472e+02, 2.602e+03)*pow(1000.,3) << "\n";
     // GammaCalculator test_class(cosmo,0.05,3.5,false,200,3);
     // double x = 10./60/180*M_PI;
@@ -63,9 +62,8 @@ int main()
 
     GammaCalculator class_gamma(cosmo, 0.05, 3.5, false, 400, 3);
 
-    treecorr_bin* triangle_configurations;
-    triangle_configurations = new treecorr_bin [steps*usteps*vsteps];
-    read_triangle_configurations(infile, triangle_configurations, steps, usteps, vsteps);
+    std::vector<treecorr_bin> triangle_configurations;
+    read_triangle_configurations(infile, triangle_configurations);
 
     std::complex<double> result[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
     printf("Computing 3pcf. This might take a day or so ...\n");
@@ -94,7 +92,7 @@ int main()
                     std::complex<double> res_temp = class_gamma.gamma0_from_cubature(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
                     if(isnan(real(res_temp)) || isnan(imag(res_temp))){
                         printf("%lf %lf %lf %lf %lf \n",r1,r2,r3,real(res_temp),imag(res_temp));
-                        res_temp = std::complex<double>(0,0);
+                        res_temp = std::complex(0.0,0.0);
                     }
                     result[id_x] = res_temp;
              }

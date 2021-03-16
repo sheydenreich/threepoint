@@ -2,10 +2,13 @@
 GCC = g++
 
 # define various compiler flags
-CFLAGS = -std=c++11 -fopenmp -W -Wall -Wpointer-arith -Wformat-nonliteral -Winit-self -g
+CFLAGS = -std=c++17 -fopenmp -W -Wall -Wpointer-arith -Wformat-nonliteral -Winit-self -g
+
+# ignoring of compiler flags for certain files
+Levin.o : CFLAGS+=-Wno-implicit-fallthrough
 
 # define directories containing header files other than /usr/include
-INCLUDES = -I ./
+INCLUDES = -I ./ -I ~/.local/boost_1_75_0/
 
 # define library paths in addition to /usr/lib
 LFLAGS= -L
@@ -17,7 +20,7 @@ LIBS = -lm -lgsl -lgslcblas
 SRCS = $(wildcard *.cpp)
 
 # define the executables (ADD ALL EXECUTABLES HERE!!!!)
-EXECS = test_bispectrum.x
+EXECS = test_bispectrum.x calculateApertureStatistics.x testApertureStatistics_integrand.x testApertureStatistics_bispectrum.x testApertureStatistics_integral_phi.x testApertureStatistics_integral_l2.x testApertureStatistics_integral_l1.x
 
 # define the object files
 OBJS = $(SRCS:.cpp=.o)
@@ -32,7 +35,7 @@ all:	$(EXECS)
 
 # Linking of all .o Files to create the EXECS
 $(EXECS): $(OBJS)
-	$(GCC) $(CFLAGS) $(INCLUDES) $(OBJS) -o $@ $(LFLAGS) $(LIBS)
+	$(GCC) $(CFLAGS) $(INCLUDES) $(filter-out $(EXECS:.x=.o), $(OBJS)) $(@:.x=.o) -o $@ $(LFLAGS) $(LIBS)
 
 # Include all .d files
 -include $(DEPS)
@@ -40,7 +43,7 @@ $(EXECS): $(OBJS)
 # Build target for every single object file
 # -MMD flag creates a .d file with the same name as the .o file
 %.o: %.cpp
-	$(GCC) $(CFLAGS) -MMD -c $< -o $@ $(LIBS)
+	$(GCC) $(CFLAGS) $(INCLUDES) -MMD -c $< -o $@ $(LIBS)
 
 # Cleaning of directory, removes .o, .x, and .d files
 clean:
