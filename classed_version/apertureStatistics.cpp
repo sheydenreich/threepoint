@@ -243,7 +243,7 @@ double ApertureStatistics::MapMapMap(double* thetas)
     double vals_max[4]={lMax, lMax, phiMax, Bispectrum_->get_z_max()};
 
     hcubature_v(1, integrand_4d, &container, 4, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
-    result *= 27/8*pow(Bispectrum_->get_om(),3)*pow(100./299792.,5); //account for prefactor of limber integration
+    result *= 27./8.*pow(Bispectrum_->get_om(),3)*pow(100./299792.,5); //account for prefactor of limber integration
 
   #else //do limber integration separately
     double vals_min[3]={lMin, lMin, phiMin};
