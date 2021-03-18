@@ -50,7 +50,16 @@ int main()
   //Initialize Bispectrum
   
   int n_z=200; //Number of redshift bins for grids
-  double z_max=2; //maximal redshift
+  double z_max;
+  if(slics)
+    {
+      z_max=3;
+    }
+  else
+    {
+      z_max=2;
+    };
+//maximal redshift
   bool fastCalc=false; //whether calculations should be sped up
   BispectrumCalculator bispectrum(cosmo, n_z, z_max, fastCalc);
 
