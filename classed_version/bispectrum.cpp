@@ -209,7 +209,7 @@ double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
   else{
     assert(isfinite(ell1) && isfinite(ell2) && isfinite(ell3));
 
-    double result,error;
+    double result;
     double prefactor = 27./8. * pow(om,3) * pow(H0_over_c,5);
     struct ell_params ells = {ell1,ell2,ell3};
        

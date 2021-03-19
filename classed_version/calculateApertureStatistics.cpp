@@ -49,8 +49,8 @@ int main()
 
   //Initialize Bispectrum
   
-  int n_z=200; //Number of redshift bins for grids
-  double z_max=2; //maximal redshift
+  int n_z=400; //Number of redshift bins for grids
+  double z_max=3; //maximal redshift
   bool fastCalc=false; //whether calculations should be sped up
   BispectrumCalculator bispectrum(cosmo, n_z, z_max, fastCalc);
 
@@ -159,7 +159,7 @@ int main()
     std::string outfn;
     std::ofstream out;
 #if slics
-    outfn="../results_SLICS/MapMapMap_bispec.dat";
+    outfn="../results_SLICS/MapMapMap_bispec_4d.dat";
 #else
     outfn="../results_MR/MapMapMap_bispec.dat";
 #endif

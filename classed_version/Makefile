@@ -4,12 +4,6 @@ GCC = g++
 # define various compiler flags
 CFLAGS = -std=c++17 -fopenmp -W -Wall -Wpointer-arith -Wformat-nonliteral -Winit-self -g
 
-# ignoring of compiler flags for certain files
-Levin.o : CFLAGS+=-Wno-implicit-fallthrough
-
-# define directories containing header files other than /usr/include
-INCLUDES = -I ./ -I ~/.local/boost_1_75_0/
-
 # define library paths in addition to /usr/lib
 LFLAGS= -L
 
@@ -20,7 +14,7 @@ LIBS = -lm -lgsl -lgslcblas
 SRCS = $(wildcard *.cpp)
 
 # define the executables (ADD ALL EXECUTABLES HERE!!!!)
-EXECS = test_bispectrum.x calculateApertureStatistics.x testApertureStatistics_integrand.x testApertureStatistics_bispectrum.x testApertureStatistics_integral_phi.x testApertureStatistics_integral_l2.x testApertureStatistics_integral_l1.x
+EXECS = calculateGamma.x calculateApertureStatistics.x testGamma_analytical_bispectrum.x testGamma_integrand.x testApertureStatistics_integrand.x testApertureStatistics_bispectrum.x testApertureStatistics_integral_phi.x testApertureStatistics_integral_l2.x testApertureStatistics_integral_l1.x
 
 # define the object files
 OBJS = $(SRCS:.cpp=.o)

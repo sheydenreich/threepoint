@@ -15,7 +15,7 @@ int GammaCalculator::initialize_bessel(double prec_h_arg, double prec_k_arg){
     // ##############################################################
     printf("Initializing bessel arrays...");
     prec_h = prec_h_arg;
-    prec_k = int(prec_k_arg/prec_h);
+    prec_k = uint(prec_k_arg/prec_h);
     bessel_zeros = new double[prec_k];
     pi_bessel_zeros = new double[prec_k];
     array_psi = new double[prec_k];
@@ -24,7 +24,7 @@ int GammaCalculator::initialize_bessel(double prec_h_arg, double prec_k_arg){
     array_w = new double[prec_k];
     array_product = new double[prec_k];
 
-    for(int i=0;i<prec_k;i++){
+    for(unsigned int i=0;i<prec_k;i++){
         bessel_zeros[i] = gsl_sf_bessel_zero_Jnu(6,i);
         pi_bessel_zeros[i] = bessel_zeros[i]/M_PI;
         array_psi[i] = M_PI*psi(pi_bessel_zeros[i]*prec_h)/prec_h;
@@ -61,7 +61,7 @@ double GammaCalculator::bispectrum(double l1, double l2, double phi){
         // printf("NAN in l3 with (l1,l2,phi)=(%f, %f, %f) \n",l1,l2,phi);
         l3 = 0;
     } 
-    return Bispectrum_Class.bkappa(l1,l2,l3)/(3.*pow(2*M_PI,2));
+    return Bispectrum_Class.bkappa(l1,l2,l3)/3.;
 }
 
 
@@ -72,7 +72,7 @@ double GammaCalculator::integrated_bispec(double psi, double phi, double A3){
     double spsi = sin(psi);
     double r1,r2,temp;
 
-    for(int k=1;k<prec_k;k++){
+    for(unsigned int k=1;k<prec_k;k++){
         r1 = array_psi[k]/A3*cpsi;
         r2 = array_psi[k]/A3*spsi;
         temp = bispectrum(r1, r2, phi)*array_product[k];
@@ -168,43 +168,6 @@ double GammaCalculator::r_integral(double phi, double psi, double x1, double x2,
     return bis;
 }
 
-// The below functions serve to perform the (phi,psi) integration via boost's trapezoidal integral.
-std::complex<double> GammaCalculator::integrand_x_psi(double x, double psi, double x1, double x2, double x3){
-    /*same as integrand_phi_psi, just with substitution x=cos(phi/2). Thus, x goes from -1 to 1. */
-    std::complex<double> result = integrand_phi_psi(2*acos(x),psi,x1,x2,x3)*2./sqrt(1-x*x);
-    if (isnan(real(result)) || isnan(imag(result)) || isinf(real(result)) || isinf(imag(result)) )
-    {
-        printf("NAN with (x,psi,x1,x2,x3) = (%f,%f,%.3e,%.3e,%.3e) \n",x,psi,x1,x2,x3);
-        return std::complex<double>(0,0);
-    } 
-    return result;
-}
-
-std::complex<double> GammaCalculator::integrand_psi(double psi, double x1, double x2, double x3){
-    using boost::math::quadrature::trapezoidal;
-    // auto f = [this,&psi,&x1,&x2,&x3](double x) { return integrand_x_psi(x,psi,x1,x2,x3); };
-    auto freal = [this,&psi,&x1,&x2,&x3](double x) { // printf("%.3f %.3f \n",real(integrand_x_psi(x,psi,x1,x2,x3)),imag(integrand_x_psi(x,psi,x1,x2,x3)));
-                                                        return real(integrand_x_psi(x,psi,x1,x2,x3)); };
-    auto fimag = [this,&psi,&x1,&x2,&x3](double x) { return imag(integrand_x_psi(x,psi,x1,x2,x3)); };
-    double integral_min = -1;
-    double integral_max = 1.;
-    std::complex<double> result = std::complex<double>(trapezoidal(freal,integral_min,integral_max),trapezoidal(fimag,integral_min,integral_max));
-    return result;
-}
-
-std::complex<double> GammaCalculator::Trapz2D_phi_psi(double x1,double x2, double x3){
-    using boost::math::quadrature::trapezoidal;
-    namespace pl = std::placeholders;
-    auto freal = [this,&x1,&x2,&x3](double psi) { return real(integrand_psi(psi,x1,x2,x3)); };
-    auto fimag = [this,&x1,&x2,&x3](double psi) { return imag(integrand_psi(psi,x1,x2,x3)); };
-    double integral_min = 0;
-    double integral_max = M_PI/2.;
-    std::complex<double> result = std::complex<double>(trapezoidal(freal,integral_min,integral_max),trapezoidal(freal,integral_min,integral_max));
-
-    return result;
-}
-
-
 
 double GammaCalculator::bkappa_rcubed_j6(double r, double psi, double phi, double A3)
 {   // returns r^3*J_6(A3*r)*b(r*cos(psi),r*sin(psi),phi)
@@ -229,34 +192,9 @@ double GammaCalculator::GQ96_bkappa(double psi, double phi, double A3)
 }
 
 
-// std::complex<double> GammaCalculator::GQ962D_phi_psi(double x1,double x2, double x3)
-// {/* 96x96-pt 2-D Gauss qaudrature integrates
-//             F(phi,psi,x1,x2,x3) over [0,2pi] x [0,pi/2] */
-//     int i,j,k;
-//     double cx,cy,dx,dy,w,x;
-//     std::complex<double> q;
-//     cx=M_PI;
-//     dx=cx;
-//     cy=M_PI/4;
-//     dy=cy;
-//     q=0;
-//     for(i=0;i<48;i++)
-//     {
-//     for(k=-1;k<=1;k+=2)
-//         {
-//         x=cx+k*dx*A96[i];
-//         w=dy*W96[i];
-//         for(j=0;j<48;j++)
-//         q+=w*W96[j]*(integrand_phi_psi(x,cy-dy*A96[j],x1,x2,x3)+integrand_phi_psi(x,cy+dy*A96[j],x1,x2,x3));
-//         }
-//     }
-//     return(q*dx);
-// }
-
 std::complex<double> GammaCalculator::GQ962D_phi_psi(double x1,double x2, double x3)
 {/* 96x96-pt 2-D Gauss qaudrature integrates
             F(phi,psi,x1,x2,x3) over [0,2pi] x [0,pi/2] */
-    /* right now, it is using the substitution x=-cos(phi/2). Thus, x goes from -1 to 1. */
     int i,j,k;
     double cx,cy,dx,dy,w,x;
     std::complex<double> q;
@@ -279,57 +217,42 @@ std::complex<double> GammaCalculator::GQ962D_phi_psi(double x1,double x2, double
 }
 
 
-// double GammaCalculator::integrand_psi(double psi, double x1, double x2, double x3){
-
-
-//     GammaCalculator* ptr2 = this;
-//     {
-//         auto ptr = [=](double x)->double{return ptr2->integrand_phi_real(psi,x1,x2,x3,x);};
-//         gsl_function_pp<decltype(ptr)> Fp(ptr);
-//         gsl_function *F = static_cast<gsl_function*>(&Fp);
-//         gsl_integration_qags(F, 2*integral_border, 2*M_PI-2*integral_border, 0, 1.0e-3, 1000, w_psi, &integral1, &error);
-//     }
-//     {
-//         auto ptr = [=](double x)->double{return ptr2->integrand_phi_real(psi,x2,x3,x1,x);};
-//         gsl_function_pp<decltype(ptr)> Fp(ptr);
-//         gsl_function *F = static_cast<gsl_function*>(&Fp);
-//         gsl_integration_qags(F, 2*integral_border, 2*M_PI-2*integral_border, 0, 1.0e-3, 1000, w_psi, &integral2, &error);
-//     }
-//     {
-//         auto ptr = [=](double x)->double{return ptr2->integrand_phi_real(psi,x3,x1,x2,x);};
-//         gsl_function_pp<decltype(ptr)> Fp(ptr);
-//         gsl_function *F = static_cast<gsl_function*>(&Fp);
-//         gsl_integration_qags(F, 2*integral_border, 2*M_PI-2*integral_border, 0, 1.0e-3, 1000, w_psi, &integral3, &error);
-//     }
-
-//   return prefactor_psi*(integral1+integral2+integral3);
-// }
-
 std::complex<double> GammaCalculator::gamma0(double x1, double x2, double x3){
-    std::complex<double> integral1,integral2,integral3;
     std::complex<double> result;
-    integral1 = GQ962D_phi_psi(x1,x2,x3);
-    integral2 = GQ962D_phi_psi(x2,x3,x1);
-    integral3 = GQ962D_phi_psi(x3,x1,x2);
-    result = integral1+integral2+integral3;
 
+    if(USE_CUBATURE)
+    {
+        if(USE_OGATA)
+        {
+            result = gamma0_from_cubature_and_ogata(x1, x2, x3);
+        }
+        else
+        {
+            if(PERFORM_ELL1_ELL2)
+            {
+                result = gamma0_from_cubature_ell(x1, x2, x3);
+            }
+            else
+            {
+                result = gamma0_from_cubature(x1, x2, x3);
+            }
+        }
+        result *= 27./8.*pow(Bispectrum_Class.get_om(),3)*pow(100./299792.,5); //prefactor from limber integration
+        result /= 3.; //prefactor for bispectrum definition in Eq.(4) of Schneider et al. (2005)
+        result /= (2*pow(2*M_PI,3)); //prefactor from modified Eq.(15) of Schneider et al. (2005)
+        return result;
+    }
 
-    
-    // {
-    //     auto ptr = [=](double x)->double{return ptr2->integrand_psi_real(x,x1,x2,x3);};
-    //     gsl_function_pp<decltype(ptr)> Fp(ptr);
-    //     gsl_function *F = static_cast<gsl_function*>(&Fp);
-    //     gsl_integration_qags(F, integral_border/2., M_PI/2.-integral_border/2., 0, 1.0e-2, 1000, w_psi, &integral1, &error);
-    // }
-    // {
-    //     auto ptr = [=](double x)->double{return ptr2->integrand_psi_imag(x,x1,x2,x3);};
-    //     gsl_function_pp<decltype(ptr)> Fp(ptr);
-    //     gsl_function *F = static_cast<gsl_function*>(&Fp);
-    //     gsl_integration_qags(F, integral_border/2., M_PI/2.-integral_border/2., 0, 1.0e-2, 1000, w_psi, &integral2, &error);
-    // }
-    // std::complex<double> result(integral1,integral2);
+    else
+    {
+        std::complex<double> integral1,integral2,integral3;
+        integral1 = GQ962D_phi_psi(x1,x2,x3);
+        integral2 = GQ962D_phi_psi(x2,x3,x1);
+        integral3 = GQ962D_phi_psi(x3,x1,x2);
+        result = integral1+integral2+integral3;
 
-  return result/(2*pow(2*M_PI,3));
+        return result/(2*pow(2*M_PI,3)); //prefactor from modified Eq.(15) of Schneider et al. (2005)
+    }
 }
 
 
@@ -500,7 +423,7 @@ double GammaCalculator::integrated_bdelta_times_rcubed_J6(double z, double phi, 
     double spsi = sin(psi);
     double ell1,ell2,ell3,temp;
 
-    for(unsigned long int k=1;k<prec_k;k++){
+    for(unsigned int k=1;k<prec_k;k++){
         ell1 = array_psi[k]/A3*cpsi;
         ell2 = array_psi[k]/A3*spsi;
         ell3 = sqrt(ell1*ell1+ell2*ell2-2*ell1*ell2*cos(phi));

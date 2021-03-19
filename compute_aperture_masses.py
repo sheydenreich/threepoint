@@ -47,17 +47,20 @@ def compute_map_millennium(los):
     for theta_ap in [0.5,1,2,4,8,16,32]:
         ac.change_theta_ap(theta_ap)
         result = ac.Map_fft(shears,return_mcross=True)
-        np.save("/vol/euclid6/euclid6_1/sven/maps_millennium/theta_"+str(theta_ap)+"_los_"+str(los),result)
+        np.save("/vol/euclid7/euclid7_2/sven/maps_millennium/theta_"+str(theta_ap)+"_los_"+str(los),result)
 
 def compute_map_slics(los):
     ac = aperture_mass_computer(4096,1,10*60)
-    Xs,Ys,gamma_1,gamma_2 = get_slics(los)
-    shears = ac.normalize_shear(Xs,Ys,gamma_1,gamma_2)
+    try:
+        Xs,Ys,gamma_1,gamma_2 = get_slics(los)
+        shears = ac.normalize_shear(Xs,Ys,gamma_1,gamma_2)
 
-    for theta_ap in [1,2,4,8,16,32]:
-        ac.change_theta_ap(theta_ap)
-        result = ac.Map_fft(shears,return_mcross=True)
-        np.save("/vol/euclid6/euclid6_1/sven/maps_slics/theta_"+str(theta_ap)+"_los_"+str(los),result)
+        for theta_ap in [1,2,4,8,16,32]:
+            ac.change_theta_ap(theta_ap)
+            result = ac.Map_fft(shears,return_mcross=True)
+            np.save("/vol/euclid7/euclid7_2/sven/maps_slics/theta_"+str(theta_ap)+"_los_"+str(los),result)
+    except Exception as inst:
+        print(inst)
     
 
 
@@ -280,12 +283,12 @@ def progressBar(name, value, endvalue, bar_length = 25, width = 20):
 
 if __name__ == "__main__":
     #compute map for slics
-    arglist = np.arange(74,74+512)
-    calculate_multiprocessed(compute_map_slics,1,arglist,True,"Computing Map for SLICS")
+    arglist = np.arange(74,74+128)
+    calculate_multiprocessed(compute_map_slics,64,arglist,True,"Computing Map for SLICS")
 
     
     #compute map for MS
-    arglist = np.arange(64)
-    calculate_multiprocessed(compute_map_millennium,64,arglist)
+    # arglist = np.arange(64)
+    # calculate_multiprocessed(compute_map_millennium,64,arglist)
 
 

@@ -5,9 +5,30 @@
 #include <gsl/gsl_sf_bessel.h>
 #include <gsl/gsl_math.h>
 #include <complex>
-#include <boost/math/quadrature/trapezoidal.hpp>
 #include "cubature.h"
-// #include "Levin.h"
+
+
+/** These defines regulate which integration methods are used when using the function gamma0
+*/
+
+/** If true, the hcubature method is used to compute the multidimensional integral. The limber-integration is included in that.
+  * If false, the limber-integration and the (phi,psi) integrations are performed using 96-point gaussian quadrature;
+  * the R-integration is performed using Ogata et al. (2005).
+*/
+#define USE_CUBATURE true
+
+/** Only relevant if USE_CUBATURE.
+  * If true, the R-integration is performed via Ogata et al. (2005). This is recommended. 
+  * If false, cubature performs a 4-dimensional integration. This normally leads to memory issues at scales >10 arcmin since the
+  * integrand needs too many subdivisions.
+*/
+#define USE_OGATA true
+
+/** Only relevant if USE_CUBATURE and not USE_OGATA.
+  * If true, performs the 4d cubature integration with (z,R,phi,psi).
+  * If false, performs the 4d cubature integration with (z,ell1,ell2,phi).
+*/
+#define PERFORM_ELL1_ELL2 false
 
 const std::complex<double> i_complex(0,1);
 
@@ -30,12 +51,10 @@ private:
     // try: integrating bkappa by gaussian quadrature
     double GQ96_bkappa(double psi, double phi, double A3);
     double bkappa_rcubed_j6(double r, double psi, double phi, double A3);
-    // try: integration via levin's method
-    // Levin lp;
 
     // integration precision for bessel integral
     double prec_h;
-    int prec_k;
+    unsigned int prec_k;
     // this avoids integration of degenerate triangles
     double integral_border = 1.0e-14;
     double* bessel_zeros;
@@ -84,45 +103,41 @@ private:
 
     std::complex<double> GQ962D_phi_psi(double x1,double x2, double x3);
 
+    /* 4-dimensional (r,phi,psi,z) integration with cubature */
+    double r_integral(double phi, double psi, double x1, double x2, double x3);
+    std::complex<double> integrand_r_phi_psi_one_x(double r, double phi, double psi, double x1, double x2, double x3);
+    std::complex<double> integrand(double r, double phi, double psi, double z, double x1, double x2, double x3);
+    static int integrand(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value);
+    
+    /* 4-dimensional (ell1,ell2,phi,z) integration with cubature */
+    static int integrand_ell(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value);
+    std::complex<double> integrand_ell(double ell1, double ell2, double phi, double z, double x1, double x2, double x3);
+    std::complex<double> integrand_ell1_ell2_phi_one_x(double ell1, double ell2, double phi, double x1, double x2, double x3);
+
+    /* 3-dimensional (z,phi,psi) integration with cubature, R-integration with ogata */
+    double integrated_bdelta_times_rcubed_J6(double z, double phi, double psi, double A3);
+    std::complex<double> integrand_z_phi_psi_one_x(double z, double phi, double psi, double x1, double x2, double x3);
+    std::complex<double> integrand_z_phi_psi(double z, double phi, double psi, double x1, double x2, double x3);
+    static int integrand_2(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value);
+
+    std::complex<double> ggg_single_a(std::complex<double> x, std::complex<double> y, double a);
+    std::complex<double> integrand_phi_psi(double phi, double psi, double x1, double x2, double x3);
+    double A(double psi, double x1, double x2, double phi, double varpsi);
+    double varpsifunc(double an1, double an2, double opp);
+
 
 
 public:
   std::complex<double> gamma0(double x1, double x2, double x3); //x1,x2,x3 in rad
   // For testing: analytical ggg correlation
   std::complex<double> ggg(std::complex<double> x, std::complex<double> y); // FOR TESTING
-  std::complex<double> ggg_single_a(std::complex<double> x, std::complex<double> y, double a);
-  std::complex<double> integrand_phi_psi(double phi, double psi, double x1, double x2, double x3);
-  double A(double psi, double x1, double x2, double phi, double varpsi);
-  double varpsifunc(double an1, double an2, double opp);
 
   GammaCalculator(cosmology cosmo, double prec_h, double prec_k, bool fast_calculations_arg, int n_z, double z_max);
 
-
-    std::complex<double> Trapz2D_phi_psi(double x1,double x2, double x3);
-    std::complex<double> integrand_psi(double psi, double x1, double x2, double x3);
-    std::complex<double> integrand_x_psi(double x, double psi, double x1, double x2, double x3);
-    
-    /* 4-dimensional (r,phi,psi,z) integration with cubature */
-    double r_integral(double phi, double psi, double x1, double x2, double x3);
-    std::complex<double> integrand_r_phi_psi_one_x(double r, double phi, double psi, double x1, double x2, double x3);
-    std::complex<double> integrand(double r, double phi, double psi, double z, double x1, double x2, double x3);
-    static int integrand(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value);
     std::complex<double> gamma0_from_cubature(double x1, double x2, double x3);
 
-    /* 4-dimensional (ell1,ell2,phi,z) integration with cubature */
     std::complex<double> gamma0_from_cubature_ell(double x1, double x2, double x3);
-    static int integrand_ell(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value);
-    std::complex<double> integrand_ell(double ell1, double ell2, double phi, double z, double x1, double x2, double x3);
-    std::complex<double> integrand_ell1_ell2_phi_one_x(double ell1, double ell2, double phi, double x1, double x2, double x3);
 
-
-
-    
-    /* 3-dimensional (z,phi,psi) integration with cubature, R-integration with ogata */
-    double integrated_bdelta_times_rcubed_J6(double z, double phi, double psi, double A3);
-    std::complex<double> integrand_z_phi_psi_one_x(double z, double phi, double psi, double x1, double x2, double x3);
-    std::complex<double> integrand_z_phi_psi(double z, double phi, double psi, double x1, double x2, double x3);
-    static int integrand_2(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value);
     std::complex<double> gamma0_from_cubature_and_ogata(double x1, double x2, double x3);
 
 };
