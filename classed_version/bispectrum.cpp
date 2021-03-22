@@ -166,7 +166,10 @@ double BispectrumCalculator::n_of_z(double z){
     if(z<=0 || z>=z_max) return 0;
     if(slics)
     {
-      return pow(z,2)*exp(-pow(z/0.637,1.5))*5.80564; //normalization 5.80564 such that int_0^3 dz n(z) is 1
+      // Here the correct n(z) for Euclid-like simulations.
+      return (1.7865*(pow(z,0.4710)+pow(z,0.4710*5.1843))/(pow(z,5.1843)+0.7259))/2.97653;
+      // this is a different n(z), not the one used for our simulations. That one is above.
+      // return pow(z,2)*exp(-pow(z/0.637,1.5))*5.80564; //normalization 5.80564 such that int_0^3 dz n(z) is 1
     }
     else
     {
