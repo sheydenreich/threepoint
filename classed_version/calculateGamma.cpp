@@ -12,7 +12,6 @@
 
 
 
-#include "bispectrum.hpp"
 #include "gamma.hpp"
 #include "helper.hpp"
 #include <omp.h>
