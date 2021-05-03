@@ -36,7 +36,6 @@ class GammaCalculator
 {
 private:
     int initialize_bessel(double prec_h_arg, double prec_k_arg);
-    double w_function(unsigned int k, double *bessel_zeros);
     double psi(double t);
     double psip(double t);
     double bispectrum(double l1, double l2, double phi);
@@ -60,10 +59,12 @@ private:
     double* bessel_zeros;
     double* pi_bessel_zeros;
     double* array_psi;
+    double* array_psi_J2;
     double* array_bessel;
     double* array_psip;
     double* array_w;
     double* array_product;
+    double* array_product_J2;
     BispectrumCalculator Bispectrum_Class;
 
     bool fast_calculations;
@@ -120,17 +121,33 @@ private:
     std::complex<double> integrand_z_phi_psi(double z, double phi, double psi, double x1, double x2, double x3);
     static int integrand_2(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value);
 
-    std::complex<double> ggg_single_a(std::complex<double> x, std::complex<double> y, double a);
+    std::complex<double> ggg_single_a(double r1, double r2, double r3, double a);
+    std::complex<double> gggstar_single_a(double r1, double r2, double r3, long double a);
     std::complex<double> integrand_phi_psi(double phi, double psi, double x1, double x2, double x3);
     double A(double psi, double x1, double x2, double phi, double varpsi);
     double varpsifunc(double an1, double an2, double opp);
 
+    double integrated_bdelta_times_rcubed_J2(double z, double phi, double psi, double A3);
+    std::complex<double> integrand_z_phi_psi_gamma1(double z, double phi, double psi, double x1, double x2, double x3);
+    static int integrand_2_gamma1(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value);
+
+    std::complex<double> integrand_r_phi_psi_gamma1(double r, double phi, double psi, double x1, double x2, double x3);
+    static int integrand_gamma1_no_ogata_no_limber(unsigned ndim, size_t npts, const double* vars, void* fdata, unsigned fdim, double* value);
+    std::complex<double> gamma1_from_cubature(double x1, double x2, double x3);
 
 
 public:
   std::complex<double> gamma0(double x1, double x2, double x3); //x1,x2,x3 in rad
+  std::complex<double> gamma1(double x1, double x2, double x3); //x1,x2,x3 in rad
+  std::complex<double> gamma2(double x1, double x2, double x3); //x1,x2,x3 in rad
+  std::complex<double> gamma3(double x1, double x2, double x3); //x1,x2,x3 in rad
+
   // For testing: analytical ggg correlation
-  std::complex<double> ggg(std::complex<double> x, std::complex<double> y); // FOR TESTING
+  std::complex<double> ggg(double r1, double r2, double r3); // FOR TESTING
+  std::complex<double> gggstar(double r1, double r2, double r3); // FOR TESTING
+  std::complex<double> ggstarg(double r1, double r2, double r3);
+  std::complex<double> gstargg(double r1, double r2, double r3);
+
 
   GammaCalculator(cosmology cosmo, double prec_h, double prec_k, bool fast_calculations_arg, int n_z, double z_max);
 
@@ -139,7 +156,9 @@ public:
     std::complex<double> gamma0_from_cubature_ell(double x1, double x2, double x3);
 
     std::complex<double> gamma0_from_cubature_and_ogata(double x1, double x2, double x3);
+    std::complex<double> gamma1_from_cubature_and_ogata(double x1, double x2, double x3);
 
+  double testfunction_integrate_J2();
 };
 
 struct integration_parameter

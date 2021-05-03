@@ -51,10 +51,10 @@ from compute_aperture_masses import progressBar
 # np.save("results/map_cubed_fft",results)
 
 
-results = np.zeros((7,7,7,8,512))
+results = np.zeros((7,7,7,8,128))
 theta_ap = [0.5,1,2,4,8,16,32]
 counter = 0
-for los in range(512):
+for los in range(128):
         for i in range(7):
                 try:
                         field1,error1 = np.load("/vol/euclid7/euclid7_2/sven/maps_slics/theta_"+str(theta_ap[i])+"_los_"+str(los+74)+".npy")
@@ -74,7 +74,7 @@ for los in range(512):
                                         print(inst)
                                         break
                        
-                                progressBar("Reading fields",counter,512*7**3)
+                                progressBar("Reading fields",counter,128*7**3)
                                 maxtheta = theta_ap[np.max([i,j,k])]
                                 index_maxtheta = int(maxtheta/(10*60)*4096)*2 #take double the aperture radius and cut it off
                                 field1_cut = field1[index_maxtheta:(4096-index_maxtheta),index_maxtheta:(4096-index_maxtheta)]
@@ -97,5 +97,5 @@ for los in range(512):
 
                                 counter += 1
 
-results *= (10*60/4096)**6 #account for incorrect normalization of aperture mass fields
+# results *= (10*60/4096)**6 #account for incorrect normalization of aperture mass fields
 np.save("results/map_cubed_fft_slics",results)

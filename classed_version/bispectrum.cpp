@@ -60,6 +60,7 @@ void BispectrumCalculator::set_cosmology(cosmology cosmo)
   
   for(int i=0;i<n_redshift_bins;i++){ //fill the lenseff arrays
     g_array[i] = 0;
+    // perform trapezoidal integration
     for(int j=i;j<n_redshift_bins;j++){
       z_now = j*dz;
       if(j==i || j==n_redshift_bins-1){
@@ -251,7 +252,11 @@ double BispectrumCalculator::integrand_bkappa(double z, ell_params p){
   { /* Returns bkappa_analytical if z<1, else returns 0 */
     if(z>1) return 0; //fix normalization: int_0^1 f(y) dx = f(y)
 		double phi = acos((ell1*ell1+ell2*ell2-ell3*ell3)/(2*ell1*ell2));
-    if(isnan(phi)) phi=0;
+    if(isnan(phi))
+    {
+      phi=0;
+      // std::cerr << "phi is nan in integrand_bkappa. (ell1,ell2,ell3)=" << ell1 << ", " << ell2 << ", " << ell3 << std::endl;
+    } 
     
     double weights[9] = {0,1.0e+8,1.0e+6,1.0e+4,1.0e+2,1.0e+0,5.0e-3,1.0e-5,1.0e-6};
     double a_vals[9] = {3.0e+3,1.0e+4,3.0e+4,1.0e+5,3.0e+5,1.0e+6,3.0e+6,1.0e+7,3.0e+7};
@@ -261,7 +266,9 @@ double BispectrumCalculator::integrand_bkappa(double z, ell_params p){
     {
         temp += weights[i]*bispectrum_analytic_single_a(ell1,ell2,phi,a_vals[i]);
     }
-    return temp*(3.*pow(2*M_PI,2));
+    temp /= (27./8.*pow(get_om(),3)*pow(100./299792.,5)); //prefactor from limber integration
+
+    return temp*3.;
   }
   else 
   {

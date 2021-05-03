@@ -53,14 +53,18 @@ def compute_map_slics(los):
     ac = aperture_mass_computer(4096,1,10*60)
     try:
         Xs,Ys,gamma_1,gamma_2 = get_slics(los)
+        compute = True
+    except Exception as inst:
+        print(inst)
+        compute = False
+
+    if(compute):
         shears = ac.normalize_shear(Xs,Ys,gamma_1,gamma_2)
 
-        for theta_ap in [1,2,4,8,16,32]:
+        for theta_ap in [0.5]:
             ac.change_theta_ap(theta_ap)
             result = ac.Map_fft(shears,return_mcross=True)
             np.save("/vol/euclid7/euclid7_2/sven/maps_slics/theta_"+str(theta_ap)+"_los_"+str(los),result)
-    except Exception as inst:
-        print(inst)
     
 
 
@@ -209,6 +213,7 @@ class aperture_mass_computer:
             zahler_arr: npix^2 grid of sum of galaxy ellipticities
         """
         shears_arr = np.zeros((self.npix,self.npix),dtype=complex)
+        numbers_arr = np.zeros((self.npix,self.npix),dtype=int)
         
         # Xs = Xs-np.min(Xs)
         # Ys = Ys-np.min(Ys)
@@ -219,6 +224,7 @@ class aperture_mass_computer:
             idy = int(self.npix*Ys[i]/self.fieldsize)
             try:
                 shears_arr[idx,idy]+=shears[i]
+                numbers_arr[idx,idy] += 1
 
             except Exception as inst:
                 add_galaxy = True
@@ -249,8 +255,11 @@ class aperture_mass_computer:
                         add_galaxy = False
 
                 if(add_galaxy):
-                    shears_arr[idx,idy]+=shears[i]
-
+                    shears_arr[idx,idy] += shears[i]
+                    numbers_arr[idx,idy] += 1
+        with np.errstate(divide='ignore'):
+            shears_arr /= numbers_arr
+        shears_arr[(numbers_arr==0)] = 0
         return shears_arr
 
     def compute_aperture_mass(self,galaxy_catalogue,return_mcross=False):

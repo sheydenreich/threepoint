@@ -12,6 +12,7 @@
 
 
 
+#include "bispectrum.hpp"
 #include "gamma.hpp"
 #include "helper.hpp"
 #include <omp.h>
@@ -71,7 +72,7 @@ int main()
     }
     else
     {
-        infile = "../necessary_files/triangles_millennium.dat";
+        infile = "../necessary_files/triangles_millennium_new.dat";
     }
 
     GammaCalculator class_gamma(cosmo, 0.05, 3.5, false, 400, z_max);
@@ -79,14 +80,18 @@ int main()
     std::vector<treecorr_bin> triangle_configurations;
     read_triangle_configurations(infile, triangle_configurations);
 
-    std::complex<double> result[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
+    std::complex<double> result_gamma0[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
+    std::complex<double> result_gamma1[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
+    std::complex<double> result_gamma2[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
+    std::complex<double> result_gamma3[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
     printf("Computing 3pcf. This might take a while ...\n");
 
     // #pragma omp parallel for collapse(3)
-    for(int i=0;i<steps;i++){
+    printf("Computing gammas...[100%%]");
+    for(int i=9;i<steps;i++){
         for(int j=0;j<usteps;j++){
         	for(int k=0;k<vsteps;k++){
-                std::cout << i << "," << j << "," << k << std::endl;
+                printf("\b\b\b\b\b\b[%3d%%]",static_cast<int>(100*(1.*i*usteps*vsteps+j*vsteps+k)/(usteps*vsteps*steps)));
         		fflush(stdout);
 
                     double r,u,v;
@@ -99,12 +104,16 @@ int main()
                     double r2 = r; //THIS IS THE BINNING BY JARVIS. FROM THE WEBSITE, NOT THE PAPER.
                     double r3 = r2*u;
                     double r1 = v*r3+r2;
-                    std::complex<double> res_temp = class_gamma.gamma0(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
-                    if(isnan(real(res_temp)) || isnan(imag(res_temp))){
-                        printf("%lf %lf %lf %lf %lf \n",r1,r2,r3,real(res_temp),imag(res_temp));
-                        res_temp = std::complex<double>(0.0,0.0);
-                    }
-                    result[id_x] = res_temp;
+                    // std::complex<double> res_temp = class_gamma.gamma0(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
+                    // if(isnan(real(res_temp)) || isnan(imag(res_temp))){
+                    //     printf("%lf %lf %lf %lf %lf \n",r1,r2,r3,real(res_temp),imag(res_temp));
+                    //     res_temp = std::complex<double>(0.0,0.0);
+                    // }
+                    // assert(!isnan(real(res_temp)) && !isnan(imag(res_temp)));
+                    result_gamma0[id_x] = class_gamma.gamma0(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
+                    result_gamma1[id_x] = class_gamma.gamma1(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
+                    result_gamma2[id_x] = class_gamma.gamma2(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
+                    result_gamma3[id_x] = class_gamma.gamma3(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
              }
          }
      }
@@ -113,13 +122,18 @@ int main()
      fflush(stdout);
 
      FILE *fp;
+
+     if(test_analytical)
+     {
+        fp = fopen("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/Gamma0_0p1_to_120.dat","w");
+     }
      if(slics)
      {
          fp = fopen("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_SLICS/Gamma0.dat","w");
      }
      else
      {
-         fp = fopen("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/Gamma0.dat","w");
+         fp = fopen("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/Gamma0_0p1_to_120.dat","w");
      }
      for(int i=0;i<steps;i++){
          for(int j=0;j<usteps;j++){
@@ -127,7 +141,9 @@ int main()
                  int id_x;
                  id_x = i*usteps*vsteps+j*vsteps+k;
 
-                 fprintf(fp,"%d %d %d %e %e \n",i ,j ,k ,real(result[id_x]),imag(result[id_x]));
+                 fprintf(fp,"%d %d %d %e %e %e %e %e %e %e %e \n",i ,j ,k ,real(result_gamma0[id_x]),imag(result_gamma0[id_x]),
+                 real(result_gamma1[id_x]),imag(result_gamma1[id_x]),real(result_gamma2[id_x]),imag(result_gamma2[id_x]),
+                 real(result_gamma3[id_x]),imag(result_gamma3[id_x]));
              }
          }
      }
