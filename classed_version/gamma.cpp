@@ -63,7 +63,7 @@ double GammaCalculator::psip(double t){
 }
 
 double GammaCalculator::bispectrum(double l1, double l2, double phi){
-    double l3 = sqrt(l1*l1+l2*l2-2*l1*l2*cos(phi));
+    double l3 = sqrt(l1*l1+l2*l2+2*l1*l2*cos(phi));
     if(isnan(l3))
     {
         printf("NAN in l3 with (l1,l2,phi)=(%f, %f, %f) \n",l1,l2,phi);
@@ -433,7 +433,7 @@ std::complex<double> GammaCalculator::integrand(double r, double phi, double psi
 {
     double ell1 = r*cos(psi);
     double ell2 = r*sin(psi);
-    double ell3 = sqrt(ell1*ell1+ell2*ell2-2*ell1*ell2*cos(phi));
+    double ell3 = sqrt(ell1*ell1+ell2*ell2+2*ell1*ell2*cos(phi));
     // std::cout << ell1 << ", " << ell2 << ", " << ell3 << std::endl;
     struct ell_params ells = {ell1,ell2,ell3};
     return Bispectrum_Class.integrand_bkappa(z,ells)*pow(r,3)*(integrand_r_phi_psi_one_x(r, phi, psi, x1, x2, x3)+integrand_r_phi_psi_one_x(r, phi, psi, x2, x3, x1)+integrand_r_phi_psi_one_x(r, phi, psi, x3, x1, x2));
@@ -499,7 +499,7 @@ std::complex<double> GammaCalculator::integrand_ell1_ell2_phi_one_x(double ell1,
 
 std::complex<double> GammaCalculator::integrand_ell(double ell1, double ell2, double phi, double z, double x1, double x2, double x3)
 {
-    double ell3 = sqrt(ell1*ell1+ell2*ell2-2*ell1*ell2*cos(phi));
+    double ell3 = sqrt(ell1*ell1+ell2*ell2+2*ell1*ell2*cos(phi));
     // std::cout << ell1 << ", " << ell2 << ", " << ell3 << std::endl;
     struct ell_params ells = {ell1,ell2,ell3};
     return Bispectrum_Class.integrand_bkappa(z,ells)*(integrand_ell1_ell2_phi_one_x(ell1, ell2, phi, x1, x2, x3)+integrand_ell1_ell2_phi_one_x(ell1, ell2, phi, x2, x3, x1)+integrand_ell1_ell2_phi_one_x(ell1, ell2, phi, x3, x1, x2));
@@ -564,7 +564,11 @@ double GammaCalculator::integrated_bdelta_times_rcubed_J6(double z, double phi, 
     for(unsigned int k=1;k<prec_k;k++){
         ell1 = array_psi[k]/A3*cpsi;
         ell2 = array_psi[k]/A3*spsi;
-        ell3 = sqrt(ell1*ell1+ell2*ell2-2*ell1*ell2*cos(phi));
+
+        ell3 = ell1*ell1+ell2*ell2+2*ell1*ell2*cos(phi);
+        if(ell3 <= 0) ell3 = 0;
+        else ell3 = sqrt(ell3);
+        // if(isnan(ell3)) ell3 = 0;
         struct ell_params ells = {ell1,ell2,ell3};
 
         temp = Bispectrum_Class.integrand_bkappa(z,ells)*array_product[k];
@@ -586,7 +590,10 @@ double GammaCalculator::integrated_bdelta_times_rcubed_J2(double z, double phi, 
     for(unsigned int k=1;k<prec_k;k++){
         ell1 = array_psi_J2[k]/A3*cpsi;
         ell2 = array_psi_J2[k]/A3*spsi;
-        ell3 = sqrt(ell1*ell1+ell2*ell2-2*ell1*ell2*cos(phi));
+        ell3 = ell1*ell1+ell2*ell2+2*ell1*ell2*cos(phi);
+        if(ell3 <= 0) ell3 = 0;
+        else ell3 = sqrt(ell3);
+
         struct ell_params ells = {ell1,ell2,ell3};
 
         temp = Bispectrum_Class.integrand_bkappa(z,ells)*array_product_J2[k];
@@ -663,7 +670,7 @@ std::complex<double> GammaCalculator::integrand_r_phi_psi_gamma1(double r, doubl
     double ell1,ell2,ell3;
     ell1 = r*cos(psi);
     ell2 = r*sin(psi);
-    ell3 = sqrt(ell1*ell1+ell2*ell2-2*ell1*ell2*cos(phi));
+    ell3 = sqrt(ell1*ell1+ell2*ell2+2*ell1*ell2*cos(phi));
 
     
     std::complex<double> integrand_3(0,varpsi1-varpsi2+2*varpsi3+2*(varbetabar-phi-alpha3));
@@ -770,7 +777,7 @@ std::complex<double> GammaCalculator::gamma1_from_cubature_and_ogata(double x1, 
     params.x3 = x3;
     double epsabs = 0;
     if(test_analytical) epsabs = 1.0e-8;
-    hcubature_v(2,integrand_2_gamma1,&params,3,vals_min,vals_max,0,epsabs,1e-5,ERROR_L1,result,error);
+    hcubature_v(2,integrand_2_gamma1,&params,3,vals_min,vals_max,0,epsabs,1e-3,ERROR_L1,result,error);
     // if(!test_analytical) std::cout << x1 << ", " << x2 << ", " << x3 << ": " << result[0] << " + " << result[1] << " i +/- " << error[0] << " + " << error[1] <<" i" << std::endl;
 
     return std::complex<double>(result[0],result[1]);
@@ -833,7 +840,7 @@ std::complex<double> GammaCalculator::gamma0_from_cubature_and_ogata(double x1, 
     params.x3 = x3;
     double epsabs = 0;
     if(test_analytical) epsabs = 1.0e-7;
-    hcubature_v(2,integrand_2,&params,3,vals_min,vals_max,0,epsabs,1e-4,ERROR_L1,result,error);
+    hcubature_v(2,integrand_2,&params,3,vals_min,vals_max,0,epsabs,1e-3,ERROR_L1,result,error);
     // if(!test_analytical) std::cout << x1 << ", " << x2 << ", " << x3 << ": " << result[0] << " + " << result[1] << " i +/- " << error[0] << " + " << error[1] <<" i" << std::endl;
 
     return std::complex<double>(result[0],result[1]);

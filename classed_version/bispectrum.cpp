@@ -251,7 +251,7 @@ double BispectrumCalculator::integrand_bkappa(double z, ell_params p){
   if(test_analytical)
   { /* Returns bkappa_analytical if z<1, else returns 0 */
     if(z>1) return 0; //fix normalization: int_0^1 f(y) dx = f(y)
-		double phi = acos((ell1*ell1+ell2*ell2-ell3*ell3)/(2*ell1*ell2));
+		double phi = M_PI-acos((ell1*ell1+ell2*ell2-ell3*ell3)/(2*ell1*ell2));
     if(isnan(phi))
     {
       phi=0;
@@ -273,6 +273,7 @@ double BispectrumCalculator::integrand_bkappa(double z, ell_params p){
   else 
   {
     if(z==0) return 0.;
+    if(ell3==0) return 0.;
     double didx = z/z_max*(n_redshift_bins-1);
     int idx = didx;
     didx = didx - idx;
@@ -633,10 +634,6 @@ void BispectrumCalculator::compute_coefficients(int idx, double didx, double *D1
     *D1 = D1_array[idx]*(1-didx) + D1_array[idx+1]*didx;
     *r_sigma = r_sigma_array[idx]*(1-didx) + r_sigma_array[idx+1]*didx;
     *n_eff = n_eff_array[idx]*(1-didx) + n_eff_array[idx+1]*didx;
-
-    // printf("D1: %lf - %lf %lf %lf \n",D1_array[idx],D1_array[idx+1],D1,lgr(z)/lgr(0.));
-    // printf("rsigma: %lf - %lf %lf %lf \n",r_sigma_array[idx],r_sigma_array[idx+1],r_sigma,calc_r_sigma(z));
-    // printf("neff: %lf - %lf %lf %lf \n", n_eff_array[idx],n_eff_array[idx+1],n_eff,-3.+2.*pow(D1*sigmam(calc_r_sigma(z),2),2));
 }
 
 

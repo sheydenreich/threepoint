@@ -62,7 +62,7 @@ int main()
 
     int steps = 10;
     int usteps = 10;
-    int vsteps = 11;
+    int vsteps = 10;
 
     std::string infile;
     // Reading the triangle configurations
@@ -75,7 +75,7 @@ int main()
         infile = "../necessary_files/triangles_millennium_new.dat";
     }
 
-    GammaCalculator class_gamma(cosmo, 0.05, 3.5, false, 400, z_max);
+    GammaCalculator class_gamma(cosmo, 0.1, 3.5, false, 400, z_max);
 
     std::vector<treecorr_bin> triangle_configurations;
     read_triangle_configurations(infile, triangle_configurations);
@@ -88,7 +88,7 @@ int main()
 
     // #pragma omp parallel for collapse(3)
     printf("Computing gammas...[100%%]");
-    for(int i=9;i<steps;i++){
+    for(int i=0;i<steps;i++){
         for(int j=0;j<usteps;j++){
         	for(int k=0;k<vsteps;k++){
                 printf("\b\b\b\b\b\b[%3d%%]",static_cast<int>(100*(1.*i*usteps*vsteps+j*vsteps+k)/(usteps*vsteps*steps)));
@@ -110,15 +110,18 @@ int main()
                     //     res_temp = std::complex<double>(0.0,0.0);
                     // }
                     // assert(!isnan(real(res_temp)) && !isnan(imag(res_temp)));
-                    result_gamma0[id_x] = class_gamma.gamma0(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
-                    result_gamma1[id_x] = class_gamma.gamma1(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
-                    result_gamma2[id_x] = class_gamma.gamma2(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
-                    result_gamma3[id_x] = class_gamma.gamma3(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
+                    if(r1!=0 && r2!=0 && r3!=0) 
+                    {
+                        result_gamma0[id_x] = class_gamma.gamma0(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
+                        result_gamma1[id_x] = class_gamma.gamma1(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
+                        result_gamma2[id_x] = class_gamma.gamma2(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
+                        result_gamma3[id_x] = class_gamma.gamma3(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
+                    }
              }
          }
      }
 
-     printf("[100%%]...Done. Writing results ...");
+     printf("\b\b\b\b\b\b[100%%]...Done. Writing results ...");
      fflush(stdout);
 
      FILE *fp;
@@ -133,7 +136,7 @@ int main()
      }
      else
      {
-         fp = fopen("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/Gamma0_0p1_to_120.dat","w");
+         fp = fopen("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/Gammas_0p1_to_120.dat","w");
      }
      for(int i=0;i<steps;i++){
          for(int j=0;j<usteps;j++){

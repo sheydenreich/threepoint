@@ -10,9 +10,9 @@
 #include "gamma.hpp"
 #include <omp.h>
 
-#define RECOMPUTE_GAMMA false
+#define RECOMPUTE_GAMMA true
 #define DO_SANITY_CHECKS false
-#define DO_PERMUTATION_CHECKS true
+#define DO_PERMUTATION_CHECKS false
 
 int main()
 {
@@ -59,9 +59,9 @@ int main()
    	// double r_array[steps] = {0.65763, 1.1376, 1.968, 3.4044, 5.8893, 10.188, 17.624, 30.488, 52.741, 91.237};
    	// double u_array[usteps] = {0.05  ,  0.15 ,   0.25  ,  0.39229 , 0.45  ,  0.55  ,  0.63257,  0.79057,  0.89457,  0.95};
    	// double v_array[vsteps] = {0.045455 ,  0.13636 ,  0.22727 ,  0.31818 ,  0.40909  , 0.5     ,  0.59091 , 0.68182  , 0.77273 ,  0.86364 , 0.95455};
-    int steps = 10;
-    int usteps = 10;
-    int vsteps = 10;
+    int steps = 15;
+    int usteps = 15;
+    int vsteps = 15;
     double* r_array = new double[steps];
     double* u_array = new double[usteps];
     double* v_array = new double[vsteps];
@@ -92,14 +92,14 @@ int main()
 
     GammaCalculator class_gamma(cosmo, 0.01, 3.5, false, 10, 1);
 
-    std::complex<double> result_gamma0[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
-    std::complex<double> result_gamma1[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
-    std::complex<double> result_gamma2[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
-    std::complex<double> result_gamma3[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
-    std::complex<double> result_ggg[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
-    std::complex<double> result_gggstar[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
-    std::complex<double> result_ggstarg[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
-    std::complex<double> result_gstargg[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
+    static std::complex<double>* result_gamma0 = new std::complex<double>[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
+    static std::complex<double>* result_gamma1 = new std::complex<double>[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
+    static std::complex<double>* result_gamma2 = new std::complex<double>[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
+    static std::complex<double>* result_gamma3 = new std::complex<double>[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
+    static std::complex<double>* result_ggg = new std::complex<double>[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
+    static std::complex<double>* result_gstargg = new std::complex<double>[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
+    static std::complex<double>* result_ggstarg = new std::complex<double>[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
+    static std::complex<double>* result_gggstar = new std::complex<double>[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
 
     // #pragma omp parallel for collapse(3)
     printf("Computing gammas...[100%%]");
@@ -155,7 +155,7 @@ int main()
     
       if(test_analytical)
       {
-        fp = fopen("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/Gamma_i.dat","w");
+        fp = fopen("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/Gamma_15.dat","w");
       }
 
       for(int i=0;i<steps;i++){
@@ -174,7 +174,7 @@ int main()
 
       if(test_analytical)
      {
-        fp = fopen("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/ggg_i.dat","w");
+        fp = fopen("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/ggg_15.dat","w");
      }
 
       for(int i=0;i<steps;i++){
