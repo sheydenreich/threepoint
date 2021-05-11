@@ -57,7 +57,7 @@ int main()
       cosmo.w = -1.0;
       cosmo.om = cosmo.omc+cosmo.omb;
       cosmo.ow = 1.-cosmo.om;
-      z_max = 1.5;
+      z_max = 1.1;
     }
 
     int steps = 10;
@@ -75,7 +75,8 @@ int main()
         infile = "../necessary_files/triangles_millennium_new.dat";
     }
 
-    GammaCalculator class_gamma(cosmo, 0.1, 3.5, false, 400, z_max);
+    BispectrumCalculator Bispectrum(cosmo, 100, z_max, false);
+    GammaCalculator class_gamma(&Bispectrum, 0.1, 3.5, "centroid");
 
     std::vector<treecorr_bin> triangle_configurations;
     read_triangle_configurations(infile, triangle_configurations);
@@ -121,7 +122,7 @@ int main()
          }
      }
 
-     printf("\b\b\b\b\b\b[100%%]...Done. Writing results ...");
+     printf("\b\b\b\b\b\b[100%%] Done. Writing results...");
      fflush(stdout);
 
      FILE *fp;
@@ -151,5 +152,5 @@ int main()
          }
      }
      fclose(fp);
-     printf("Done.\n");
+     printf("\b\b\b Done.\n");
 }

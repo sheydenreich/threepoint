@@ -7,6 +7,7 @@
  */
 
 
+#include "bispectrum.hpp"
 #include "gamma.hpp"
 #include <omp.h>
 
@@ -90,7 +91,8 @@ int main()
       v_array[i] = vmin+(vmax-vmin)/vsteps*(i+0.5);
     }
 
-    GammaCalculator class_gamma(cosmo, 0.01, 3.5, false, 10, 1);
+    BispectrumCalculator Bispectrum(cosmo,10,1.,false);
+    GammaCalculator class_gamma(&Bispectrum, 0.01, 3.5, "centroid");
 
     static std::complex<double>* result_gamma0 = new std::complex<double>[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
     static std::complex<double>* result_gamma1 = new std::complex<double>[steps*usteps*vsteps]; // @suppress("Type cannot be resolved") // @suppress("Symbol is not resolved")
