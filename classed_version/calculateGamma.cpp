@@ -29,35 +29,35 @@ int main()
         std::cerr << "**************** Disable it in bispectrum.hpp ****************" << std::endl;
         std::cerr << "**************************************************************" << std::endl;
     }
-  struct cosmology cosmo;
+    struct cosmology cosmo;
 
-  double z_max;
-  if(slics)
+    double z_max;
+    if(slics)
     {
-      printf("using SLICS cosmology...");
-      cosmo.h=0.6898;     // Hubble parameter
-      cosmo.sigma8=0.826; // sigma 8
-      cosmo.omb=0.0473;   // Omega baryon
-      cosmo.omc=0.2905-cosmo.omb;   // Omega CDM
-      cosmo.ns=0.969;    // spectral index of linear P(k)
-      cosmo.w=-1.0;
-      cosmo.om = cosmo.omb+cosmo.omc;
-      cosmo.ow = 1-cosmo.om;
+        printf("using SLICS cosmology...");
+        cosmo.h=0.6898;     // Hubble parameter
+        cosmo.sigma8=0.826; // sigma 8
+        cosmo.omb=0.0473;   // Omega baryon
+        cosmo.omc=0.2905-cosmo.omb;   // Omega CDM
+        cosmo.ns=0.969;    // spectral index of linear P(k)
+        cosmo.w=-1.0;
+        cosmo.om = cosmo.omb+cosmo.omc;
+        cosmo.ow = 1-cosmo.om;
 
-      z_max = 3;
+        z_max = 3;
     }
-  else
+    else
     {
-      printf("using Millennium cosmology...");
-      cosmo.h = 0.73;
-      cosmo.sigma8 = 0.9;
-      cosmo.omb = 0.045;
-      cosmo.omc = 0.25 - cosmo.omb;
-      cosmo.ns = 1.;
-      cosmo.w = -1.0;
-      cosmo.om = cosmo.omc+cosmo.omb;
-      cosmo.ow = 1.-cosmo.om;
-      z_max = 1.1;
+        printf("using Millennium cosmology...");
+        cosmo.h = 0.73;
+        cosmo.sigma8 = 0.9;
+        cosmo.omb = 0.045;
+        cosmo.omc = 0.25 - cosmo.omb;
+        cosmo.ns = 1.;
+        cosmo.w = -1.0;
+        cosmo.om = cosmo.omc+cosmo.omb;
+        cosmo.ow = 1.-cosmo.om;
+        z_max = 1.1;
     }
 
     int steps = 10;
@@ -118,39 +118,45 @@ int main()
                         result_gamma2[id_x] = class_gamma.gamma2(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
                         result_gamma3[id_x] = class_gamma.gamma3(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3);
                     }
-             }
-         }
-     }
+            }
+        }
+    }
 
-     printf("\b\b\b\b\b\b[100%%] Done. Writing results...");
-     fflush(stdout);
+    printf("\b\b\b\b\b\b[100%%] Done. Writing results...");
+    fflush(stdout);
 
-     FILE *fp;
+    FILE *fp;
 
-     if(test_analytical)
-     {
+    if(test_analytical)
+    {
         fp = fopen("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/Gamma0_0p1_to_120.dat","w");
-     }
-     if(slics)
-     {
-         fp = fopen("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_SLICS/Gamma0.dat","w");
-     }
-     else
-     {
-         fp = fopen("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/Gammas_0p1_to_120.dat","w");
-     }
-     for(int i=0;i<steps;i++){
-         for(int j=0;j<usteps;j++){
-             for(int k=0;k<vsteps;k++){
-                 int id_x;
-                 id_x = i*usteps*vsteps+j*vsteps+k;
+    }
+    if(slics)
+    {
+        fp = fopen("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_SLICS/Gamma0.dat","w");
+    }
+    else
+    {
+        fp = fopen("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/Gammas_0p1_to_120.dat","w");
+    }
+    for(int i=0;i<steps;i++){
+        for(int j=0;j<usteps;j++){
+            for(int k=0;k<vsteps;k++){
+                int id_x;
+                id_x = i*usteps*vsteps+j*vsteps+k;
 
-                 fprintf(fp,"%d %d %d %e %e %e %e %e %e %e %e \n",i ,j ,k ,real(result_gamma0[id_x]),imag(result_gamma0[id_x]),
-                 real(result_gamma1[id_x]),imag(result_gamma1[id_x]),real(result_gamma2[id_x]),imag(result_gamma2[id_x]),
-                 real(result_gamma3[id_x]),imag(result_gamma3[id_x]));
-             }
-         }
-     }
-     fclose(fp);
-     printf("\b\b\b Done.\n");
+                double r,u,v;
+                r = triangle_configurations[id_x].r;
+                u = triangle_configurations[id_x].u;
+                v = triangle_configurations[id_x].v;
+
+
+                fprintf(fp,"%d %d %d %e %e %e %e %e %e %e %e %e %e %e \n",i ,j ,k ,real(result_gamma0[id_x]),imag(result_gamma0[id_x]),
+                real(result_gamma1[id_x]),imag(result_gamma1[id_x]),real(result_gamma2[id_x]),imag(result_gamma2[id_x]),
+                real(result_gamma3[id_x]),imag(result_gamma3[id_x]),r,u,v);
+            }
+        }
+    }
+    fclose(fp);
+    printf("\b\b\b Done.\n");
 }
