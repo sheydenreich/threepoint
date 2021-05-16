@@ -2,7 +2,7 @@
 #define APERTURESTATISTICS_HPP
 
 #define CUBATURE true
-#define INTEGRATE4D false
+#define INTEGRATE4D true
 //Switches for Parallelization
 //Make sure at the most one is on!!! Also: NO PARALLELIZATION IF GSL IS USED FOR BISPEC INTEGRATION!!!
 #define PARALLEL_INTEGRATION true

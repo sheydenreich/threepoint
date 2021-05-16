@@ -60,6 +60,7 @@ void BispectrumCalculator::set_cosmology(cosmology cosmo)
   
   for(int i=0;i<n_redshift_bins;i++){ //fill the lenseff arrays
     g_array[i] = 0;
+    // perform trapezoidal integration
     for(int j=i;j<n_redshift_bins;j++){
       z_now = j*dz;
       if(j==i || j==n_redshift_bins-1){
@@ -166,7 +167,10 @@ double BispectrumCalculator::n_of_z(double z){
     if(z<=0 || z>=z_max) return 0;
     if(slics)
     {
-      return pow(z,2)*exp(-pow(z/0.637,1.5))*5.80564; //normalization 5.80564 such that int_0^3 dz n(z) is 1
+      // Here the correct n(z) for Euclid-like simulations.
+      return (1.7865*(pow(z,0.4710)+pow(z,0.4710*5.1843))/(pow(z,5.1843)+0.7259))/2.97653;
+      // this is a different n(z), not the one used for our simulations. That one is above.
+      // return pow(z,2)*exp(-pow(z/0.637,1.5))*5.80564; //normalization 5.80564 such that int_0^3 dz n(z) is 1
     }
     else
     {
@@ -209,7 +213,7 @@ double BispectrumCalculator::bkappa(double ell1,double ell2, double ell3){
   else{
     assert(isfinite(ell1) && isfinite(ell2) && isfinite(ell3));
 
-    double result,error;
+    double result;
     double prefactor = 27./8. * pow(om,3) * pow(H0_over_c,5);
     struct ell_params ells = {ell1,ell2,ell3};
        
@@ -247,8 +251,12 @@ double BispectrumCalculator::integrand_bkappa(double z, ell_params p){
   if(test_analytical)
   { /* Returns bkappa_analytical if z<1, else returns 0 */
     if(z>1) return 0; //fix normalization: int_0^1 f(y) dx = f(y)
-		double phi = acos((ell1*ell1+ell2*ell2-ell3*ell3)/(2*ell1*ell2));
-    if(isnan(phi)) phi=0;
+		double phi = M_PI-acos((ell1*ell1+ell2*ell2-ell3*ell3)/(2*ell1*ell2));
+    if(isnan(phi))
+    {
+      phi=0;
+      // std::cerr << "phi is nan in integrand_bkappa. (ell1,ell2,ell3)=" << ell1 << ", " << ell2 << ", " << ell3 << std::endl;
+    } 
     
     double weights[9] = {0,1.0e+8,1.0e+6,1.0e+4,1.0e+2,1.0e+0,5.0e-3,1.0e-5,1.0e-6};
     double a_vals[9] = {3.0e+3,1.0e+4,3.0e+4,1.0e+5,3.0e+5,1.0e+6,3.0e+6,1.0e+7,3.0e+7};
@@ -258,11 +266,14 @@ double BispectrumCalculator::integrand_bkappa(double z, ell_params p){
     {
         temp += weights[i]*bispectrum_analytic_single_a(ell1,ell2,phi,a_vals[i]);
     }
-    return temp*(3.*pow(2*M_PI,2));
+    temp /= (27./8.*pow(get_om(),3)*pow(100./299792.,5)); //prefactor from limber integration
+
+    return temp*3.;
   }
   else 
   {
     if(z==0) return 0.;
+    if(ell3==0) return 0.;
     double didx = z/z_max*(n_redshift_bins-1);
     int idx = didx;
     didx = didx - idx;
@@ -623,10 +634,6 @@ void BispectrumCalculator::compute_coefficients(int idx, double didx, double *D1
     *D1 = D1_array[idx]*(1-didx) + D1_array[idx+1]*didx;
     *r_sigma = r_sigma_array[idx]*(1-didx) + r_sigma_array[idx+1]*didx;
     *n_eff = n_eff_array[idx]*(1-didx) + n_eff_array[idx+1]*didx;
-
-    // printf("D1: %lf - %lf %lf %lf \n",D1_array[idx],D1_array[idx+1],D1,lgr(z)/lgr(0.));
-    // printf("rsigma: %lf - %lf %lf %lf \n",r_sigma_array[idx],r_sigma_array[idx+1],r_sigma,calc_r_sigma(z));
-    // printf("neff: %lf - %lf %lf %lf \n", n_eff_array[idx],n_eff_array[idx+1],n_eff,-3.+2.*pow(D1*sigmam(calc_r_sigma(z),2),2));
 }
 
 
