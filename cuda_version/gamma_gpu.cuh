@@ -20,7 +20,7 @@
 
 
 
-// #define CUDA_ERROR_CHECK //Comment out if not necessary
+#define CUDA_ERROR_CHECK //Comment out if not necessary
 #define CudaSafeCall( err ) __cudaSafeCall( err, __FILE__, __LINE__ )
 #define CudaCheckError()    __cudaCheckError( __FILE__, __LINE__ )
 
@@ -126,7 +126,12 @@ double A96[48]={                   /* abscissas for 96-point Gauss quadrature */
     0.008126876925699,0.007096470791154,0.006058545504236,0.005014202742928,
     0.003964554338445,0.002910731817935,0.001853960788947,0.000796792065552};
 
-__global__ void compute_integrand_gamma0(double* d_vars, double* d_result_array, unsigned int incr, double x1, double x2, double x3);
+__global__ void compute_integrand_gamma0(double* d_vars, double* d_result_array, unsigned int max_idx, double x1, double x2, double x3);
+// __global__ void doubleSumSingleBlock(const double *in, double *out, int max_idx);
+__global__ void compute_integrand_gamma0_with_sum_reduction(double* d_vars, double* d_result_array, unsigned int max_idx, double x1, double x2, double x3);
+
+
+
 __device__ cuDoubleComplex one_integrand_gamma0(double phi, double psi, double z, unsigned int k, double x1, double x2, double x3);
 __device__ __inline__ cuDoubleComplex full_integrand_gamma0(double phi, double psi, double z, unsigned int k, double x1, double x2, double x3);
 

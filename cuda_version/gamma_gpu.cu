@@ -4,6 +4,11 @@
 
 
 #define slics false
+#define PERFORM_SUM_REDUCTION
+
+static const double prec_h = 0.1;
+static const int prec_k = int(3.5/prec_h);
+static const int threadsPerBlock_sum_reduction_idx = 6;
 
 int main()
 {
@@ -13,8 +18,6 @@ int main()
     if(slics) z_max = 3.;
     else z_max = 1.1;
     double dz = z_max / ((double) n_redshift_bins);
-    double prec_h = 0.05;
-    int prec_k = int(3.5/prec_h);
 
     struct cosmology cosmo;
 
@@ -152,7 +155,7 @@ int main()
     CudaSafeCall(cudaMemcpyToSymbol(c_n_eff_array,d_n_eff_array,n_redshift_bins*sizeof(double)));
     printf("Preparations done. Computing Gamma.\n");
 
-    
+
     double x1 = 10.*M_PI/180./60.;
     std::complex<double> testgamma = gamma0(x1,x1,x1,z_max,prec_k);
     std::cout << testgamma << std::endl;
@@ -714,7 +717,7 @@ int integrand_gamma0(unsigned ndim, size_t npts, const double* vars, void* fdata
 
     unsigned int prec_k = params.prec_k;
     double* d_vars;
-    double* d_result_array;
+    double* d_value;
     
     int threadsPerBlock_k = 4;
     int threadsPerBlock_idx = 64;
@@ -725,18 +728,22 @@ int integrand_gamma0(unsigned ndim, size_t npts, const double* vars, void* fdata
     int blocksPerGrid_idx = static_cast<int>(ceil(npts*1./threadsPerBlock_idx));
 
     unsigned int incr = 0;
-
     // allocate memory
     double calculationsPerIncrement = max_blocksPerGrid_idx*threadsPerBlock_idx;
+
+    CudaSafeCall(cudaMalloc(&d_value,fdim*npts*sizeof(double)));
     CudaSafeCall(cudaMalloc(&d_vars,ndim*calculationsPerIncrement*sizeof(double)));
-    CudaSafeCall(cudaMalloc(&d_result_array,fdim*calculationsPerIncrement*sizeof(double)));
-    CudaSafeCall(cudaMemset(d_result_array,0,fdim*calculationsPerIncrement*sizeof(double)));
-    
+
+    dim3 threadsPerBlock_sum_reduction(prec_k-1,threadsPerBlock_sum_reduction_idx);
+    dim3 blocksPerGrid_sum_reduction(1,static_cast<int>(ceil(npts*1./threadsPerBlock_sum_reduction.y)));
+
+
+
     double myNpts = npts;
 
     while(blocksPerGrid_idx>max_blocksPerGrid_idx)
     {
-      std::cout << "block size too large." << std::endl;
+      std::cout << "WARNING: block size too large." << std::endl; //TODO: shared computation also on this one
       // offset the parameters and the result array
       const double* off_vars = vars + ndim*incr;
       double* off_result_array = value + fdim*incr;
@@ -748,13 +755,18 @@ int integrand_gamma0(unsigned ndim, size_t npts, const double* vars, void* fdata
       dim3 blocksPerGrid(blocksPerGrid_k,max_blocksPerGrid_idx);
       // std::cout << blocksPerGrid.x << ", " << blocksPerGrid.y << ", " << blocksPerGrid.z << "\t ," <<
       // threadsPerBlock.x << ", " << threadsPerBlock.y << ", " << threadsPerBlock.z << std::endl;
-      compute_integrand_gamma0<<<blocksPerGrid,threadsPerBlock>>>(d_vars,d_result_array,calculationsPerIncrement,x1,x2,x3);
+      #ifdef PERFORM_SUM_REDUCTION
+        compute_integrand_gamma0_with_sum_reduction<<<blocksPerGrid_sum_reduction,threadsPerBlock_sum_reduction>>>(d_vars,d_value,myNpts,x1,x2,x3);
+      #else
+        compute_integrand_gamma0<<<blocksPerGrid,threadsPerBlock>>>(d_vars,d_value,myNpts,x1,x2,x3);
+      #endif //PERFORM_SUM_REDUCTION
+
       CudaCheckError();
 
       // copy the result
-      CudaSafeCall(cudaMemcpy(off_result_array,d_result_array,fdim*calculationsPerIncrement*sizeof(double),cudaMemcpyDeviceToHost));
+      CudaSafeCall(cudaMemcpy(off_result_array,d_value,fdim*calculationsPerIncrement*sizeof(double),cudaMemcpyDeviceToHost));
       // set array back to zero
-      CudaSafeCall(cudaMemset(d_result_array,0,fdim*calculationsPerIncrement*sizeof(double)));
+      CudaSafeCall(cudaMemset(d_value,0,fdim*calculationsPerIncrement*sizeof(double)));
       
 
       // adjust the increment
@@ -782,15 +794,25 @@ int integrand_gamma0(unsigned ndim, size_t npts, const double* vars, void* fdata
 
     // std::cout << "final: " << blocksPerGrid.x << ", " << blocksPerGrid.y << ", " << blocksPerGrid.z << "\t ," <<
     // threadsPerBlock.x << ", " << threadsPerBlock.y << ", " << threadsPerBlock.z << std::endl;
-    compute_integrand_gamma0<<<blocksPerGrid,threadsPerBlock>>>(d_vars,d_result_array,myNpts,x1,x2,x3);
+    
+    // set array to zero
+    CudaSafeCall(cudaMemset(d_value,0,fdim*myNpts*sizeof(double)));
+
+    #ifdef PERFORM_SUM_REDUCTION
+      compute_integrand_gamma0_with_sum_reduction<<<blocksPerGrid_sum_reduction,threadsPerBlock_sum_reduction>>>(d_vars,d_value,myNpts,x1,x2,x3);
+    #else
+      compute_integrand_gamma0<<<blocksPerGrid,threadsPerBlock>>>(d_vars,d_value,myNpts,x1,x2,x3);
+    #endif //PERFORM_SUM_REDUCTION
+
     CudaCheckError();
 
+
     // copy the result
-    CudaSafeCall(cudaMemcpy(off_result_array,d_result_array,fdim*myNpts*sizeof(double),cudaMemcpyDeviceToHost));
+    CudaSafeCall(cudaMemcpy(off_result_array,d_value,fdim*myNpts*sizeof(double),cudaMemcpyDeviceToHost));
 
     // free allocated memory
     CudaSafeCall(cudaFree(d_vars));
-    CudaSafeCall(cudaFree(d_result_array));
+    CudaSafeCall(cudaFree(d_value));
 
     // std::cout << npts << ", " << x1 << ", " << x2 << ", " << x3 << ", " << value[6] << ", " << value[7] 
     // << ", " << vars[9] << ", " << vars[10] << ", " << vars[11] << std::endl;
@@ -814,10 +836,13 @@ int integrand_gamma0(unsigned ndim, size_t npts, const double* vars, void* fdata
 }
 
 
-__global__ void compute_integrand_gamma0(double* d_vars, double* d_result_array, unsigned int max_idx, double x1, double x2, double x3)
+__global__ void compute_integrand_gamma0_with_sum_reduction(double* d_vars, double* d_result_array, unsigned int max_idx, double x1, double x2, double x3)
 {
     unsigned int idx = blockDim.y*blockIdx.y+threadIdx.y;
     unsigned int k = blockDim.x*blockIdx.x+threadIdx.x+1;
+    int tidx = threadIdx.y;
+    int idk = threadIdx.x; //idk = k-1
+  
     // if(k==1 && idx > 70) printf("%d \n",idx);
     if(k>=d_prec_k) return;
     if(idx>=max_idx) return;
@@ -827,17 +852,88 @@ __global__ void compute_integrand_gamma0(double* d_vars, double* d_result_array,
 
     cuDoubleComplex result = full_integrand_gamma0(phi,psi,z,k,x1,x2,x3);
 
+    __shared__ double r[threadsPerBlock_sum_reduction_idx*(prec_k-1)];
+    __shared__ double r2[threadsPerBlock_sum_reduction_idx*(prec_k-1)];
+    r[tidx*(prec_k-1)+idk] = cuCreal(result);
+    r2[tidx*(prec_k-1)+idk] = cuCimag(result);
+  
+    __syncthreads();
+    for (int size = (prec_k-1)/2; size>0; size/=2) { //uniform
+        if (idk<size)
+        {
+          r[tidx*(prec_k-1)+idk] += r[tidx*(prec_k-1)+idk+size];
+          r2[tidx*(prec_k-1)+idk] += r2[tidx*(prec_k-1)+idk+size];
+        }
+        __syncthreads();
+    }
+    if (idk == 0)
+    {
+      d_result_array[idx*2] = r[tidx*(prec_k-1)];
+      d_result_array[idx*2+1] = r2[tidx*(prec_k-1)];
+    }    
+  
+    return;
+}
+
+#ifndef PERFORM_SUM_REDUCTION
+
+__global__ void compute_integrand_gamma0(double* d_vars, double* d_result_array, unsigned int max_idx, double x1, double x2, double x3)
+{
+    unsigned int idx = blockDim.y*blockIdx.y+threadIdx.y;
+    unsigned int k = blockDim.x*blockIdx.x+threadIdx.x+1;
+
+    if(k>=d_prec_k) return;
+    if(idx>=max_idx) return;
+    double z=d_vars[idx*3];
+    double phi=d_vars[idx*3+1];
+    double psi=d_vars[idx*3+2];
+
+    cuDoubleComplex result = full_integrand_gamma0(phi,psi,z,k,x1,x2,x3);
+
+    
     atomicAdd(&d_result_array[idx*2],cuCreal(result));
     atomicAdd(&d_result_array[idx*2+1],cuCimag(result));
 
-    // if(idx==5 && k==1) 
-    // {
-    //  cuDoubleComplex temp = make_cuDoubleComplex(0,0);
-    //  for(int k2=1;k2<d_prec_k;k2++) temp = cuCadd(temp,full_integrand_gamma0(phi, psi, z, k2, x1, x2, x3));
-    //  printf("in gpu: %.3e %.3e \n",cuCreal(temp),cuCimag(temp));
-    // }
     return;
 }
+
+#endif // PERFORM_SUM_REDUCTION
+
+// __global__ void doubleSumSingleBlock(const double *in, double *out, int max_idx)
+// {
+//   unsigned int idx = blockDim.y*blockIdx.y+threadIdx.y;
+//   int tidx = threadIdx.y;
+//   int idk = threadIdx.x; //idk = k-1
+//   // printf("Block: %d/%d \n",blockDim.y,threadsPerBlock_sum_reduction_idx);
+//   if(idx>=max_idx) 
+//   {
+//     // if(idk==0) printf("%d %d \n",idx,max_idx);
+//    return; 
+//   }
+//   // int sum = 0;
+//   // for (int i = idx; i < arraySize; i += blockSize)
+//   //     sum += in[i];
+//   __shared__ double r[threadsPerBlock_sum_reduction_idx*(prec_k-1)];
+//   __shared__ double r2[threadsPerBlock_sum_reduction_idx*(prec_k-1)];
+//   r[tidx*(prec_k-1)+idk] = in[idx*2+idk*max_idx*2];
+//   r2[tidx*(prec_k-1)+idk] = in[idx*2+1+idk*max_idx*2];
+
+//   __syncthreads();
+//   for (int size = (prec_k-1)/2; size>0; size/=2) { //uniform
+//       if (idk<size)
+//       {
+//         r[tidx*(prec_k-1)+idk] += r[tidx*(prec_k-1)+idk+size];
+//         r2[tidx*(prec_k-1)+idk] += r2[tidx*(prec_k-1)+idk+size];
+//       }
+//       __syncthreads();
+//   }
+//   if (idk == 0)
+//   {
+//     out[idx*2] = r[tidx*(prec_k-1)];
+//     out[idx*2+1] = r2[tidx*(prec_k-1)];
+//   }    
+// }
+
 
 __device__ cuDoubleComplex one_integrand_gamma0(double phi, double psi, double z, unsigned int k, double x1, double x2, double x3)
 {
