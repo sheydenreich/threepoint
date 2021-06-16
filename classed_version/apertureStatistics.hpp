@@ -175,6 +175,7 @@ public:
 
   /**
    * @brief Constructor from cosmology
+   * @param Bispectrum bispectrum calculator object, already initialized
    */
   ApertureStatistics(BispectrumCalculator* Bispectrum);
 
@@ -184,9 +185,7 @@ public:
    * @warning This is NOT Eq 58 from Schneider, Kilbinger & Lombardi (2003), but a third of that, due to the bispectrum definition
    * If CUBATURE is true, this uses the pcubature routine from the cubature library
    * If CUBATURE is false / not defined, this uses GSL and three separate integrals over each dimension (SLOOOOOW AF)
-   * @param theta1 Aperture Radius 1 [rad]
-   * @param theta2 Aperture Radius 2 [rad]
-   * @param theta3 Aperture Radius 3 [rad]
+   * @param thetas Aperture Radii, array should contain 3 values [rad]
    */
    double MapMapMap(double* thetas);
 };
