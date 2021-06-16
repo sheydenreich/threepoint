@@ -9,12 +9,8 @@
  * If PARALLEL_RADII is true, the code is parallelized over the aperture radii
  * @author Laila Linke
  * @warning thetas currently hardcoded
- * @warning Output is hardcoded
- * @warning h (Stencilsize) is hardcoded
  * @warning Main cosmology is hardcoded (Set to either MS or SLICS)
  * @todo Thetas should be read from command line
- * @todo Outputfilename should be read from command line
- * @todo h should be read from command line
  * @todo cosmology should be read from command line
  */
 
@@ -22,13 +18,20 @@
 #include <fstream>
 #include <string>
 #include <chrono> // For timing
-int main()
+int main(int argc, char* argv[])
 {
   // Set up cosmology (at which derivative is calculated)
   struct cosmology cosmo; ///<cosmology at which derivative is calculated
-  
-  std::string outfn; ///< Outputfilename
 
+  if(argc!=3)
+    {
+      std::cerr<<"calculateDerivativeApertureStatistics.x: Need to specify output and stencil stepsize"<<std::endl;
+      exit(1);
+    };
+  
+  std::string outfn=argv[1]; ///< Outputfilename
+  double h=std::stod(argv[2]); ///<Stepsize of Stencil
+  
   if(slics)
     {
       printf("using SLICS cosmology...");
@@ -67,7 +70,7 @@ int main()
   // Set up cosmologies at which Map^3 is calculated
   // This can probably be done smarter
 
-  double h=0.02; ///<Stepsize of Stencil
+
   std::vector<cosmology> cosmos; ///<container for all cosmologies
 
   cosmology newCosmo=cosmo;
