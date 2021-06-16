@@ -55,8 +55,7 @@ int main()
   bool fastCalc=false; //whether calculations should be sped up
   BispectrumCalculator bispectrum(cosmo, n_z, z_max, fastCalc);
 
-  //Initialize Aperture Statistics
-  
+  //Initialize Aperture Statistics  
   ApertureStatistics apertureStatistics(&bispectrum);
 
   // Set up thetas for which ApertureStatistics are calculated
@@ -134,9 +133,9 @@ int main()
 	      double theta3=thetas.at(k)*3.1416/180./60.;
 	      double thetas_calc[3]={theta1, theta2, theta3};
 
-	      //Progress for the impatient user
+	      //Progress for the impatient user (Thetas in arcmin)
 	      step+=1;
-	      std::cout<<step<<"/"<<Ntotal<<": Thetas:"<<theta1<<" "<<theta2<<" "<<theta3<<std::endl;
+	      std::cout<<step<<"/"<<Ntotal<<": Thetas:"<<thetas.at(i)<<" "<<thetas.at(j)<<" "<<thetas.at(k)<<std::endl;
 
 	      double MapMapMap=apertureStatistics.MapMapMap(thetas_calc); //Do calculation
 	      
@@ -150,7 +149,6 @@ int main()
 	    };
 	};
     };
-  std::cout<<std::endl;
 #endif
 
   
