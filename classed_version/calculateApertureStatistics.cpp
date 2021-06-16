@@ -6,7 +6,7 @@
  * If PARALLEL_RADII is true, the code is parallelized over the aperture radii
  * @author Laila Linke
  * @warning thetas currently hardcoded
- * @warning output is written in file "../tests/TestMapMapMap.dat"
+ * @warning Output is hardcoded
  * @todo Thetas should be read from command line
  * @todo Outputfilename should be read from command line
  */
