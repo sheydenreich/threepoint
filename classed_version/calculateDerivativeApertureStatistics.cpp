@@ -221,7 +221,8 @@ int main()
 	      double thetas_calc[3]={theta1, theta2, theta3};
 	      //Progress for the impatient user (Thetas in arcmin)
 	      step+=1;
-	      std::cout<<step<<"/"<<Ntotal<<": Thetas:"<<thetas.at(j)<<" "<<thetas.at(k)<<" "<<thetas.at(l)<<std::endl;
+	      std::cout<<step<<"/"<<Ntotal<<": Thetas:"<<thetas.at(j)<<" "<<thetas.at(k)<<" "<<thetas.at(l)<<" \r"; //\r is so that only one line is shown
+	      std::cout.flush();
 
 	      double MapMapMap=apertureStatistics.MapMapMap(thetas_calc); //Do calculation
 	      
