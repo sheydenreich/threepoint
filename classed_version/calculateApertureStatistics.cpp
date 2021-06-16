@@ -108,7 +108,6 @@ int main()
 	    };
 	};
     };
-  std::cout<<std::endl;
 #else
   #if PARALLEL_INTEGRATION
   std::cout<<"Parallelization over Integration"<<std::endl;
