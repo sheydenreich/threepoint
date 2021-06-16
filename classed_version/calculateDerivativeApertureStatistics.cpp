@@ -241,7 +241,7 @@ int main()
   auto end = std::chrono::high_resolution_clock::now();
   auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
   
-  std::cout<<"Time needed for last cosmology:"<<elapsed.count()*1e-9;
+  std::cout<<"Time needed for last cosmology:"<<elapsed.count()*1e-9<<std::endl;
     };
       
   
