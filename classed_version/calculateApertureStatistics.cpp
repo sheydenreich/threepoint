@@ -136,7 +136,7 @@ int main()
 
 	      //Progress for the impatient user
 	      step+=1;
-	      std::cout<<step<<"/"<<Ntotal<<": Thetas:"<<thetas.at(i)<<" "<<thetas.at(j)<<" "<<thetas.at(k)<<std::endl;
+	      std::cout<<step<<"/"<<Ntotal<<": Thetas:"<<theta1<<" "<<theta2<<" "<<theta3<<std::endl;
 
 	      double MapMapMap=apertureStatistics.MapMapMap(thetas_calc); //Do calculation
 	      
