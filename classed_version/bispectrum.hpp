@@ -11,7 +11,7 @@
 // use slics cosmology (false -> millennium cosmology)
 // TODO: Implenment redshift distribution for Euclid-like SLICS
 #define slics false
-#define test_analytical true
+#define test_analytical false
 
 /**
  *  @brief This structure contains parameters of a wCDM cosmology
@@ -64,10 +64,11 @@ template< typename F >
 class BispectrumCalculator
 {
 
-private:
+  //private:
+public:
 // These functions are necessary to compute the delta-Bispectrum via Takahashi et al.
   double h,sigma8,omb,omc,ns,w,om,ow,norm; /**< Cosmology parameters*/ //Shouldnt this be a struct???
-  
+private:  
   double eps=1.e-4; /**< Integration precision*/
 
   /**
