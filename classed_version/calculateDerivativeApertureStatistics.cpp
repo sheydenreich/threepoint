@@ -43,7 +43,6 @@ int main(int argc, char* argv[])
       cosmo.w=-1.0;
       cosmo.om = cosmo.omb+cosmo.omc;
       cosmo.ow = 1-cosmo.om;
-      outfn="../results_SLICS/dMapMapMap.dat";
     }
   else
     {
@@ -56,7 +55,6 @@ int main(int argc, char* argv[])
       cosmo.w = -1.0;
       cosmo.om = cosmo.omc+cosmo.omb;
       cosmo.ow = 1.-cosmo.om;
-      outfn="../results_MR/dMapMapMap.dat";
     }
 
   int n_z=400; //Number of redshift bins for grids
