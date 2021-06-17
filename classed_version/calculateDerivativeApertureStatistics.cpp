@@ -74,81 +74,81 @@ int main(int argc, char* argv[])
   std::vector<cosmology> cosmos; ///<container for all cosmologies
 
   cosmology newCosmo=cosmo;
-  newCosmo.h-=cosmo.h*2*h;
+  newCosmo.h=cosmo.h*(1.-2*h);
   cosmos.push_back(newCosmo);
-  newCosmo.h-=cosmo.h*h;
+  newCosmo.h=cosmo.h*(1.-h);
   cosmos.push_back(newCosmo);
-  newCosmo.h+=cosmo.h*h;
+  newCosmo.h=cosmo.h*(1.+h);
   cosmos.push_back(newCosmo);
-  newCosmo.h+=cosmo.h*2*h;
-  cosmos.push_back(newCosmo);
-
-  newCosmo=cosmo;
-  newCosmo.sigma8-=cosmo.sigma8*2*h;
-  cosmos.push_back(newCosmo);
-  newCosmo.sigma8-=cosmo.sigma8*h;
-  cosmos.push_back(newCosmo);
-  newCosmo.sigma8+=cosmo.sigma8*h;
-  cosmos.push_back(newCosmo);
-  newCosmo.sigma8+=cosmo.sigma8*2*h;
+  newCosmo.h=cosmo.h*(1.+2*h);
   cosmos.push_back(newCosmo);
 
   newCosmo=cosmo;
-  newCosmo.omb-=cosmo.omb*2*h;
+  newCosmo.sigma8=cosmo.sigma8*(1.-2*h);
+  cosmos.push_back(newCosmo);
+  newCosmo.sigma8=cosmo.sigma8*(1.-h);
+  cosmos.push_back(newCosmo);
+  newCosmo.sigma8=cosmo.sigma8*(1.+h);
+  cosmos.push_back(newCosmo);
+  newCosmo.sigma8=cosmo.sigma8*(1.+2*h);
+  cosmos.push_back(newCosmo);
+
+  newCosmo=cosmo;
+  newCosmo.omb=cosmo.omb*(1-2*h);
   newCosmo.omc=newCosmo.om-newCosmo.omb;
   cosmos.push_back(newCosmo);
-  newCosmo.omb-=cosmo.omb*h;
+  newCosmo.omb=cosmo.omb*(1-h);
   newCosmo.omc=newCosmo.om-newCosmo.omb;
   cosmos.push_back(newCosmo);
-  newCosmo.omb+=cosmo.omb*h;
+  newCosmo.omb=cosmo.omb*(1+h);
   newCosmo.omc=newCosmo.om-newCosmo.omb;
   cosmos.push_back(newCosmo);
-  newCosmo.omb+=cosmo.omb*2*h;
+  newCosmo.omb=cosmo.omb*(1+2*h);
   newCosmo.omc=newCosmo.om-newCosmo.omb;
   cosmos.push_back(newCosmo);
 
   newCosmo=cosmo;
-  newCosmo.ns-=cosmo.ns*2*h;
+  newCosmo.ns=cosmo.ns*(1-2*h);
   cosmos.push_back(newCosmo);
-  newCosmo.ns-=cosmo.ns*h;
+  newCosmo.ns=cosmo.ns*(1-h);
   cosmos.push_back(newCosmo);
-  newCosmo.ns+=cosmo.ns*h;
+  newCosmo.ns=cosmo.ns*(1+h);
   cosmos.push_back(newCosmo);
-  newCosmo.ns+=cosmo.ns*2*h;
+  newCosmo.ns=cosmo.ns*(1+2*h);
   cosmos.push_back(newCosmo);
   
   newCosmo=cosmo;
-  newCosmo.w-=cosmo.w*2*h;
+  newCosmo.w=cosmo.w*(1-2*h);
   cosmos.push_back(newCosmo);
-  newCosmo.w-=cosmo.w*h;
+  newCosmo.w=cosmo.w*(1-h);
   cosmos.push_back(newCosmo);
-  newCosmo.w+=cosmo.w*h;
+  newCosmo.w=cosmo.w*(1+h);
   cosmos.push_back(newCosmo);
-  newCosmo.w+=cosmo.w*2*h;
-  cosmos.push_back(newCosmo);
-
-  newCosmo=cosmo;
-  newCosmo.om-=cosmo.om*2*h;
-  newCosmo.omc=newCosmo.om-newCosmo.omb;
-  cosmos.push_back(newCosmo);
-  newCosmo.om-=cosmo.om*h;
-  newCosmo.omc=newCosmo.om-newCosmo.omb;
-  cosmos.push_back(newCosmo);
-  newCosmo.om+=cosmo.om*h;
-  newCosmo.omc=newCosmo.om-newCosmo.omb;
-  cosmos.push_back(newCosmo);
-  newCosmo.om+=cosmo.om*2*h;
-  newCosmo.omc=newCosmo.om-newCosmo.omb;
+  newCosmo.w=cosmo.w*(1+2*h);
   cosmos.push_back(newCosmo);
 
   newCosmo=cosmo;
-  newCosmo.ow-=cosmo.ow*2*h;
+  newCosmo.om=cosmo.om*(1-2*h);
+  newCosmo.omc=newCosmo.om-newCosmo.omb;
   cosmos.push_back(newCosmo);
-  newCosmo.ow-=cosmo.ow*h;
+  newCosmo.om=cosmo.om*(1-h);
+  newCosmo.omc=newCosmo.om-newCosmo.omb;
   cosmos.push_back(newCosmo);
-  newCosmo.ow+=cosmo.ow*h;
+  newCosmo.om=cosmo.om*(1+h);
+  newCosmo.omc=newCosmo.om-newCosmo.omb;
   cosmos.push_back(newCosmo);
-  newCosmo.ow+=cosmo.ow*2*h;
+  newCosmo.om=cosmo.om*(1+2*h);
+  newCosmo.omc=newCosmo.om-newCosmo.omb;
+  cosmos.push_back(newCosmo);
+
+  newCosmo=cosmo;
+  newCosmo.ow=cosmo.ow*(1-2*h);
+  cosmos.push_back(newCosmo);
+  newCosmo.ow=cosmo.ow*(1-h);
+  cosmos.push_back(newCosmo);
+  newCosmo.ow=cosmo.ow*(1+h);
+  cosmos.push_back(newCosmo);
+  newCosmo.ow=cosmo.ow*(1+2*h);
   cosmos.push_back(newCosmo);
 
   int Ncosmos=cosmos.size();///<Number of cosmologies
