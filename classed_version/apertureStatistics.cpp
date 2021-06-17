@@ -150,7 +150,7 @@ int ApertureStatistics::integrand(unsigned ndim, size_t npts, const double* vars
 
   ApertureStatistics* apertureStatistics = container->aperturestatistics;
   double* thetas = container->thetas;
-  
+
 #if PARALLEL_INTEGRATION
 #pragma omp parallel for
 #endif
@@ -177,7 +177,8 @@ int ApertureStatistics::integrand_4d(unsigned ndim, size_t npts, const double* v
 
   ApertureStatistics* apertureStatistics = container->aperturestatistics;
   double* thetas = container->thetas;
-  
+
+ 
 #if PARALLEL_INTEGRATION
 #pragma omp parallel for
 #endif
