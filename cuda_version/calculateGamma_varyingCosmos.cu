@@ -183,11 +183,11 @@ int main(int argc, char** argv)
       }
       out<<std::endl;
       std::cout<<std::endl;
-      std::cout << "Finished cosmology " << i+1 <<
-        printf("after %.2f h. Est. remaining: %.2f s. Average: %.2f s per cosmology. \n\n",
+      std::cout << "Finished cosmology " << i+1 ;
+        printf("after %.2f h. Est. remaining: %.2f h. Average: %.2f min per cosmology. \n\n",
         elapsed.count()*1e-9/3600,
         (7*N_cosmo-i-1)*elapsed.count()*1e-9/3600/(i+1),
-        elapsed.count()*1e-9/(i+1));
+        elapsed.count()*1e-9/60/(i+1));
 
       // Stop measuring time and calculate the elapsed time
     };
