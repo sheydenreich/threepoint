@@ -117,7 +117,6 @@ std::complex<double> gamma0(double x1, double x2, double x3, double z_max)
   complexResult = convert_orthocenter_to_centroid(complexResult,x1,x2,x3,false);
   #endif //CONVERT_TO_CENTROID
   double om = get_om();
-  std::cout << om << std::endl;
   return complexResult*27./8.*pow(om,3)*pow(100./299792.,5)/3./(2*pow(2*M_PI,3));
 }
 
@@ -139,7 +138,6 @@ std::complex<double> gamma1(double x1, double x2, double x3, double z_max)
   complexResult = convert_orthocenter_to_centroid(complexResult,x1,x2,x3,true);
   #endif //CONVERT_TO_CENTROID
   double om = get_om();
-  std::cout << om << std::endl;
   return complexResult*27./8.*pow(om,3)*pow(100./299792.,5)/3./(2*pow(2*M_PI,3));
 }
 

@@ -98,17 +98,17 @@ int main()
 	    {
 	      double v= vmin+(vmax-vmin)/vsteps*(k+0.5);
 
-	      double r2 = r; //THIS IS THE BINNING BY JARVIS. FROM THE WEBSITE, NOT THE PAPER.
+	      double r2 = r*M_PI/180./60.; //THIS IS THE BINNING BY JARVIS. FROM THE WEBSITE, NOT THE PAPER.
 	      double r3 = r2*u;
 	      double r1 = v*r3+r2;
 	      
-	      std::complex<double> _gamma0 = gamma0(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3,z_max);
-	      std::complex<double> _gamma1 = gamma1(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3,z_max);
-	      std::complex<double> _gamma2 = gamma2(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3,z_max);
-	      std::complex<double> _gamma3 = gamma3(M_PI/180./60.*r1, M_PI/180./60.*r2, M_PI/180./60.*r3,z_max);
+	      std::complex<double> _gamma0 = gamma0(r1, r2, r3,z_max);
+	      std::complex<double> _gamma1 = gamma1(r1, r2, r3,z_max);
+	      std::complex<double> _gamma2 = gamma2(r1, r2, r3,z_max);
+	      std::complex<double> _gamma3 = gamma3(r1, r2, r3,z_max);
 	      auto end = std::chrono::high_resolution_clock::now();
 	      auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
-        int completed_steps = i*usteps*vsteps+j*vsteps+k;
+        int completed_steps = i*usteps*vsteps+j*vsteps+k+1;
         int total_steps = steps*usteps*vsteps;
         double progress = (completed_steps*1.)/(total_steps);
 
