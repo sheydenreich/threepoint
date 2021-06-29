@@ -289,7 +289,7 @@ __device__ double F2_tree(double k1, double k2, double k3)  // F2 kernel in tree
 double get_om()
 {
   double om;
-  CudaSafeCall(CudaMemcpyFromSymbol(&om,dev_om,sizeof(double)));
+  CudaSafeCall(cudaMemcpyFromSymbol(&om,dev_om,sizeof(double)));
   return om;
 }
 

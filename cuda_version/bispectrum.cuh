@@ -170,7 +170,7 @@ __host__ void set_cosmology(cosmology cosmo, double dz_, double z_max_);
   /**
    * returns the unitless matter parameter for the currently set cosmology
    */
-double get_om()
+double get_om();
 
 
 
