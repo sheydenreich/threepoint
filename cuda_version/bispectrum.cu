@@ -286,6 +286,13 @@ __device__ double F2_tree(double k1, double k2, double k3)  // F2 kernel in tree
   return (5./7.)+0.5*costheta12*(k1/k2+k2/k1)+(2./7.)*costheta12*costheta12;
 }
 
+double get_om()
+{
+  double om;
+  CudaSafeCall(CudaMemcpyFromSymbol(&om,dev_om,sizeof(double)));
+  return om;
+}
+
 void set_cosmology(cosmology cosmo, double dz_, double z_max_)
 {
   //set cosmology

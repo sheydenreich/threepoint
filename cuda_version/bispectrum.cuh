@@ -167,6 +167,11 @@ __device__ double F2_tree(double k1, double k2, double k3);  // F2 kernel in tre
    */
 __host__ void set_cosmology(cosmology cosmo, double dz_, double z_max_);
 
+  /**
+   * returns the unitless matter parameter for the currently set cosmology
+   */
+double get_om()
+
 
 
 /**
