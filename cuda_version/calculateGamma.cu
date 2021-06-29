@@ -12,8 +12,19 @@
 #define slics false
 
 
-int main()
+int main(int argc, char** argv)
 {
+    std::cout << "Executing " << argv[0] << " ";
+    if(argc>=2)
+    {
+        int deviceNumber = atoi(argv[1]);
+        std::cout << "on GPU " << deviceNumber << std::endl;
+        cudaSetDevice(deviceNumber);
+    }
+    else
+    {
+        std::cout << "on default GPU";
+    }
   // Set Up Cosmology
   struct cosmology cosmo;
 

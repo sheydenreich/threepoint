@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 #include <chrono> //For time measurements
+#include <cstdlib>
+
 /**
  * @file calculateGamma_varyingCosmos.cu
  * This executable calculates Gamma^i for variations of
@@ -22,9 +24,19 @@
  * @todo cosmology should be read from init-file
  */
 
-int main()
+int main(int argc, char** argv)
 {
-    
+    std::cout << "Executing " << argv[0] << " ";
+    if(argc>=2)
+    {
+        int deviceNumber = atoi(argv[1]);
+        std::cout << "on GPU " << deviceNumber << std::endl;
+        cudaSetDevice(deviceNumber);
+    }
+    else
+    {
+        std::cout << "on default GPU";
+    }
 // Set Up Cosmology
   struct cosmology cosmo;
   std::string outfn;
@@ -127,6 +139,9 @@ int main()
       
       //Calculate <MapMapMap>(theta1, theta1, theta1)
       // Calculation only for theta1=theta2=theta3
+        auto end = std::chrono::high_resolution_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
+
       for (int r_ind=0; r_ind<N_r; r_ind++)
       {
         for (int u_ind=0; u_ind<N_r; u_ind++)
@@ -153,8 +168,8 @@ int main()
                 out << real(_gamma3)  << " " << imag(_gamma3)  << " ";
                 
                 step++;
-                auto end = std::chrono::high_resolution_clock::now();
-                auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
+                end = std::chrono::high_resolution_clock::now();
+                elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
                 double progress = step*1./Ntotal;
 
                 printf("\r [%3d%%] in %.2f s. Est. remaining: %.2f s. Average: %.2f s per step.",
@@ -168,6 +183,12 @@ int main()
       }
       out<<std::endl;
       std::cout<<std::endl;
+      std::cout << "Finished cosmology " << i+1 <<
+        printf("after %.2f h. Est. remaining: %.2f s. Average: %.2f s per cosmology. \n\n",
+        elapsed.count()*1e-9/3600,
+        (7*N_cosmo-i-1)*elapsed.count()*1e-9/3600/(i+1),
+        elapsed.count()*1e-9/(i+1));
+
       // Stop measuring time and calculate the elapsed time
     };
 }
