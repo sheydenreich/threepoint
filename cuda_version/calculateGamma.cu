@@ -91,8 +91,8 @@ int main()
 	{
 	  // double u = umin+(umax-umin)/usteps*(j+0.5);
     double u;
-    if(j<10) u = 0.2/10*(i+0.5);
-    else u = 1./10*((i-8)+0.5);
+    if(j<10) u = 0.2/10*(j+0.5);
+    else u = 1./10*((j-8)+0.5);
 
 	  for(int k=0; k<vsteps; k++)
 	    {
