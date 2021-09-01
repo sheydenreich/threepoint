@@ -32,6 +32,7 @@ void BispectrumCalculator::initialize(cosmology cosmo, int n_z, double z_max_arg
     D1_array = new double[n_redshift_bins];
     r_sigma_array = new double[n_redshift_bins];
     n_eff_array = new double[n_redshift_bins];
+    ncur_array = new double[n_redshift_bins];
     std::cout<<"Memory is allocated"<<std::endl;
     set_cosmology(cosmo);
     initialized = true;
@@ -94,6 +95,7 @@ void BispectrumCalculator::set_cosmology(cosmology cosmo)
     D1_array[i]=lgr(z_now)/lgr(0.);   // linear growth factor
     r_sigma_array[i]=calc_r_sigma(D1_array[i]);  // =1/k_NL [Mpc/h] in Eq.(B1)
     n_eff_array[i]=-3.+2.*pow(D1_array[i]*sigmam(r_sigma_array[i],2),2);   // n_eff in Eq.(B2)
+    ncur_array[i] = (n_eff_array[i]+3)*(n_eff_array[i]+3)+4.*pow(D1_array[i],2)*sigmam(r_sigma_array[i],3)/pow(sigmam(r_sigma_array[i],1),2);
   }
   std::cout<<"Finished setting Cosmology"<<std::endl;
 }
@@ -318,6 +320,101 @@ double BispectrumCalculator::f_K_interpolated(int idx, double didx){
     return f_K_array[idx]*(1-didx) + f_K_array[idx+1]*didx;
 }
 
+double BispectrumCalculator::P_k_nonlinear(double k, double z){
+  /* get the interpolation coefficients */
+  double didx = z/z_max*(n_redshift_bins-1);
+  int idx = didx;
+  didx = didx - idx;
+  if(idx==n_redshift_bins-1){
+      idx = n_redshift_bins-2;
+      didx = 1.;
+  }
+
+  double r_sigma,n_eff,D1;
+  compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff);
+
+  double a,b,c,gam,alpha,beta,xnu,y,ysqr,ph,pq,f1,f2,f3;
+  double f1a,f2a,f3a,f1b,f2b,f3b,frac;
+  double plin,delta_nl;
+  double scalefactor,om_m,om_v;
+  double nsqr,ncur;
+
+  f1   = pow(om, -0.0307);
+  f2   = pow(om, -0.0585);
+  f3   = pow(om, 0.0743);
+
+
+  nsqr = n_eff*n_eff;
+  ncur = ncur_array[idx]*(1-didx) + ncur_array[idx+1]*didx; //interpolate ncur
+  // ncur = (n_eff+3)*(n_eff+3)+4.*pow(D1,2)*sigmam(r_sigma,3)/pow(sigmam(r_sigma,1),2);
+  // printf("n_eff, ncur, knl = %.3f, %.3f, %.3f \n",n_eff,ncur,1./r_sigma);
+
+  // ncur = 0.;
+
+  if(abs(om+ow-1)>1e-4)
+  {
+    std::cerr << "Warning: omw as a function of redshift only implemented for flat universes yet!";
+    exit(1);
+  }
+
+  scalefactor=1./(1.+z);
+
+  om_m = om/(om+ow*pow(scalefactor,-3.*w));   // Omega matter at z
+  om_v = 1.-om_m; //omega lambda at z. TODO: implement for non-flat Universes
+
+		f1a=pow(om_m,(-0.0732));
+		f2a=pow(om_m,(-0.1423));
+		f3a=pow(om_m,(0.0725));
+		f1b=pow(om_m,(-0.0307));
+		f2b=pow(om_m,(-0.0585));
+		f3b=pow(om_m,(0.0743));
+		frac=om_v/(1.-om_m);
+		f1=frac*f1b + (1-frac)*f1a;
+		f2=frac*f2b + (1-frac)*f2a;
+		f3=frac*f3b + (1-frac)*f3a;
+
+  a = 1.5222 + 2.8553*n_eff + 2.3706*nsqr + 0.9903*n_eff*nsqr
+      + 0.2250*nsqr*nsqr - 0.6038*ncur + 0.1749*om_v*(1.0 + w);
+  a = pow(10.0, a);
+  b = pow(10.0, -0.5642 + 0.5864*n_eff + 0.5716*nsqr - 1.5474*ncur + 0.2279*om_v*(1.0 + w));
+  c = pow(10.0, 0.3698 + 2.0404*n_eff + 0.8161*nsqr + 0.5869*ncur);
+  gam = 0.1971 - 0.0843*n_eff + 0.8460*ncur;
+  alpha = fabs(6.0835 + 1.3373*n_eff - 0.1959*nsqr - 5.5274*ncur);
+  beta  = 2.0379 - 0.7354*n_eff + 0.3157*nsqr + 1.2490*n_eff*nsqr + 0.3980*nsqr*nsqr - 0.1682*ncur;
+  xnu   = pow(10.0, 5.2105 + 3.6902*n_eff);
+
+  plin = linear_pk(k)*D1*D1*k*k*k/(2*M_PI*M_PI);
+
+
+  y = k*r_sigma;
+  ysqr = y*y;
+  ph = a*pow(y,f1*3)/(1+b*pow(y,f2)+pow(f3*c*y,3-gam));
+  ph = ph/(1+xnu/ysqr);
+  pq = plin*pow(1+plin,beta)/(1+plin*alpha)*exp(-y/4.0-ysqr/8.0);
+  
+  delta_nl = pq + ph;
+
+  return (2*M_PI*M_PI*delta_nl/(k*k*k));
+}
+
+double BispectrumCalculator::linear_pk_at_z(double k, double z)
+{
+  /* get the interpolation coefficients */
+  double didx = z/z_max*(n_redshift_bins-1);
+  int idx = didx;
+  didx = didx - idx;
+  if(idx==n_redshift_bins-1){
+      idx = n_redshift_bins-2;
+      didx = 1.;
+  }
+
+  double r_sigma,n_eff,D1;
+  compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff);
+  
+  return D1*D1*linear_pk(k);
+  // return linear_pk(k);
+}
+
 double BispectrumCalculator::bispec(double k1, double k2, double k3, double z, int idx, double didx)   // non-linear BS w/o baryons [(Mpc/h)^6]
 {
   int i,j;
@@ -538,10 +635,15 @@ double BispectrumCalculator::sigmam(double r, int j)   // r[Mpc/h]
       xx=0.;
       for(i=1;i<n;i++){
 	k=exp(a+hh*i);
-	xx+=k*k*k*linear_pk(k)*pow(window(k*r,j),2);
+  if(j<3)	xx+=k*k*k*linear_pk(k)*pow(window(k*r,j),2);
+  else xx+=k*k*k*linear_pk(k)*window(k*r,j);
       }
-      xx+=0.5*(k1*k1*k1*linear_pk(k1)*pow(window(k1*r,j),2)+k2*k2*k2*linear_pk(k2)*pow(window(k2*r,j),2));
+      if(j<3) xx+=0.5*(k1*k1*k1*linear_pk(k1)*pow(window(k1*r,j),2)+k2*k2*k2*linear_pk(k2)*pow(window(k2*r,j),2));
+      else xx+=0.5*(k1*k1*k1*linear_pk(k1)*window(k1*r,j)+k2*k2*k2*linear_pk(k2)*window(k2*r,j));
+      
       xx*=hh;
+
+      // if(j==3) std::cout << xx << std::endl;
 
       if(fabs((xx-xxp)/xx)<eps) break;
       xxp=xx; 
@@ -554,7 +656,8 @@ double BispectrumCalculator::sigmam(double r, int j)   // r[Mpc/h]
     xxpp=xx;
   }
 
-  return sqrt(xx/(2.0*M_PI*M_PI));
+  if(j<3) return sqrt(xx/(2.0*M_PI*M_PI));
+  else return xx/(2.0*M_PI*M_PI);
 }
 
 
@@ -563,8 +666,9 @@ double BispectrumCalculator::window(double x, int i)
   if(i==0) return 3.0/pow(x,3)*(sin(x)-x*cos(x));  // top hat
   if(i==1) return exp(-0.5*x*x);   // gaussian
   if(i==2) return x*exp(-0.5*x*x);  // 1st derivative gaussian
-
-  // This is only reached, if i is not a valid value between 0 and 2
+  // if(i==3) return (x*x-1.)*exp(-0.5*x*x); //2nd derivative gaussian
+  if(i==3) return x*x*(1-x*x)*exp(-x*x);
+  // This is only reached, if i is not a valid value between 0 and 3
   std::cerr << "BispectrumCalculator::window: Window function not specified. Exiting \n";
   exit(1);
 }

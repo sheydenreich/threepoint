@@ -122,6 +122,7 @@ private:
    */
     double window(double x, int i);
 
+
   /**
    * Linear Powerspectrum. Currently uses only linear_pk_eh
    * @param k Mode [h/Mpc]
@@ -163,6 +164,7 @@ private:
   double* D1_array; /**< Array for Growthfactor on a grid, is initialized in initialize()*/
   double* r_sigma_array; /**< Array for r_sigma on a grid, is initialized in initialize()*/
   double* n_eff_array; /**< Array for n_eff on a grid, is initialized in initialize()*/
+  double* ncur_array;
   int n_redshift_bins; /**< Number of redshift bins*/
   double z_max; /**< Maximal redshift to which D1, r_sigma and n_eff are calculated*/
   double dz; /**< Binsize in redshift*/
@@ -323,7 +325,25 @@ public:
    */
   double get_z_max();
 
-  
+  /**
+   * Non-linear Powerspectrum according to Takahashi et al. halofit model
+   * @param k Mode [h/Mpc]
+   * @param z redshift
+   * @return Power spectrum at k [(Mpc/h)^3]
+   */
+
+    double P_k_nonlinear(double k, double z);
+
+  /**
+   * Linear Powerspectrum scaled with the growth factor
+   * @param k Mode [h/Mpc]
+   * @param z redshift
+   * @return Power spectrum at k [(Mpc/h)^3]
+   */
+
+    double linear_pk_at_z(double k, double z);
+
+    
   /**
    * Set cosmology and initialize Bispectrum.
    * Assigns cosmology to internal variables, calculates f_k, g, D1, r_sigma and n_eff on grid

@@ -52,6 +52,7 @@ extern __constant__ double dev_g_array[n_redshift_bins]; // Array for lensing ef
 extern __constant__ double dev_n_eff_array[n_redshift_bins]; // Array for n_eff
 extern __constant__ double dev_r_sigma_array[n_redshift_bins]; // Array for r(sigma)
 extern __constant__ double dev_D1_array[n_redshift_bins]; // Array for growth factor
+extern __constant__ double dev_ncur_array[n_redshift_bins]; //Array for C in Halofit
 
 /**
  * 2D Bispectrum B_kappa, integrated from bispec 
@@ -60,6 +61,15 @@ extern __constant__ double dev_D1_array[n_redshift_bins]; // Array for growth fa
  * @param ell3 l-mode 3
  */
 __device__ double bkappa(double ell1, double ell2, double ell3);
+
+
+/**
+ * Non-linear power spectrum from the revised Halofit formula (Takahashi et al. 2012)
+ * @param k scale mode [h/Mpc]
+ * @param z redshift
+ * @return non-linear power spectrum at k [Mpc^3/h^3]
+ */
+__device__ double P_k_nonlinear(double k, double z);
 
   /**
    * 96 pt Gaussian Quadrature of integrand_bkappa along redshift

@@ -63,6 +63,7 @@ __constant__ double dev_g_array[n_redshift_bins]; // Array for lensing efficacy 
 __constant__ double dev_n_eff_array[n_redshift_bins]; // Array for n_eff
 __constant__ double dev_r_sigma_array[n_redshift_bins]; // Array for r(sigma)
 __constant__ double dev_D1_array[n_redshift_bins]; // Array for growth factor
+__constant__ double dev_ncur_array[n_redshift_bins]; // Array for C in Halofit
 
 
 __device__ double bkappa(double ell1, double ell2, double ell3)
@@ -190,6 +191,83 @@ __device__ void compute_coefficients(int idx, double didx, double *D1, double *r
      *r_sigma = dev_r_sigma_array[idx]*(1-didx) + dev_r_sigma_array[idx+1]*didx;
      *n_eff = dev_n_eff_array[idx]*(1-didx) + dev_n_eff_array[idx+1]*didx;
 }
+
+__device__ double P_k_nonlinear(double k, double z){
+  /* get the interpolation coefficients */
+  double didx = z/z_max*(n_redshift_bins-1);
+  int idx = didx;
+  didx = didx - idx;
+  if(idx==n_redshift_bins-1){
+      idx = n_redshift_bins-2;
+      didx = 1.;
+  }
+
+  double r_sigma,n_eff,D1;
+  compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff);
+
+  double a,b,c,gam,alpha,beta,xnu,y,ysqr,ph,pq,f1,f2,f3;
+  double f1a,f2a,f3a,f1b,f2b,f3b,frac;
+  double plin,delta_nl;
+  double scalefactor,om_m,om_v;
+  double nsqr,ncur;
+
+  f1   = pow(om, -0.0307);
+  f2   = pow(om, -0.0585);
+  f3   = pow(om, 0.0743);
+
+
+  nsqr = n_eff*n_eff;
+  ncur = dev_ncur_array[idx]*(1-didx) + dev_ncur_array[idx+1]*didx; //interpolate ncur
+  // ncur = (n_eff+3)*(n_eff+3)+4.*pow(D1,2)*sigmam(r_sigma,3)/pow(sigmam(r_sigma,1),2);
+  // printf("n_eff, ncur, knl = %.3f, %.3f, %.3f \n",n_eff,ncur,1./r_sigma);
+
+  // ncur = 0.;
+
+  if(abs(om+ow-1)>1e-4)
+  {
+    printf("Warning: omw as a function of redshift only implemented for flat universes yet!");
+  }
+
+  scalefactor=1./(1.+z);
+
+  om_m = dev_om/(dev_om+dev_ow*pow(scalefactor,-3.*dev_w));   // Omega matter at z
+  om_v = 1.-om_m; //omega lambda at z. TODO: implement for non-flat Universes
+
+		f1a=pow(om_m,(-0.0732));
+		f2a=pow(om_m,(-0.1423));
+		f3a=pow(om_m,(0.0725));
+		f1b=pow(om_m,(-0.0307));
+		f2b=pow(om_m,(-0.0585));
+		f3b=pow(om_m,(0.0743));
+		frac=om_v/(1.-om_m);
+		f1=frac*f1b + (1-frac)*f1a;
+		f2=frac*f2b + (1-frac)*f2a;
+		f3=frac*f3b + (1-frac)*f3a;
+
+  a = 1.5222 + 2.8553*n_eff + 2.3706*nsqr + 0.9903*n_eff*nsqr
+      + 0.2250*nsqr*nsqr - 0.6038*ncur + 0.1749*om_v*(1.0 + w);
+  a = pow(10.0, a);
+  b = pow(10.0, -0.5642 + 0.5864*n_eff + 0.5716*nsqr - 1.5474*ncur + 0.2279*om_v*(1.0 + w));
+  c = pow(10.0, 0.3698 + 2.0404*n_eff + 0.8161*nsqr + 0.5869*ncur);
+  gam = 0.1971 - 0.0843*n_eff + 0.8460*ncur;
+  alpha = fabs(6.0835 + 1.3373*n_eff - 0.1959*nsqr - 5.5274*ncur);
+  beta  = 2.0379 - 0.7354*n_eff + 0.3157*nsqr + 1.2490*n_eff*nsqr + 0.3980*nsqr*nsqr - 0.1682*ncur;
+  xnu   = pow(10.0, 5.2105 + 3.6902*n_eff);
+
+  plin = dev_linear_pk(k)*D1*D1*k*k*k/(2*M_PI*M_PI);
+
+
+  y = k*r_sigma;
+  ysqr = y*y;
+  ph = a*pow(y,f1*3)/(1+b*pow(y,f2)+pow(f3*c*y,3-gam));
+  ph = ph/(1+xnu/ysqr);
+  pq = plin*pow(1+plin,beta)/(1+plin*alpha)*exp(-y/4.0-ysqr/8.0);
+  
+  delta_nl = pq + ph;
+
+  return (2*M_PI*M_PI*delta_nl/(k*k*k));
+}
+
 
 __device__ double dev_linear_pk(double k) 
 {
@@ -371,6 +449,7 @@ void set_cosmology(cosmology cosmo, double dz_, double z_max_)
     double D1_array[n_redshift_bins];
     double r_sigma_array[n_redshift_bins];
     double n_eff_array[n_redshift_bins];
+    double ncur_array[n_redshift_bins];
 
 #pragma omp parallel for
     for(int i=0; i<n_redshift_bins;i++)
@@ -380,12 +459,16 @@ void set_cosmology(cosmology cosmo, double dz_, double z_max_)
 	D1_array[i]=lgr(z_now)/lgr(0.);   // linear growth factor
 	r_sigma_array[i]=calc_r_sigma(D1_array[i]);  // =1/k_NL [Mpc/h] in Eq.(B1)
 	n_eff_array[i]=-3.+2.*pow(D1_array[i]*sigmam(r_sigma_array[i],2),2);   // n_eff in Eq.(B2)
+  ncur_array[i] = (n_eff_array[i]+3)*(n_eff_array[i]+3)+4.*pow(D1_array[i],2)*sigmam(r_sigma_array[i],3)/pow(sigmam(r_sigma_array[i],1),2);
+
       }
 
     // Copy non-linear scales to device
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_D1_array,D1_array,n_redshift_bins*sizeof(double)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_r_sigma_array,r_sigma_array,n_redshift_bins*sizeof(double)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n_eff_array,n_eff_array,n_redshift_bins*sizeof(double)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_ncur_array,ncur_array,n_redshift_bins*sizeof(double)));
+
 
 }
 
