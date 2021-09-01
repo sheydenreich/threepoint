@@ -580,21 +580,30 @@ double sigmam(double r, int j)   // r[Mpc/h]
 
       xx=0.;
       for(i=1;i<n;i++){
-	k=exp(a+hh*i);
-	xx+=k*k*k*linear_pk(k)*pow(window(k*r,j),2);
+  k=exp(a+hh*i);
+  if(j<3)	xx+=k*k*k*linear_pk(k)*pow(window(k*r,j),2);
+  else xx+=k*k*k*linear_pk(k)*window(k*r,j);
       }
-      xx+=0.5*(k1*k1*k1*linear_pk(k1)*pow(window(k1*r,j),2)+k2*k2*k2*linear_pk(k2)*pow(window(k2*r,j),2));
+      if(j<3) xx+=0.5*(k1*k1*k1*linear_pk(k1)*pow(window(k1*r,j),2)+k2*k2*k2*linear_pk(k2)*pow(window(k2*r,j),2));
+      else xx+=0.5*(k1*k1*k1*linear_pk(k1)*window(k1*r,j)+k2*k2*k2*linear_pk(k2)*window(k2*r,j));
+      
       xx*=hh;
 
+      // if(j==3) std::cout << xx << std::endl;
+
       if(fabs((xx-xxp)/xx)<eps) break;
-      xxp=xx;
+      xxp=xx; 
+      // printf("\033[2J");
+      // printf("%lf",(xx-xxp)/xx);
+      // fflush(stdout);
     }
 
     if(fabs((xx-xxpp)/xx)<eps) break;
     xxpp=xx;
   }
 
-  return sqrt(xx/(2.0*M_PI*M_PI));
+  if(j<3) return sqrt(xx/(2.0*M_PI*M_PI));
+  else return xx/(2.0*M_PI*M_PI);
 }
 
 double window(double x, int i)
@@ -602,6 +611,7 @@ double window(double x, int i)
   if(i==0) return 3.0/pow(x,3)*(sin(x)-x*cos(x));  // top hat
   if(i==1) return exp(-0.5*x*x);   // gaussian
   if(i==2) return x*exp(-0.5*x*x);  // 1st derivative gaussian
+  if(i==3) return x*x*(1-x*x)*exp(-x*x);
   printf("window ran out \n");
   return -1;
 }
