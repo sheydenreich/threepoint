@@ -1,7 +1,27 @@
 #include "apertureStatistics.hpp"
+#include "bispectrum.hpp"
 #include "cubature.h"
 #include <cmath>
 #include <omp.h>
+
+bool is_triangle(double ell1, double ell2, double ell3)
+{
+  if(abs(ell1-ell2)>ell3 || ell3 > (ell1+ell2)) return false;
+  if(abs(ell2-ell3)>ell1 || ell1 > (ell2+ell3)) return false;
+  if(abs(ell1-ell3)>ell2 || ell2 > (ell1+ell3)) return false;
+  return true;
+}
+
+
+double number_of_triangles(double ell1, double ell2, double ell3){ //TODO: maybe write this into a utility.cpp?
+    if(is_triangle(ell1,ell2,ell3))
+    {
+        double lambda = 2*ell1*ell1*ell2*ell2 + 2*ell1*ell1*ell3*ell3 + 2*ell2*ell2*ell3*ell3 - pow(ell1,4) - pow(ell2,4) - pow(ell3,4);
+        lambda = 4./sqrt(lambda);
+        return lambda;
+    }
+    else return 0;
+}
 
 double ApertureStatistics::uHat(const double& eta)
 {
@@ -40,6 +60,84 @@ double ApertureStatistics::integrand_4d(const double& l1, const double& l2, cons
   ells.ell3 = l3;
 
   return l1*l2*Bispectrum_->integrand_bkappa(z,ells)*uHat(l1*thetas[0])*uHat(l2*thetas[1])*uHat(l3*thetas[2]);
+}
+
+double ApertureStatistics::uHat_product(const double& l1, const double& l2, const double& l3, double* thetas)
+{
+  return uHat(l1*thetas[0])*uHat(l2*thetas[1])*uHat(l3*thetas[2]);
+}
+
+double ApertureStatistics::uHat_product_permutations(const double& l1, const double& l2, const double& l3, double* thetas)
+{
+  // double l3 = sqrt(l1*l1+l2*l2+2*l1*l2*cos(phi));
+  double _result;
+  _result = uHat_product(l1,l2,l3,thetas);
+  _result += uHat_product(l2,l3,l1,thetas);
+  _result += uHat_product(l3,l1,l2,thetas);
+  _result += uHat_product(l1,l3,l2,thetas);
+  _result += uHat_product(l3,l2,l1,thetas);
+  _result += uHat_product(l2,l1,l3,thetas);
+  return _result;
+}
+
+double ApertureStatistics::integrand_Gaussian_Aperture_Covariance(const double& l1, const double& l2, const double& l3, const double& z, 
+                                                          double* thetas_123, double* thetas_456)
+{
+  if(!is_triangle(l1, l2, l3)) return 0;
+  double result;
+  result = number_of_triangles(l1, l2, l3);
+  result *= uHat_product(l1, l2, l3, thetas_123);
+  result *= uHat_product_permutations(l1, l2, l3, thetas_456);
+  result *= Bispectrum_->limber_integrand_triple_power_spectrum(l1,l2,l3,z);
+  result *= l1*l2*l3;
+  // std::cout << "(l1,l2,l3,z,integrand): (" << l1 << ", " << l2 << ", " << l3 << ", " << z << ", " << result << ")" << std::endl;
+  return result;
+}
+
+int ApertureStatistics::integrand_Gaussian_Aperture_Covariance(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value)
+{
+  if(fdim != 1)
+    {
+      std::cerr<<"ApertureStatistics::integrand_Aperture_Covariance: Wrong number of function dimensions"<<std::endl;
+      exit(1);
+    };
+
+  if(ndim != 4)
+    {
+      std::cerr<<"ApertureStatistics::integrand_Aperture_Covariance: Wrong number of variable dimensions"<<std::endl;
+      exit(1);
+    };
+  ApertureStatisticsContainer* container = (ApertureStatisticsContainer*) thisPtr;
+
+  ApertureStatistics* apertureStatistics = container->aperturestatistics;
+  double* thetas_123 = container->thetas;
+  double* thetas_456 = container->thetas2;
+
+  std::cout << "Npts: " << npts << " at thetas " << 
+  thetas_123[0] << ", " <<
+  thetas_123[1] << ", " <<
+  thetas_123[2] << ", " <<
+  thetas_456[0] << ", " <<
+  thetas_456[1] << ", " <<
+  thetas_456[2] << ", " <<
+  std::endl;
+
+int number_of_zeros = 0;
+#if PARALLEL_INTEGRATION
+#pragma omp parallel for
+#endif
+  for( unsigned int i=0; i<npts; i++)
+    {
+      double ell1=vars[i*ndim];
+      double ell2=vars[i*ndim+1];
+      double ell3=vars[i*ndim+2];
+      double z=vars[i*ndim+3];
+      if(!is_triangle(ell1, ell2, ell3)) number_of_zeros++;
+  
+      value[i]=apertureStatistics->integrand_Gaussian_Aperture_Covariance(ell1, ell2, ell3, z, thetas_123, thetas_456);
+    }
+  std::cout << "Empty region: " << number_of_zeros*100./npts << "%" << std::endl;
+  return 0; //Success :)
 }
 
 
@@ -178,7 +276,7 @@ int ApertureStatistics::integrand_4d(unsigned ndim, size_t npts, const double* v
   ApertureStatistics* apertureStatistics = container->aperturestatistics;
   double* thetas = container->thetas;
 
- 
+ std::cout << "Npts: " << npts << std::endl;
 #if PARALLEL_INTEGRATION
 #pragma omp parallel for
 #endif
@@ -257,4 +355,38 @@ double ApertureStatistics::MapMapMap(double* thetas)
 #endif
   
   return result/248.050213442;//Divided by (2*pi)³
+}
+
+double ApertureStatistics::MapMapMap_covariance_Gauss(double* thetas_123, double* thetas_456, double survey_area)
+{
+
+  //Set maximal l value such, that theta*l <= 10
+  double thetaMin=std::min({thetas_123[0], thetas_123[1], thetas_123[2], thetas_456[0], thetas_456[1], thetas_456[2]});
+  lMax=10./thetaMin;
+
+
+  ApertureStatisticsContainer container;
+  container.aperturestatistics=this;
+  container.thetas=thetas_123;
+  container.thetas2=thetas_456;
+  double result,error;
+
+#if CUBATURE //Do cubature integration
+
+  #if INTEGRATE4D //do limber integration via cubature
+    double vals_min[4]={lMin, lMin, lMin, 0};
+    double vals_max[4]={lMax, lMax, lMax, Bispectrum_->get_z_max()};
+
+    hcubature_v(1, integrand_Gaussian_Aperture_Covariance, &container, 4, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
+
+  #else //do limber integration separately
+  std::cerr << "MapMapMap_covariance_Gauss: 3-dimensional cubature integration not implemented!" << std::endl;
+  exit(-1);
+  #endif
+#else //Do standard GSL integration
+  std::cerr << "MapMapMap_covariance_Gauss: GSL integration not implemented!" << std::endl;
+  exit(-1);
+#endif
+  
+  return result/survey_area;
 }

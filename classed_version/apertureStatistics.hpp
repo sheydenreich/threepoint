@@ -2,13 +2,34 @@
 #define APERTURESTATISTICS_HPP
 
 #define CUBATURE true
-#define INTEGRATE4D false //true
+#define INTEGRATE4D true //true
 //Switches for Parallelization
 //Make sure at the most one is on!!! Also: NO PARALLELIZATION IF GSL IS USED FOR BISPEC INTEGRATION!!!
-#define PARALLEL_INTEGRATION true
+#define PARALLEL_INTEGRATION false
 #define PARALLEL_RADII false
 #include "bispectrum.hpp"
 
+
+  /**
+   * @brief returns a number proportional to the number of triangles of a certain configuration
+   * Eq.(8) in Joachimi et al. (2009)
+   * @param ell1 first sidelength of triangle
+   * @param ell2 second sidelength of triangle
+   * @param ell3 third sidelength of triangle
+   * @warning this function will probably be mitigated to a utility-module
+   * @return Value of function
+   */
+
+double number_of_triangles(double ell1, double ell2, double ell3);
+
+  /**
+   * @brief checks if the three input ell can form a triangle
+   * @param ell1 first sidelength of triangle
+   * @param ell2 second sidelength of triangle
+   * @param ell3 third sidelength of triangle
+   * @warning this function will probably be mitigated to a utility-module
+   */
+bool is_triangle(double ell1, double ell2, double ell3);
 
 
 /**
@@ -44,6 +65,27 @@ private:
    * @return Value of filter function
    */
   double uHat(const double& eta);
+
+  /**
+   * @brief Product of three Filter functions in Fourier space
+   * \f$ \hat{u}(\ell_1\thetas[0])*\hat{u}(\ell_2\thetas[1])*\hat{u}(\ell_3\thetas[2]) \f$
+   * @param l1 First ell-scale
+   * @param l2 Second ell-scale
+   * @param l3 Third ell-scale
+   * @param thetas filter radii[rad]
+   * @return Value of product of filter functions
+   */
+  double uHat_product(const double& l1, const double& l2, const double& l3, double* thetas);
+
+  /**
+   * @brief Sum of all possible Permutations of the product of three Filter functions in Fourier space
+   * @param l1 First ell-scale
+   * @param l2 Second ell-scale
+   * @param l3 Third ell-scale
+   * @param thetas filter radii[rad]
+   * @return Value of sum of permutations
+   */
+  double uHat_product_permutations(const double& l1, const double& l2, const double& l3, double* thetas);
 
 public: //Once debugging is finished, these members should be private!
 
@@ -90,6 +132,17 @@ public: //Once debugging is finished, these members should be private!
    */
   double integrand_4d(const double& l1, const double& l2, const double& phi, const double& z, double* thetas);
 
+  /**
+   * @brief 4d- Integrand of MapMapMap Covariance (combining limber-integration with the integrand function)
+   * @param l1 ell1
+   * @param l2 ell2
+   * @param phi angle between l1 and l2 [rad]
+   * @param z redshift
+   * @param thetas_123 Aperture radii [rad]
+   * @param thetas_456 Aperture radii [rad]
+   * @return value of integrand
+   */
+  double integrand_Gaussian_Aperture_Covariance(const double& l1, const double& l2, const double& phi, const double& z, double* thetas_123, double* thetas_456);
 
   /**
    * @brief MapMapMap integrand, integrated over phi
@@ -170,7 +223,20 @@ public: //Once debugging is finished, these members should be private!
    */
   static int integrand_4d(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value); 
 
-  
+    /**
+   * @brief Wrapper of the Gaussian Aperture Covariance integrand to the cubature library
+   * See https://github.com/stevengj/cubature for documentation
+   * @param ndim Number of dimensions of integral (here: 4, automatically assigned by integration)
+   * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+   * @param vars Array containing integration variables
+   * @param thisPts Pointer to ApertureStatisticsContainer instance
+   * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration)
+   * @param value Value of integral
+   * @return 0 on success
+   */
+    static int integrand_Gaussian_Aperture_Covariance(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
+
+
 public:
 
   /**
@@ -188,6 +254,15 @@ public:
    * @param thetas Aperture Radii, array should contain 3 values [rad]
    */
    double MapMapMap(double* thetas);
+
+  /**
+   * @brief Gaussian Aperturestatistics covariance calculated from non-linear Power spectrum
+   * If CUBATURE is true, this uses the pcubature routine from the cubature library
+   * @param thetas_123 Aperture Radii, array should contain 3 values [rad]
+   * @param thetas_456 Aperture Radii, array should contain 3 values [rad]
+   * @param survey_area Survey Area [rad^2]
+   */
+   double MapMapMap_covariance_Gauss(double* thetas_123, double* thetas_456, double survey_area);
 };
 
 
@@ -203,6 +278,9 @@ struct ApertureStatisticsContainer
 
   /** Apertureradii [rad]*/
   double* thetas;
+
+  /** For covariance: Apertureradii [rad]*/
+  double* thetas2;
 };
 
 
