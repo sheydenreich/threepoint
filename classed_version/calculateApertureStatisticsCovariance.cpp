@@ -15,7 +15,7 @@
 #include <fstream>
 #include <chrono>
 
-#define ONLY_DIAGONAL true
+#define ONLY_DIAGONAL false
 
 int main()
 {
