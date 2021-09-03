@@ -94,8 +94,9 @@ void BispectrumCalculator::set_cosmology(cosmology cosmo)
     
     D1_array[i]=lgr(z_now)/lgr(0.);   // linear growth factor
     r_sigma_array[i]=calc_r_sigma(D1_array[i]);  // =1/k_NL [Mpc/h] in Eq.(B1)
+    double d1 = -2.*pow(D1_array[i]*sigmam(r_sigma_array[i],2),2);
     n_eff_array[i]=-3.+2.*pow(D1_array[i]*sigmam(r_sigma_array[i],2),2);   // n_eff in Eq.(B2)
-    ncur_array[i] = (n_eff_array[i]+3)*(n_eff_array[i]+3)+4.*pow(D1_array[i],2)*sigmam(r_sigma_array[i],3)/pow(sigmam(r_sigma_array[i],1),2);
+    ncur_array[i] = d1*d1+4.*sigmam(r_sigma_array[i],3)*pow(D1_array[i],2);
   }
   std::cout<<"Finished setting Cosmology"<<std::endl;
 }
@@ -320,6 +321,78 @@ double BispectrumCalculator::f_K_interpolated(int idx, double didx){
     return f_K_array[idx]*(1-didx) + f_K_array[idx+1]*didx;
 }
 
+double BispectrumCalculator::limber_integrand_prefactor(double z, double g_value)
+{
+  return 9./4.*H0_over_c*H0_over_c*H0_over_c*om*om*(1.+z)*(1.+z)*g_value*g_value/E(z);
+}
+
+double BispectrumCalculator::limber_integrand_triple_power_spectrum(double ell1, double ell2, double ell3, double z)
+{
+  if(z<1e-5) return 0;
+  double didx = z/z_max*(n_redshift_bins-1);
+  int idx = didx;
+  didx = didx - idx;
+  if(idx==n_redshift_bins-1){
+      idx = n_redshift_bins-2;
+      didx = 1.;
+  }
+  double g_value = g_interpolated(idx,didx);
+
+  double f_K_value = f_K_interpolated(idx,didx);
+
+  if(f_K_value==0)
+      {
+	std::cerr<<"integrand_bkappa: f_K becomes 0"<<std::endl;
+	std::cerr<<"idx:"<<idx<<std::endl;
+	std::cerr<<"didx:"<<didx<<std::endl;
+	std::cerr<<"z:"<<z<<std::endl;
+	exit(1);
+      };
+
+  double prefactor = limber_integrand_prefactor(z,g_value);
+  return pow(prefactor,3)*P_k_nonlinear(ell1/f_K_value, z)*P_k_nonlinear(ell2/f_K_value, z)*P_k_nonlinear(ell3/f_K_value, z);
+}
+
+double BispectrumCalculator::limber_integrand_power_spectrum(double ell, double z, bool nonlinear)
+{
+  if(z<1e-5) return 0;
+  double didx = z/z_max*(n_redshift_bins-1);
+  int idx = didx;
+  didx = didx - idx;
+  if(idx==n_redshift_bins-1){
+      idx = n_redshift_bins-2;
+      didx = 1.;
+  }
+  double g_value = g_interpolated(idx,didx);
+
+  double f_K_value = f_K_interpolated(idx,didx);
+
+  if(f_K_value==0)
+      {
+	std::cerr<<"limber_integrand_power_spectrum: f_K becomes 0"<<std::endl;
+	std::cerr<<"idx:"<<idx<<std::endl;
+	std::cerr<<"didx:"<<didx<<std::endl;
+	std::cerr<<"z:"<<z<<std::endl;
+	exit(1);
+      };
+
+  double prefactor = limber_integrand_prefactor(z,g_value);
+  if(nonlinear) return prefactor*P_k_nonlinear(ell/f_K_value, z);
+  else return prefactor*linear_pk_at_z(ell/f_K_value, z);
+}
+
+double BispectrumCalculator::om_m_of_z(double z)
+{
+  double aa = 1./(1+z);
+  return om/(om+aa*(aa*aa*ow+(1-om-ow)));
+}
+
+double BispectrumCalculator::om_v_of_z(double z)
+{
+  double aa = 1./(1+z);
+  return ow*pow(aa,3)/(om+aa*(aa*aa*ow+(1-om-ow)));
+}
+
 double BispectrumCalculator::P_k_nonlinear(double k, double z){
   /* get the interpolation coefficients */
   double didx = z/z_max*(n_redshift_bins-1);
@@ -339,16 +412,14 @@ double BispectrumCalculator::P_k_nonlinear(double k, double z){
   double scalefactor,om_m,om_v;
   double nsqr,ncur;
 
-  f1   = pow(om, -0.0307);
-  f2   = pow(om, -0.0585);
-  f3   = pow(om, 0.0743);
+  // f1   = pow(om, -0.0307);
+  // f2   = pow(om, -0.0585);
+  // f3   = pow(om, 0.0743);
 
 
   nsqr = n_eff*n_eff;
   ncur = ncur_array[idx]*(1-didx) + ncur_array[idx+1]*didx; //interpolate ncur
   // ncur = (n_eff+3)*(n_eff+3)+4.*pow(D1,2)*sigmam(r_sigma,3)/pow(sigmam(r_sigma,1),2);
-  // printf("n_eff, ncur, knl = %.3f, %.3f, %.3f \n",n_eff,ncur,1./r_sigma);
-
   // ncur = 0.;
 
   if(abs(om+ow-1)>1e-4)
@@ -357,10 +428,8 @@ double BispectrumCalculator::P_k_nonlinear(double k, double z){
     exit(1);
   }
 
-  scalefactor=1./(1.+z);
-
-  om_m = om/(om+ow*pow(scalefactor,-3.*w));   // Omega matter at z
-  om_v = 1.-om_m; //omega lambda at z. TODO: implement for non-flat Universes
+  om_m = om_m_of_z(z);
+  om_v = om_v_of_z(z);
 
 		f1a=pow(om_m,(-0.0732));
 		f2a=pow(om_m,(-0.1423));

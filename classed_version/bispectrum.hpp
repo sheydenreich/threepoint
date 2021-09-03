@@ -99,6 +99,16 @@ private:
   double F2_tree(double k1, double k2, double k3);
 
 
+    /**
+   * Prefactor for the limber integration of the Power spectrum
+   * @param z Redshift
+   * @param g_value value of the lens efficiency function g(z)
+   */
+
+  double limber_integrand_prefactor(double z, double g_value);
+
+
+
   /**
    * Ratio of Bispectrum with baryons to Bispectrum without baryons
    * @param k1 Absolute value of first mode [h/Mpc]
@@ -305,8 +315,37 @@ private:
    */
   double GQ96_of_bdelta(double a,double b,ell_params ells);
 
+  /**
+   * Matter density parameter at redshift z
+   * @param z redshift
+   */
+  double om_m_of_z(double z);
+
+  /**
+   * Dark Energy density parameter at redshift z
+   * @param z redshift
+   */
+  double om_v_of_z(double z);
+
+
 
 public:
+
+  /**
+   * Integrand of limber equation for the power spectrum
+   * @param ell desired ell value of P_kappa
+   * @param z redshift
+   */
+    double limber_integrand_power_spectrum(double ell, double z, bool nonlinear);
+
+  /**
+   * Integrand of limber equation for a product of three power spectra
+   * @param ell1 desired ell value of the first P_kappa
+   * @param ell2 desired ell value of the second P_kappa
+   * @param ell3 desired ell value of the third P_kappa
+   * @param z redshift
+   */
+    double limber_integrand_triple_power_spectrum(double ell1, double ell2, double ell3, double z);
 
   /**
    * Integrand of two-dimensional bispectrum in Limber equation

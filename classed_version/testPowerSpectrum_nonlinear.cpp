@@ -9,6 +9,17 @@
 #include "bispectrum.hpp"
 #include <fstream>
 
+double integrate_limber(double ell, double dz, double z_max, BispectrumCalculator bispectrum, bool nonlinear)
+{
+  double integration_result = 0;
+  for(double z=z_max;z>=0;z-=dz)
+  {
+    integration_result += bispectrum.limber_integrand_power_spectrum(ell, z, nonlinear)*dz;
+  }
+  return integration_result;
+}
+
+
 int main()
 {
   // Set up Cosmology
@@ -40,15 +51,27 @@ int main()
     }
 
   int n_z=200; //Number of redshift bins for grids
-  double z_max=4; //maximal redshift
+  double z_max=2; //maximal redshift
   bool fastCalc=false; //whether calculations should be sped up
   BispectrumCalculator bispectrum(cosmo, n_z, z_max, fastCalc);
 
     printf("[");
     for(double k=1e-5;k<10;k*=1.1)
     {
-        printf("[%.4e,%.4e,%.4e],",k,bispectrum.P_k_nonlinear(k,3.),bispectrum.linear_pk_at_z(k,3.));
+        printf("[%.4e,%.4e,%.4e],",k,bispectrum.linear_pk_at_z(k,1.),bispectrum.P_k_nonlinear(k,1.));
     }
     printf("\b]\n");
+
+    printf("[");
+    for(double ell=1e+1;ell<=1e+5;ell*=1.1)
+    {
+        printf("[%.4e,%.4e,%.4e],",ell,ell*(ell+1)*integrate_limber(ell, 0.025, z_max, bispectrum, false)/(2*M_PI),
+                                  ell*(ell+1)*integrate_limber(ell, 0.025, z_max, bispectrum, true)/(2*M_PI));
+    }
+    printf("\b]\n");
+    // integrate_limber(10, 0.025, z_max, bispectrum, true)/(2*M_PI);
+    // bispectrum.P_k_nonlinear(0.1, 0);
+
+
     return 0;
 }
