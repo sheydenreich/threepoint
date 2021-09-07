@@ -204,7 +204,7 @@ auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
   sprintf(sigma_str, "%.1f", sigma);
   sprintf(n_str, "%.3f", n);
   sprintf(A_str, "%d", 240);
-  outfn="../../Covariance_randomField/results/covariance_ccode_"+std::string(sigma_str)+"_"+std::string(n_str)+"_240.dat";
+  outfn="../../Covariance_randomField/results/covariance_ccode_"+std::string(sigma_str)+"_"+std::string(n_str)+"_240_pcubature.dat";
 #endif
   
   std::cout<<"Writing results to "<<outfn<<std::endl;

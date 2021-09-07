@@ -394,7 +394,7 @@ double ApertureStatistics::MapMapMap_covariance_Gauss(double* thetas_123, double
   double vals_min[3]={lMin, lMin, phiMin};
   double vals_max[3]={lMax, lMax, phiMax/2.}; //use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
 
-  hcubature_v(1, integrand_Gaussian_Aperture_Covariance, &container, 3, vals_min, vals_max, 1e9, 0, 1e-6, ERROR_L1, &result, &error);
+  pcubature_v(1, integrand_Gaussian_Aperture_Covariance, &container, 3, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
 
 #else
   double vals_min[4]={lMin, lMin, phiMin, 0};
