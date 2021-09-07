@@ -85,15 +85,18 @@ double ApertureStatistics::integrand_Gaussian_Aperture_Covariance(const double& 
 {
   double l3 = sqrt(l1*l1+l2*l2+2*l1*l2*cos(phi));
   // double dl3_over_dphi = l1*l2*sin(phi)/l3;
-  if(!is_triangle(l1, l2, l3)) return 0;
+  // if(!is_triangle(l1, l2, l3)) return 0;
   double result;
   // result = dl3_over_dphi;
   // result *= number_of_triangles(l1, l2, l3);
   result = uHat_product(l1, l2, l3, thetas_123);
   result *= uHat_product_permutations(l1, l2, l3, thetas_456);
+#if CONSTANT_POWERSPECTRUM
+#else
   result *= Bispectrum_->limber_integrand_triple_power_spectrum(l1,l2,l3,z);
+#endif
   result *= l1*l2;
-  // std::cout << "(l1,l2,l3,z,integrand): (" << l1 << ", " << l2 << ", " << l3 << ", " << z << ", " << result << ")" << std::endl;
+  //  std::cout << "(l1,l2,l3,z,integrand): (" << l1 << ", " << l2 << ", " << l3 << ", " << z << ", " << result << ")" << std::endl;
   return result;
 }
 
@@ -104,26 +107,34 @@ int ApertureStatistics::integrand_Gaussian_Aperture_Covariance(unsigned ndim, si
       std::cerr<<"ApertureStatistics::integrand_Aperture_Covariance: Wrong number of function dimensions"<<std::endl;
       exit(1);
     };
-
+#if CONSTANT_POWERSPECTRUM
+    if(ndim != 3)
+    {
+      std::cerr<<"ApertureStatistics::integrand_Aperture_Covariance: Wrong number of variable dimensions"<<std::endl;
+      exit(1);
+    };
+#else
   if(ndim != 4)
     {
       std::cerr<<"ApertureStatistics::integrand_Aperture_Covariance: Wrong number of variable dimensions"<<std::endl;
       exit(1);
     };
+#endif
+  
   ApertureStatisticsContainer* container = (ApertureStatisticsContainer*) thisPtr;
 
   ApertureStatistics* apertureStatistics = container->aperturestatistics;
   double* thetas_123 = container->thetas;
   double* thetas_456 = container->thetas2;
 
-  // std::cout << "Npts: " << npts << " at thetas " << 
-  // thetas_123[0] << ", " <<
-  // thetas_123[1] << ", " <<
-  // thetas_123[2] << ", " <<
-  // thetas_456[0] << ", " <<
-  // thetas_456[1] << ", " <<
-  // thetas_456[2] << ", " <<
-  // std::endl;
+  std::cout << "Npts: " << npts << " at thetas " << 
+   thetas_123[0] << ", " <<
+   thetas_123[1] << ", " <<
+   thetas_123[2] << ", " <<
+   thetas_456[0] << ", " <<
+   thetas_456[1] << ", " <<
+   thetas_456[2] << ", " <<
+   std::endl;
 
 #if PARALLEL_INTEGRATION
 #pragma omp parallel for
@@ -133,7 +144,11 @@ int ApertureStatistics::integrand_Gaussian_Aperture_Covariance(unsigned ndim, si
       double ell1=vars[i*ndim];
       double ell2=vars[i*ndim+1];
       double phi=vars[i*ndim+2];
+#if CONSTANT_POWERSPECTRUM
+      double z=0;
+#else
       double z=vars[i*ndim+3];
+#endif
       // if(!is_triangle(ell1, ell2, sqrt(ell1*ell1+ell2*ell2+2*ell1*ell2*cos(phi)))) number_of_zeros++;
   
       value[i]=apertureStatistics->integrand_Gaussian_Aperture_Covariance(ell1, ell2, phi, z, thetas_123, thetas_456);
@@ -374,16 +389,24 @@ double ApertureStatistics::MapMapMap_covariance_Gauss(double* thetas_123, double
 
 #if CUBATURE //Do cubature integration
 
-  #if INTEGRATE4D //do limber integration via cubature
-    double vals_min[4]={lMin, lMin, phiMin, 0};
-    double vals_max[4]={lMax, lMax, phiMax/2., Bispectrum_->get_z_max()}; //use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
+#if INTEGRATE4D //do limber integration via cubature
+#if CONSTANT_POWERSPECTRUM
+  double vals_min[3]={lMin, lMin, phiMin};
+  double vals_max[3]={lMax, lMax, phiMax/2.}; //use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
 
-    hcubature_v(1, integrand_Gaussian_Aperture_Covariance, &container, 4, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
+  hcubature_v(1, integrand_Gaussian_Aperture_Covariance, &container, 3, vals_min, vals_max, 1e9, 0, 1e-6, ERROR_L1, &result, &error);
 
-  #else //do limber integration separately
+#else
+  double vals_min[4]={lMin, lMin, phiMin, 0};
+  double vals_max[4]={lMax, lMax, phiMax/2., Bispectrum_->get_z_max()}; //use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
+
+  hcubature_v(1, integrand_Gaussian_Aperture_Covariance, &container, 4, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
+#endif
+  
+#else //do limber integration separately
   std::cerr << "MapMapMap_covariance_Gauss: 3-dimensional cubature integration not implemented!" << std::endl;
   exit(-1);
-  #endif
+#endif
 #else //Do standard GSL integration
   std::cerr << "MapMapMap_covariance_Gauss: GSL integration not implemented!" << std::endl;
   exit(-1);

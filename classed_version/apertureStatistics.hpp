@@ -7,6 +7,7 @@
 //Make sure at the most one is on!!! Also: NO PARALLELIZATION IF GSL IS USED FOR BISPEC INTEGRATION!!!
 #define PARALLEL_INTEGRATION true
 #define PARALLEL_RADII false
+#define CONSTANT_POWERSPECTRUM true
 #include "bispectrum.hpp"
 
 
