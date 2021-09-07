@@ -127,13 +127,14 @@ int ApertureStatistics::integrand_Gaussian_Aperture_Covariance(unsigned ndim, si
   double* thetas_123 = container->thetas;
   double* thetas_456 = container->thetas2;
 
+  if(npts>1e8)
   std::cout << "Npts: " << npts << " at thetas " << 
-   thetas_123[0] << ", " <<
-   thetas_123[1] << ", " <<
-   thetas_123[2] << ", " <<
-   thetas_456[0] << ", " <<
-   thetas_456[1] << ", " <<
-   thetas_456[2] << ", " <<
+   thetas_123[0]*180*60/3.1416 << ", " <<
+   thetas_123[1]*180*60/3.1416 << ", " <<
+   thetas_123[2]*180*60/3.1416 << ", " <<
+   thetas_456[0]*180*60/3.1416 << ", " <<
+   thetas_456[1]*180*60/3.1416 << ", " <<
+   thetas_456[2]*180*60/3.1416 << ", " <<
    std::endl;
 
 #if PARALLEL_INTEGRATION
@@ -377,7 +378,9 @@ double ApertureStatistics::MapMapMap_covariance_Gauss(double* thetas_123, double
 {
 
   //Set maximal l value such, that theta*l <= 10
-  double thetaMin=std::min({thetas_123[0], thetas_123[1], thetas_123[2], thetas_456[0], thetas_456[1], thetas_456[2]});
+  double thetaMin_123=std::min({thetas_123[0], thetas_123[1], thetas_123[2]});
+  double thetaMin_456=std::min({thetas_456[0], thetas_456[1], thetas_456[2]});
+  double thetaMin=std::max({thetaMin_123,thetaMin_456}); //should increase runtime, if either theta_123 or theta_456 is zero, so is their product
   lMax=10./thetaMin;
 
 
