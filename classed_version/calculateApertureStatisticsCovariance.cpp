@@ -21,7 +21,7 @@ int main()
 {
   // Set Up Cosmology
   struct cosmology cosmo;
-    int n_los = 32; //number of lines-of-sight considered for covariance
+    int n_los = 1; //number of lines-of-sight considered for covariance
     double survey_area;
   if(slics)
     {
@@ -55,7 +55,8 @@ int main()
   std::cerr<<"Uses constant powerspectrum"<<std::endl;
   double sigma=0.3; //Shapenoise
   double n = 291.271; //source galaxy density [arcmin^-2]
-  double P=sigma/n/(180*60/M_PI)/(180*60/M_PI); //Powerspectrum [rad^2]
+  double P=0.5*sigma*sigma/n/(180*60/M_PI)/(180*60/M_PI); //Powerspectrum [rad^2]
+  std::cerr<<"P="<<P<<std::endl;
   std::cerr<<"with shapenoise:"<<sigma
 	   <<" and galaxy number density:"<<n<<" rad^-2"<<std::endl;  
   #endif
