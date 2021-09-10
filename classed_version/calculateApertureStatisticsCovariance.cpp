@@ -54,10 +54,13 @@ int main()
   #if CONSTANT_POWERSPECTRUM
   std::cerr<<"Uses constant powerspectrum"<<std::endl;
   double sigma=0.3; //Shapenoise
-  double n = 291.271; //source galaxy density [arcmin^-2]
+  double n = 46.60; //source galaxy density [arcmin^-2]
+  double fieldlength=536; // length of field [arcmin]
+  survey_area=fieldlength*fieldlength*pow(M_PI/180./60., 2); // Fieldsize [rad^2]
   double P=0.5*sigma*sigma/n/(180*60/M_PI)/(180*60/M_PI); //Powerspectrum [rad^2]
   std::cerr<<"P="<<P<<std::endl;
   std::cerr<<"with shapenoise:"<<sigma
+	   <<" , fieldsize:"<<survey_area<<" rad^2"
 	   <<" and galaxy number density:"<<n<<" rad^-2"<<std::endl;  
   #endif
   
@@ -74,7 +77,7 @@ int main()
   ApertureStatistics apertureStatistics(&bispectrum);
 
   // Set up thetas for which ApertureStatistics are calculated
-  std::vector<double> thetas{0.5, 1, 2, 4, 8, 16, 32}; //Thetas in arcmin
+  std::vector<double> thetas{1, 2, 4, 8, 16}; //Thetas in arcmin
   int N=thetas.size();
   
   // Set up vector for aperture statistics
@@ -201,11 +204,11 @@ auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
 #if CONSTANT_POWERSPECTRUM
   char sigma_str[10];
   char n_str[10];
-  char A_str[10];
+  char field_str[10];
   sprintf(sigma_str, "%.1f", sigma);
-  sprintf(n_str, "%.3f", n);
-  sprintf(A_str, "%d", 240);
-  outfn="../../Covariance_randomField/results/covariance_ccode_"+std::string(sigma_str)+"_"+std::string(n_str)+"_240_pcubature.dat";
+  sprintf(n_str, "%.1f", n);
+  sprintf(field_str, "%.0f", fieldlength);
+  outfn="../../Covariance_randomField/results/covariance_ccode_"+std::string(sigma_str)+"_"+std::string(n_str)+"_"+std::string(field_str)+"_pcubature.dat";
 #endif
   
   std::cout<<"Writing results to "<<outfn<<std::endl;

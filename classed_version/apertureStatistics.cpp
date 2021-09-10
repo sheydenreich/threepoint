@@ -415,5 +415,5 @@ double ApertureStatistics::MapMapMap_covariance_Gauss(double* thetas_123, double
   exit(-1);
 #endif
   
-  return 2.*result/survey_area;
+  return 2.*result/survey_area*8*M_PI*M_PI*M_PI;
 }
