@@ -13,6 +13,44 @@
 #define slics false
 #define test_analytical false
 
+  /**
+   * @brief one permutation of Eq.(21) in Joachimi et al. (2009)
+   * @param ell1 first sidelength of triangle
+   * @warning this function will probably be mitigated to a utility-module
+   * @return 1 if ell_{1+i}=ell_{4+i}, else 0
+   */
+  double delta_distrib(double ell1, double ell2, double ell3, double ell4, double ell5, double ell6);
+
+  /**
+   * @brief D defined in in Eq.(21) in Joachimi et al. (2009)
+   * @param ell1 first sidelength of triangle
+   * @warning this function will probably be mitigated to a utility-module
+   * @return sum of all delta distributions with permutations
+   */
+   double delta_distrib_permutations(double ell1, double ell2, double ell3, double ell4, double ell5, double ell6);
+
+  /**
+   * @brief returns a number proportional to the number of triangles of a certain configuration
+   * Eq.(8) in Joachimi et al. (2009)
+   * @param ell1 first sidelength of triangle
+   * @param ell2 second sidelength of triangle
+   * @param ell3 third sidelength of triangle
+   * @warning this function will probably be mitigated to a utility-module
+   * @return Value of function
+   */
+
+double number_of_triangles(double ell1, double ell2, double ell3);
+
+  /**
+   * @brief checks if the three input ell can form a triangle
+   * @param ell1 first sidelength of triangle
+   * @param ell2 second sidelength of triangle
+   * @param ell3 third sidelength of triangle
+   * @warning this function will probably be mitigated to a utility-module
+   */
+bool is_triangle(double ell1, double ell2, double ell3);
+
+
 /**
  *  @brief This structure contains parameters of a wCDM cosmology
  */
@@ -27,6 +65,11 @@ struct cosmology
   double om; /**< dimensionless matter density parameter*/
   double ow; /**< dimensionless density parameter of Dark Energy*/
 };
+
+/**
+ *  @brief This structure contains parameters for limber-integration of the power spectrum
+ */
+
 
 /**
  * @brief This structure contains the arguments of the projected bispectrum
@@ -348,6 +391,23 @@ public:
     double limber_integrand_triple_power_spectrum(double ell1, double ell2, double ell3, double z);
 
   /**
+   * Wrapper for limber integration of power spectrum via cubature library
+   */
+  static int limber_integrand_power_spectrum(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
+
+  /**
+   * limber-integrated power spectrum
+   * @param ell desired ell value of P_kappa
+   */
+  double convergence_power_spectrum(double ell);
+
+double bispectrumCovariance(double ell1, double ell2, double ell3, 
+                            double ell4, double ell5, double ell6,
+                            double delta_ell1, double delta_ell2, double delta_ell3,
+                            double delta_ell4, double delta_ell5, double delta_ell6,
+                            double survey_area);
+
+  /**
    * Integrand of two-dimensional bispectrum in Limber equation
    * @param z redshift
    * @param p ell- values of bispectrum
@@ -444,5 +504,15 @@ public:
    */
   BispectrumCalculator();
 };
+
+struct BispectrumContainer
+{
+  /** Aperturestatistics to be calculated*/
+  BispectrumCalculator* bispectrum;
+
+  /** Apertureradii [rad]*/
+  double ell;
+};
+
 
 #endif

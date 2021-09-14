@@ -11,26 +11,6 @@
 #include "bispectrum.hpp"
 
 
-  /**
-   * @brief returns a number proportional to the number of triangles of a certain configuration
-   * Eq.(8) in Joachimi et al. (2009)
-   * @param ell1 first sidelength of triangle
-   * @param ell2 second sidelength of triangle
-   * @param ell3 third sidelength of triangle
-   * @warning this function will probably be mitigated to a utility-module
-   * @return Value of function
-   */
-
-double number_of_triangles(double ell1, double ell2, double ell3);
-
-  /**
-   * @brief checks if the three input ell can form a triangle
-   * @param ell1 first sidelength of triangle
-   * @param ell2 second sidelength of triangle
-   * @param ell3 third sidelength of triangle
-   * @warning this function will probably be mitigated to a utility-module
-   */
-bool is_triangle(double ell1, double ell2, double ell3);
 
 
 /**

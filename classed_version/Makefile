@@ -14,7 +14,7 @@ LIBS = -lm -lgsl -lgslcblas
 SRCS = $(wildcard *.cpp)
 
 # define the executables (ADD ALL EXECUTABLES HERE!!!!)
-EXECS = testApertureStatistics_covariance.x calculateApertureStatisticsCovariance.x testPowerSpectrum_nonlinear.x calculateGamma.x calculateApertureStatistics.x testGamma_analytical_bispectrum.x testGamma_integrand.x testApertureStatistics_integrand.x testApertureStatistics_bispectrum.x testApertureStatistics_integral_phi.x testApertureStatistics_integral_l2.x testApertureStatistics_integral_l1.x calculateDerivativeApertureStatistics.x calculateApertureStatistics_varyingCosmos.x
+EXECS = calculateBispectrumAndCovariance.x testApertureStatistics_covariance.x calculateApertureStatisticsCovariance.x testPowerSpectrum_nonlinear.x calculateGamma.x calculateApertureStatistics.x testGamma_analytical_bispectrum.x testGamma_integrand.x testApertureStatistics_integrand.x testApertureStatistics_bispectrum.x testApertureStatistics_integral_phi.x testApertureStatistics_integral_l2.x testApertureStatistics_integral_l1.x calculateDerivativeApertureStatistics.x calculateApertureStatistics_varyingCosmos.x
 
 # define the object files
 OBJS = $(SRCS:.cpp=.o)

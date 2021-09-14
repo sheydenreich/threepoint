@@ -1,6 +1,28 @@
 #include "bispectrum.hpp"
 #include <cmath>
 #include <gsl/gsl_errno.h>
+#include "cubature.h"
+
+
+bool is_triangle(double ell1, double ell2, double ell3)
+{
+  if(abs(ell1-ell2)>ell3 || ell3 > (ell1+ell2)) return false;
+  if(abs(ell2-ell3)>ell1 || ell1 > (ell2+ell3)) return false;
+  if(abs(ell1-ell3)>ell2 || ell2 > (ell1+ell3)) return false;
+  return true;
+}
+
+
+double number_of_triangles(double ell1, double ell2, double ell3){ //TODO: maybe write this into a utility.cpp?
+    if(is_triangle(ell1,ell2,ell3))
+    {
+        double lambda = 2*ell1*ell1*ell2*ell2 + 2*ell1*ell1*ell3*ell3 + 2*ell2*ell2*ell3*ell3 - pow(ell1,4) - pow(ell2,4) - pow(ell3,4);
+        lambda = 4./sqrt(lambda);
+        return lambda;
+    }
+    else return 0;
+}
+
 
 // Constructor for bispectrum class
 BispectrumCalculator::BispectrumCalculator()
@@ -379,6 +401,79 @@ double BispectrumCalculator::limber_integrand_power_spectrum(double ell, double 
   double prefactor = limber_integrand_prefactor(z,g_value);
   if(nonlinear) return prefactor*P_k_nonlinear(ell/f_K_value, z);
   else return prefactor*linear_pk_at_z(ell/f_K_value, z);
+}
+
+int BispectrumCalculator::limber_integrand_power_spectrum(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value)
+{
+  if(fdim != 1)
+    {
+      std::cerr<<"BispectrumCalculator::limber_integrand_power_spectrum: Wrong number of function dimensions"<<std::endl;
+      exit(1);
+    };
+  if(ndim != 1)
+    {
+      std::cerr<<"BispectrumCalculator::limber_integrand_power_spectrum: Wrong number of variable dimensions"<<std::endl;
+      exit(1);
+    };
+  
+  BispectrumContainer* container = (BispectrumContainer*) thisPtr;
+
+  BispectrumCalculator* bispectrum = container->bispectrum;
+  double ell = container->ell;
+
+#if PARALLEL_INTEGRATION
+#pragma omp parallel for
+#endif
+  for( unsigned int i=0; i<npts; i++)
+    {
+      double z=vars[i*ndim];
+      value[i]=bispectrum->limber_integrand_power_spectrum(ell,z,true);
+    }
+  return 0; //Success :)
+  
+}
+
+double BispectrumCalculator::convergence_power_spectrum(double ell)
+{
+  double result,error;
+  double vals_min[1] = {0};
+  double vals_max[1] = {z_max};
+  BispectrumContainer container;
+  container.bispectrum = this;
+  container.ell = ell;
+  hcubature_v(1, limber_integrand_power_spectrum, &container, 1, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
+  return result;
+}
+
+double delta_distrib(double ell1, double ell2, double ell3, double ell4, double ell5, double ell6)
+{
+  if(fabs(ell1/ell4-1.)<1e-6 && fabs(ell2/ell5-1.)<1e-6 && fabs(ell3/ell6-1.)<1e-6) return 1.;
+  else return 0;
+}
+
+double delta_distrib_permutations(double ell1, double ell2, double ell3, double ell4, double ell5, double ell6)
+{
+  double result = 0;
+  result += delta_distrib(ell1, ell2, ell3, ell4, ell5, ell6);
+  result += delta_distrib(ell1, ell2, ell3, ell4, ell6, ell5);
+  result += delta_distrib(ell1, ell2, ell3, ell5, ell4, ell6);
+  result += delta_distrib(ell1, ell2, ell3, ell5, ell6, ell4);
+  result += delta_distrib(ell1, ell2, ell3, ell6, ell4, ell5);
+  result += delta_distrib(ell1, ell2, ell3, ell6, ell5, ell4);
+  return result;
+}
+
+double BispectrumCalculator::bispectrumCovariance(double ell1, double ell2, double ell3, 
+                                                  double ell4, double ell5, double ell6,
+                                                  double delta_ell1, double delta_ell2, double delta_ell3,
+                                                  double delta_ell4, double delta_ell5, double delta_ell6,
+                                                  double survey_area)
+{
+  double product_power_spectra = convergence_power_spectrum(ell1)*convergence_power_spectrum(ell2)*convergence_power_spectrum(ell3);
+  double lambda_inv = 1./number_of_triangles(ell1, ell2, ell3);
+  double prefactor = pow(2*M_PI,3)/(survey_area*ell1*ell2*ell3*delta_ell1*delta_ell2*delta_ell3);
+  double delta = delta_distrib_permutations(ell1, ell2, ell3, ell4, ell5, ell6);
+  return prefactor*lambda_inv*delta*product_power_spectra;
 }
 
 double BispectrumCalculator::om_m_of_z(double z)

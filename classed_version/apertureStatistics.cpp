@@ -4,24 +4,6 @@
 #include <cmath>
 #include <omp.h>
 
-bool is_triangle(double ell1, double ell2, double ell3)
-{
-  if(abs(ell1-ell2)>ell3 || ell3 > (ell1+ell2)) return false;
-  if(abs(ell2-ell3)>ell1 || ell1 > (ell2+ell3)) return false;
-  if(abs(ell1-ell3)>ell2 || ell2 > (ell1+ell3)) return false;
-  return true;
-}
-
-
-double number_of_triangles(double ell1, double ell2, double ell3){ //TODO: maybe write this into a utility.cpp?
-    if(is_triangle(ell1,ell2,ell3))
-    {
-        double lambda = 2*ell1*ell1*ell2*ell2 + 2*ell1*ell1*ell3*ell3 + 2*ell2*ell2*ell3*ell3 - pow(ell1,4) - pow(ell2,4) - pow(ell3,4);
-        lambda = 4./sqrt(lambda);
-        return lambda;
-    }
-    else return 0;
-}
 
 double ApertureStatistics::uHat(const double& eta)
 {
