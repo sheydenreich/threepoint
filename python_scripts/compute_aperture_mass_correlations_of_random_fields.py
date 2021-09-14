@@ -4,7 +4,7 @@ import sys
 from tqdm import tqdm
 import multiprocessing.managers
 from multiprocessing import Pool
-from scipy import stats
+from utility import extract_power_spectrum,create_gaussian_random_field
 
 class MyManager(multiprocessing.managers.BaseManager):
     pass
@@ -17,30 +17,6 @@ global_fieldsize_arcmin = 10.*60.
 global_fieldsize_deg = global_fieldsize_arcmin/60
 global_fieldsize_rad = global_fieldsize_deg*np.pi/180
 
-
-def extract_power_spectrum(field,fieldsize,bins,linlog='log',lmin=100,lmax=10**4):
-    n_pix = field.shape[0]
-    fourier_image = np.fft.fftn(field)*(fieldsize/n_pix)**2
-    fourier_amplitudes = np.abs(fourier_image)**2
-    kfreq = np.fft.fftfreq(n_pix) * n_pix
-    kfreq2D = np.meshgrid(kfreq, kfreq)
-      
-    knrm = np.sqrt(kfreq2D[0]**2 + kfreq2D[1]**2)
-    knrm = knrm.flatten()
-    fourier_amplitudes = fourier_amplitudes.flatten()
-    if not hasattr(bins,"__len__"):
-        if(linlog=='lin'):
-            kbins = np.linspace(lmin,lmax, bins+1)
-        if(linlog=='log'):
-            kbins = np.geomspace(lmin,lmax,bins+1)
-    else:
-        kbins = bins
-    kvals = 0.5 * (kbins[1:] + kbins[:-1])*2*np.pi/fieldsize
-    Abins, _, _ = stats.binned_statistic(knrm, fourier_amplitudes,
-                                     statistic = "mean",
-                                     bins = kbins)
-#     Abins *= 4. * np.pi / 3. * (kbins[1:]**3 - kbins[:-1]**3)
-    return Abins/fieldsize**2/2,kvals
 
 
 def random_shear_power_spectrum(npix,random_seed,n_bins,fieldsize,galaxy_density=None,shapenoise = 0.3):
@@ -102,11 +78,8 @@ def compute_random_aperture_mass_correlations(npix,thetas,n_realisations,n_proce
 
 
 def aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,random_seed,galaxy_density=None,shapenoise = 0.3):
-    n_thetas = len(thetas)
-    shapenoise_1d = shapenoise/np.sqrt(2)
-    np.random.seed(random_seed)
     if(galaxy_density is None):
-        kappa_field = create_gaussian_random_field(power_spectrum,npix)
+        kappa_field = create_gaussian_random_field(power_spectrum,npix,random_seed=random_seed)
         shears = create_gamma_field(kappa_field)
     else:
         print("Galaxy number densities other than npix^2/fieldsize^2 not yet implemented.")
@@ -210,10 +183,10 @@ if(__name__=='__main__'):
 
     # gaussian random field in kappa
     def power_spectrum(x):
-        return 0.3**2/(2*4096**2/global_fieldsize_rad**2)
+        return x/10000*np.exp(-x/10000)
 
-    # res = compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,4096,[1,2,4,8,16],2048,n_processes=128)
-    # np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/map_cubed_gaussian_random_field',res)
+    res = compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,4096,[1,2,4,8,16],2048,n_processes=64)
+    np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/map_cubed_gaussian_random_field_x_exp_minus_x',res)
 
 
     # res = compute_random_shear_power_spectra(4096,global_fieldsize_rad,1024,100)
@@ -232,5 +205,6 @@ if(__name__=='__main__'):
         # PS,bins = extract_power_spectrum(kappa_field,global_fieldsize_rad,100,4096/2)
         # all_ps_MS[:,los] = PS
         all_theta_MS[:,:,:,:,los] = extract_aperture_masses(shear_field,4096,[1,2,4,8,16],compute_mcross=False)
+    np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/map_cubed_direct',all_theta_MS)
     # np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/power_spectra_MS',all_ps_MS)
     # np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/power_spectra_MS_bins',bins)

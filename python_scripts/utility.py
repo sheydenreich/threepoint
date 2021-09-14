@@ -7,7 +7,8 @@ import collections
 import multiprocessing.managers
 from FyeldGenerator import generate_field
 from scipy import stats
-
+from lenstools import GaussianNoiseGenerator
+from astropy import units as u
 class MyManager(multiprocessing.managers.BaseManager):
     pass
 MyManager.register('np_zeros', np.zeros, multiprocessing.managers.ArrayProxy)
@@ -31,22 +32,16 @@ def Dhat_func(npix = 4096,pixsize = 1.):
     return np.pi*a
 
 
-def distrib(shape):
-    power_field = np.random.normal(0,1,shape)+1.0j*np.random.normal(0,1,shape)
-    return power_field
-
-
-def create_gaussian_random_field(power_spectrum, n_pix=4096,sigma=1.,pixsize=None,return_scale=False):
+def create_gaussian_random_field(power_spectrum, n_pix=4096,fieldsize=4.*np.pi/180,random_seed=None):
     """creates gaussian random field from given power spectrum, with mean 0 and variance sigma"""
-    shape = (n_pix,n_pix)
-    if pixsize is None:
-        pixsize = 1./n_pix
-    field = generate_field(distrib,power_spectrum,shape,unit_length = pixsize)
-    fieldscale = np.sqrt(np.var(field))
-    if(return_scale):
-        return sigma*field/fieldscale,fieldscale
-    else:
-        return sigma*field/fieldscale
+    ell_min = 0
+    ell_max = 2.*np.pi/fieldsize/2*n_pix
+    ell_array = np.linspace(ell_min,ell_max,n_pix)
+    gen = GaussianNoiseGenerator(shape=(n_pix,n_pix),side_angle=fieldsize*u.rad)
+    if random_seed is None:
+        random_seed = np.random.randint(0,2**32)
+    gaussian_map = gen.fromConvPower(np.array([ell_array,power_spectrum(ell_array)]),seed=random_seed,kind="linear",bounds_error=False,fill_value=0.0)
+    return gaussian_map.data    
 
 def create_gamma_field(kappa_field,Dhat=None):
     if Dhat is None:
@@ -412,7 +407,6 @@ def extract_power_spectrum(field,fieldsize,bins=20,linlog='log',lmin=100,lmax=10
     fourier_image = np.fft.fftn(field)
     fourier_amplitudes = np.abs(fourier_image)**2*pixel_size
     kfreq = np.fft.fftfreq(n_pix)*2*np.pi*n_pix/fieldsize
-    print(kfreq)
     kfreq2D = np.meshgrid(kfreq, kfreq)
     knrm = np.sqrt(kfreq2D[0]**2 + kfreq2D[1]**2)
     knrm = knrm.flatten()

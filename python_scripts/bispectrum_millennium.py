@@ -55,5 +55,5 @@ def extract_MS_spectra(ell_array,n_processes=64,n_los=64):
 if(__name__=='__main__'):
     ell_array = np.logspace(2,5,30)
     bispec,power_spec = extract_MS_spectra(ell_array,64)
-    np.savetxt('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/bispec_MR_data.dat',bispec)
+    np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/bispec_MR_data.dat',bispec)
     np.savetxt('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/powerspec_MR_data.dat',power_spec)
