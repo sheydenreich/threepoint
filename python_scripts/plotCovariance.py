@@ -8,16 +8,32 @@ from helpers_covariance_plots import plotCov
 from helpers_covariance_plots import getCovFromMap3
 from helpers_covariance_plots import readCovFromFile
 
-includeAnalytical=False #Set to true if analytical estimate is available
+constantPowerspectrum=False
+analyticPowerspectrum_l=False
+analyticPowerspectrum_lSq=True
 
 # Filenames
-fn_numeric="../../Covariance_randomField/results/covariance_ccode_analytical_powerspectrum_x_exp_minus_x.dat"
-fn_data="/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/map_cubed_gaussian_random_field_x_exp_minus_x.npy"
-if includeAnalytical:
-    fn_analytic="results/covariance_analytic_0.3_46.6_536.dat"
-
-# Output Directory for plots
-dir_out="../../Covariance_randomField/results/plots_x_exp_minus_x/"
+if constantPowerspectrum:
+    fn_numeric="../../Covariance_randomField/results/covariance_ccode_0.3_46.6_536_pcubature.dat"
+    fn_analytic="../../Covariance_randomField/results/covariance_analytic_0.3_46.6_536.dat"
+    fn_data="../../Covariance_randomField/results/map_cubed_only_shapenoise.npy"
+    dir_out="../../Covariance_randomField/results/plots_constantPowerspectrum/"
+    includeAnalytical=True
+    includeData=True
+elif analyticPowerspectrum_l:
+    fn_numeric="../../Covariance_randomField/results/covariance_ccode_analytical_powerspectrum_x_exp_minus_x.dat"
+    fn_data="../../Covariance_randomField/results/map_cubed_gaussian_random_field_x_exp_minus_x.npy"
+    dir_out="../../Covariance_randomField/results/plots_x_exp_minus_x/"
+    includeAnalytical=False
+    includeData=True
+elif analyticPowerspectrum_lSq:
+    fn_numeric="../../Covariance_randomField/results/covariance_ccode_analytical_powerspectrum_xSq_exp_minus_xSq.dat"
+    fn_data="../../Covariance_randomField/results/map_cubed_gaussian_random_field_xsq_exp_minus_xsq.npy"
+    fn_analytic="../../Covariance_randomField/results/covariance_analytic_p1_1.00e-08_p2_1.00e-08_side_536.dat"
+    dir_out="../../Covariance_randomField/results/plots_xSq_exp_minus_xSq/"
+    includeAnalytical=True
+    includeData=True
+    
 
 # Set Thetas
 thetas_1d=np.array([1, 2, 4, 8, 16])
@@ -32,8 +48,9 @@ if includeAnalytical:
     cov_analytic=readCovFromFile(fn_analytic)
 
 # Get Covariance for data
-cov_data=getCovFromMap3(fn_data, Nlos, Nthetas)
-cov_data_half=getCovFromMap3(fn_data, int(Nlos/2), Nthetas)
+if includeData:
+    cov_data=getCovFromMap3(fn_data, Nlos, Nthetas)
+    cov_data_half=getCovFromMap3(fn_data, int(Nlos/2), Nthetas)
 
 # Initialize Plot
 initPlot()
@@ -48,8 +65,9 @@ for i, theta in enumerate(thetas_all):
     if includeAnalytical:
         c_a=cov_analytic[i*N: (i+1)*N]
     c_n=cov_numeric[i*N: (i+1)*N]
-    c_d=cov_data[i*N: (i+1)*N]
-    c_dh=cov_data_half[i*N: (i+1)*N]
+    if includeData:
+        c_d=cov_data[i*N: (i+1)*N]
+        c_dh=cov_data_half[i*N: (i+1)*N]
     
     theta1=theta[0]
     theta2=theta[1]
@@ -60,8 +78,9 @@ for i, theta in enumerate(thetas_all):
     if includeAnalytical:
         plotCov(ax, c_a, theta1, theta2, theta3, "analytical", color='xkcd:blue', ls='-')
     plotCov(ax, c_n, theta1, theta2, theta3, "numerical", color='xkcd:red', ls='--')
-    plotCov(ax, c_d, theta1, theta2, theta3, f"data ({Nlos} Realisations)", color='xkcd:tree green', ls='-')
-    plotCov(ax, c_dh, theta1, theta2, theta3, f"data ({int(Nlos/2)} Realisations)", color='xkcd:aqua', ls='--')
+    if includeData:
+        plotCov(ax, c_d, theta1, theta2, theta3, f"data ({Nlos} Realisations)", color='xkcd:tree green', ls='-')
+        plotCov(ax, c_dh, theta1, theta2, theta3, f"data ({int(Nlos/2)} Realisations)", color='xkcd:aqua', ls='--')
     
     finalizePlot(ax, tightlayout=True, outputFn=fn_out, showplot=False, loc_legend='lower left')
     plt.close()
