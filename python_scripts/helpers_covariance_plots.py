@@ -31,7 +31,7 @@ def plotCov(ax, cov_values, theta1, theta2, theta3, label, color='k', ls='-'):
 
     # Set x and y axis
     ax.set_yscale('log')
-    ax.set_ylabel(r'$\mathrm{Cov}(\theta_1, \theta_2, \theta_3, \theta_4, theta_5, \theta_6)$')
+    ax.set_ylabel(r'$\mathrm{Cov}(\theta_1, \theta_2, \theta_3, \theta_4, \theta_5, \theta_6)$')
     ax.set_xlabel(r'$(\theta_4, \theta_5, \theta_6)$ Bins')
 
     # Do Plot
