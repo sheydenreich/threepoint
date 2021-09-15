@@ -33,3 +33,6 @@
 
 # Doxygen Documentation
 docs/
+
+# Emacs buffer
+*~
