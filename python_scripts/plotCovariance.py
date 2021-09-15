@@ -12,7 +12,7 @@ includeAnalytical=False #Set to true if analytical estimate is available
 
 # Filenames
 fn_numeric="../../Covariance_randomField/results/covariance_ccode_analytical_powerspectrum_x_exp_minus_x.dat"
-fn_data="../../Covariance_randomField/results/map_cubed_gaussian_random_field_x_exp_minus_x.npy"
+fn_data="/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/map_cubed_gaussian_random_field_x_exp_minus_x.npy"
 if includeAnalytical:
     fn_analytic="results/covariance_analytic_0.3_46.6_536.dat"
 
