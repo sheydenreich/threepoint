@@ -63,7 +63,18 @@ int main()
 	   <<" , fieldsize:"<<survey_area<<" rad^2"
 	   <<" and galaxy number density:"<<n<<" rad^-2"<<std::endl;  
   #endif
-  
+
+  #if ANALYTICAL_POWERSPECTRUM
+  std::cerr<<"Uses analytical powerspectrum of form P(l)=p1*l*l+exp(-p2*l*l)"<<std::endl;
+  double fieldlength=536; // length of field [arcmin]
+  survey_area=fieldlength*fieldlength*pow(M_PI/180./60., 2); // Fieldsize [rad^2]
+  #endif
+
+#if ANALYTICAL_POWERSPECTRUM_V2
+  std::cerr<<"Uses analytical powerspectrum of form P(l)=p1*l+exp(-p2*l)"<<std::endl;
+  double fieldlength=536; // length of field [arcmin]
+  survey_area=fieldlength*fieldlength*pow(M_PI/180./60., 2); // Fieldsize [rad^2]
+  #endif
 
   //Initialize Bispectrum
 
@@ -210,7 +221,13 @@ auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
   sprintf(field_str, "%.0f", fieldlength);
   outfn="../../Covariance_randomField/results/covariance_ccode_"+std::string(sigma_str)+"_"+std::string(n_str)+"_"+std::string(field_str)+"_pcubature.dat";
 #endif
-  
+#if ANALYTICAL_POWERSPECTRUM
+  outfn="../../Covariance_randomField/results/covariance_ccode_analytical_powerspectrum_xSq_exp_minus_xSq.dat";
+#endif
+
+#if ANALYTICAL_POWERSPECTRUM_V2
+  outfn="../../Covariance_randomField/results/covariance_ccode_analytical_powerspectrum_x_exp_minus_x.dat";
+#endif
   std::cout<<"Writing results to "<<outfn<<std::endl;
   out.open(outfn.c_str());
   

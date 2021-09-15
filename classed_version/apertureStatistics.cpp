@@ -51,7 +51,6 @@ double ApertureStatistics::uHat_product(const double& l1, const double& l2, cons
 
 double ApertureStatistics::uHat_product_permutations(const double& l1, const double& l2, const double& l3, double* thetas)
 {
-  // double l3 = sqrt(l1*l1+l2*l2+2*l1*l2*cos(phi));
   double _result;
   _result = uHat_product(l1,l2,l3,thetas);
   _result += uHat_product(l2,l3,l1,thetas);
@@ -66,19 +65,25 @@ double ApertureStatistics::integrand_Gaussian_Aperture_Covariance(const double& 
                                                           double* thetas_123, double* thetas_456)
 {
   double l3 = sqrt(l1*l1+l2*l2+2*l1*l2*cos(phi));
-  // double dl3_over_dphi = l1*l2*sin(phi)/l3;
-  // if(!is_triangle(l1, l2, l3)) return 0;
-  double result;
-  // result = dl3_over_dphi;
-  // result *= number_of_triangles(l1, l2, l3);
-  result = uHat_product(l1, l2, l3, thetas_123);
+  double result = uHat_product(l1, l2, l3, thetas_123);
   result *= uHat_product_permutations(l1, l2, l3, thetas_456);
 #if CONSTANT_POWERSPECTRUM
+#elif ANALYTICAL_POWERSPECTRUM
+  double P1=p1*l1*l1*exp(-p2*l1*l1);
+  double P2=p1*l2*l2*exp(-p2*l2*l2);
+  double P3=p1*l3*l3*exp(-p2*l3*l3);
+
+  result *= P1*P2*P3;
+#elif ANALYTICAL_POWERSPECTRUM_V2
+  double P1=p1*l1*exp(-p2*l1);
+  double P2=p1*l2*exp(-p2*l2);
+  double P3=p1*l3*exp(-p2*l3);
+  result *= P1*P2*P3;
 #else
   result *= Bispectrum_->limber_integrand_triple_power_spectrum(l1,l2,l3,z);
 #endif
   result *= l1*l2;
-  //  std::cout << "(l1,l2,l3,z,integrand): (" << l1 << ", " << l2 << ", " << l3 << ", " << z << ", " << result << ")" << std::endl;
+
   return result;
 }
 
@@ -89,7 +94,7 @@ int ApertureStatistics::integrand_Gaussian_Aperture_Covariance(unsigned ndim, si
       std::cerr<<"ApertureStatistics::integrand_Aperture_Covariance: Wrong number of function dimensions"<<std::endl;
       exit(1);
     };
-#if CONSTANT_POWERSPECTRUM
+#if CONSTANT_POWERSPECTRUM || ANALYTICAL_POWERSPECTRUM || ANALYTICAL_POWERSPECTRUM_V2
     if(ndim != 3)
     {
       std::cerr<<"ApertureStatistics::integrand_Aperture_Covariance: Wrong number of variable dimensions"<<std::endl;
@@ -127,7 +132,7 @@ int ApertureStatistics::integrand_Gaussian_Aperture_Covariance(unsigned ndim, si
       double ell1=vars[i*ndim];
       double ell2=vars[i*ndim+1];
       double phi=vars[i*ndim+2];
-#if CONSTANT_POWERSPECTRUM
+#if CONSTANT_POWERSPECTRUM || ANALYTICAL_POWERSPECTRUM || ANALYTICAL_POWERSPECTRUM_V2
       double z=0;
 #else
       double z=vars[i*ndim+3];
@@ -375,7 +380,7 @@ double ApertureStatistics::MapMapMap_covariance_Gauss(double* thetas_123, double
 #if CUBATURE //Do cubature integration
 
 #if INTEGRATE4D //do limber integration via cubature
-#if CONSTANT_POWERSPECTRUM
+#if CONSTANT_POWERSPECTRUM || ANALYTICAL_POWERSPECTRUM || ANALYTICAL_POWERSPECTRUM_V2
   double vals_min[3]={lMin, lMin, phiMin};
   double vals_max[3]={lMax, lMax, phiMax/2.}; //use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
 
