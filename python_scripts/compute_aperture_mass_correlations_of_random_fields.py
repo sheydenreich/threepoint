@@ -46,7 +46,7 @@ def compute_random_shear_power_spectra(npix,fieldsize,n_realisations,n_bins,n_pr
     return final_results
 
 
-def random_aperture_mass_correlation(npix,thetas,random_seed,galaxy_density=None,shapenoise = 0.3):
+def random_aperture_mass_correlation(npix,thetas,random_seed,galaxy_density=None,shapenoise = 0.3, periodic_boundary=False):
     n_thetas = len(thetas)
     maxtheta = np.max(thetas)
     shapenoise_1d = shapenoise/np.sqrt(2)
@@ -56,22 +56,22 @@ def random_aperture_mass_correlation(npix,thetas,random_seed,galaxy_density=None
     else:
         print("Galaxy number densities other than npix^2/fieldsize^2 not yet implemented.")
         sys.exit()
-    result = extract_aperture_masses(shears,npix,thetas,compute_mcross=False)
+    result = extract_aperture_masses(shears,npix,thetas,compute_mcross=False, periodic_boundary=periodic_boundary)
     return result
 
 def random_aperture_mass_computation_kernel(kwargs):
-    final_result,npix,thetas,random_seed,realisation = kwargs
-    result = random_aperture_mass_correlation(npix,thetas,random_seed)
+    final_result,npix,thetas,random_seed,realisation, periodic_boundary = kwargs
+    result = random_aperture_mass_correlation(npix,thetas,random_seed, periodic_boundary=periodic_boundary)
     final_result[:,:,:,:,realisation] = result
 
-def compute_random_aperture_mass_correlations(npix,thetas,n_realisations,n_processes=64):
+def compute_random_aperture_mass_correlations(npix,thetas,n_realisations,n_processes=64, periodic_boundary=True):
     m = MyManager()
     m.start()
     n_theta = len(thetas)
     final_results = m.np_zeros((n_theta,n_theta,n_theta,8,n_realisations))
 
     with Pool(processes=n_processes) as p:
-        args = [[final_results,npix,thetas,(i**3+250*i)%2**32,i] for i in range(n_realisations)]
+        args = [[final_results,npix,thetas,(i**3+250*i)%2**32,i, periodic_boundary] for i in range(n_realisations)]
         for i in tqdm(p.imap_unordered(random_aperture_mass_computation_kernel,args),total=n_realisations):
             pass
     return final_results
@@ -107,7 +107,7 @@ def compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,
     return final_results
 
 
-def extract_aperture_masses(shears,npix,thetas,compute_mcross=False):
+def extract_aperture_masses(shears,npix,thetas,compute_mcross=False, periodic_boundary=False):
     n_thetas = len(thetas)
     maxtheta = np.max(thetas)
 
@@ -124,10 +124,10 @@ def extract_aperture_masses(shears,npix,thetas,compute_mcross=False):
     for x,theta in enumerate(thetas):
         ac.change_theta_ap(theta)
         if(compute_mcross):
-            map,mx = ac.Map_fft(shears,norm=None,return_mcross=True,normalize_weighted=False)
+            map,mx = ac.Map_fft(shears,norm=None,return_mcross=True,normalize_weighted=False, periodic_boundary=periodic_boundary)
             cross_aperture_fields[:,:,x] = mx
         else:
-            map = ac.Map_fft(shears,norm=None,return_mcross=False,normalize_weighted=False)
+            map = ac.Map_fft(shears,norm=None,return_mcross=False,normalize_weighted=False, periodic_boundary=periodic_boundary)
 
         aperture_mass_fields[:,:,x] = map
 
@@ -179,14 +179,16 @@ def extract_aperture_masses(shears,npix,thetas,compute_mcross=False):
 if(__name__=='__main__'):
     # only shapenoise
     # res = compute_random_aperture_mass_correlations(4096,[1,2,4,8,16],2048,n_processes=128)
+    res = compute_random_aperture_mass_correlations(4096,[1,2,4,8,16],1,n_processes=12, periodic_boundary=True)
     # np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/map_cubed_only_shapenoise',res)
+    np.save('test',res)
 
     # gaussian random field in kappa
-    def power_spectrum(x):
-        return x/10000*np.exp(-x/10000)
+    #def power_spectrum(x):
+    #    return x/10000*np.exp(-x/10000)
 
-    res = compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,4096,[1,2,4,8,16],2048,n_processes=64)
-    np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/map_cubed_gaussian_random_field_x_exp_minus_x',res)
+    #res = compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,4096,[1,2,4,8,16],2048,n_processes=64)
+    #np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/map_cubed_gaussian_random_field_x_exp_minus_x',res)
 
 
     # res = compute_random_shear_power_spectra(4096,global_fieldsize_rad,1024,100)
@@ -194,17 +196,17 @@ if(__name__=='__main__'):
     # kbins = random_shear_power_spectrum(4096,1,100,global_fieldsize_rad)[1]
     # np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/power_spectra_only_shapenoise_bins',kbins)
 
-    all_theta_MS = np.zeros((5,5,5,1,32))
-    for los in range(32):
-        print(los)
-        los_no1 = los//8
-        los_no2 = los%8
-        ms_field = np.loadtxt("/vol/euclid7/euclid7_2/sven/millennium_maps/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
+    #all_theta_MS = np.zeros((5,5,5,1,32))
+    #for los in range(32):
+    #    print(los)
+    #    los_no1 = los//8
+    #    los_no2 = los%8
+    #    ms_field = np.loadtxt("/vol/euclid7/euclid7_2/sven/millennium_maps/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
         # kappa_field = ms_field[:,4].reshape(4096,4096)
-        shear_field = ms_field[:,2] + 1.0j*ms_field[:,3]
+    #    shear_field = ms_field[:,2] + 1.0j*ms_field[:,3]
         # PS,bins = extract_power_spectrum(kappa_field,global_fieldsize_rad,100,4096/2)
         # all_ps_MS[:,los] = PS
-        all_theta_MS[:,:,:,:,los] = extract_aperture_masses(shear_field,4096,[1,2,4,8,16],compute_mcross=False)
-    np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/map_cubed_direct',all_theta_MS)
+    #    all_theta_MS[:,:,:,:,los] = extract_aperture_masses(shear_field,4096,[1,2,4,8,16],compute_mcross=False)
+    #np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/map_cubed_direct',all_theta_MS)
     # np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/power_spectra_MS',all_ps_MS)
     # np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/power_spectra_MS_bins',bins)
