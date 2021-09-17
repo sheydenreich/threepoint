@@ -165,7 +165,7 @@ class aperture_mass_computer:
 
         
 
-    def Map_fft(self,gamma_arr,norm=None,return_mcross=False,normalize_weighted=True, periodic_boundary=False):
+    def Map_fft(self,gamma_arr,norm=None,return_mcross=False,normalize_weighted=True, periodic_boundary=True):
         """
         Computes the signal-to-noise of an aperture mass map
         input:
@@ -201,8 +201,12 @@ class aperture_mass_computer:
         if(np.any(np.isnan(result))):
             print("ERROR! NAN in aperture mass computation!")
         if(return_mcross):
-            ri = fftconvolve(yr,qi,'same')
-            ir = fftconvolve(yi,qr,'same')
+            if periodic_boundary:
+                ri = ac.convolve_fft(yr, qi, boundary='wrap', normalize_kernel=False, nan_treatment='fill')
+                ir = ac.convolve_fft(yi, qr,  boundary='wrap', normalize_kernel=False, nan_treatment='fill')
+            else:
+                ri = fftconvolve(yr,qi,'same')
+                ir = fftconvolve(yi,qr,'same')
             mcross = (-ri -ir)
 
         if norm is None:
