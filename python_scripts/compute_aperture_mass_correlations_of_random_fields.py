@@ -46,7 +46,7 @@ def compute_random_shear_power_spectra(npix,fieldsize,n_realisations,n_bins,n_pr
     return final_results
 
 
-def random_aperture_mass_correlation(npix,thetas,random_seed,galaxy_density=None,shapenoise = 0.3, periodic_boundary=False):
+def random_aperture_mass_correlation(npix,thetas,random_seed,galaxy_density=None,shapenoise = 0.3, periodic_boundary=True):
     n_thetas = len(thetas)
     maxtheta = np.max(thetas)
     shapenoise_1d = shapenoise/np.sqrt(2)
@@ -107,7 +107,7 @@ def compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,
     return final_results
 
 
-def extract_aperture_masses(shears,npix,thetas,compute_mcross=False, periodic_boundary=False):
+def extract_aperture_masses(shears,npix,thetas,compute_mcross=False, periodic_boundary=True):
     n_thetas = len(thetas)
     maxtheta = np.max(thetas)
 
@@ -178,10 +178,13 @@ def extract_aperture_masses(shears,npix,thetas,compute_mcross=False, periodic_bo
 
 if(__name__=='__main__'):
     # only shapenoise
-    # res = compute_random_aperture_mass_correlations(4096,[1,2,4,8,16],2048,n_processes=128)
-    res = compute_random_aperture_mass_correlations(4096,[1,2,4,8,16],1,n_processes=12, periodic_boundary=True)
-    # np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/map_cubed_only_shapenoise',res)
-    np.save('test',res)
+    res = compute_random_aperture_mass_correlations(4096,[1,2,4,8,16],2048,n_processes=64, periodic_boundary=True)
+#    np.save('map_cubed_only_shapenoise_without_zeropadding', res)
+    np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/map_cubed_only_shapenoise_without_zeropadding',res)
+
+    
+    #res = compute_random_aperture_mass_correlations(4096,[1,2,4,8,16],1,n_processes=12, periodic_boundary=True)
+    #np.save('test',res)
 
     # gaussian random field in kappa
     #def power_spectrum(x):
