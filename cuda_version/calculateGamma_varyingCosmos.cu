@@ -35,7 +35,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        std::cout << "on default GPU";
+        std::cout << "on default GPU ";
     }
 // Set Up Cosmology
   struct cosmology cosmo;
@@ -50,7 +50,7 @@ int main(int argc, char** argv)
   cosmo.w = -1.0;
   cosmo.om = cosmo.omc+cosmo.omb;
   cosmo.ow = 1.-cosmo.om;
-  outfn="Gammas_varyingCosmos_5_perc.dat";
+  outfn="Gammas_varyingCosmos_0p5_perc.dat";
 
   std::ofstream out;
   out.open(outfn.c_str());
@@ -81,8 +81,8 @@ int main(int argc, char** argv)
   // This can probably be done smarter
   // Sets each parameter to N_cosmo values between fac_min*Main Value and fac_max*Main Value
   int N_cosmo=10; //Number of variations for each parameter
-  double fac_min=0.95; //Minimum proportion of main value for each parameter
-  double fac_max=1.05; //Maximum proportion of main value for each parameter
+  double fac_min=0.995; //Minimum proportion of main value for each parameter
+  double fac_max=1.005; //Maximum proportion of main value for each parameter
   double fac_bin=(fac_max-fac_min)/N_cosmo;
   
   std::vector<cosmology> cosmos(N_cosmo*7); ///<container for all cosmologies
@@ -144,9 +144,9 @@ int main(int argc, char** argv)
 
       for (int r_ind=0; r_ind<N_r; r_ind++)
       {
-        for (int u_ind=0; u_ind<N_r; u_ind++)
+        for (int u_ind=0; u_ind<N_u; u_ind++)
         {
-            for (int v_ind=0; v_ind<N_r; v_ind++)
+            for (int v_ind=0; v_ind<N_v; v_ind++)
             {
                 double r = meanr.at(r_ind);
                 double u = meanu.at(u_ind);
@@ -184,11 +184,9 @@ int main(int argc, char** argv)
       out<<std::endl;
       std::cout<<std::endl;
       std::cout << "Finished cosmology " << i+1 ;
-        printf("after %.2f h. Est. remaining: %.2f h. Average: %.2f min per cosmology. \n\n",
+        printf(" after %.2f h. Est. remaining: %.2f h. Average: %.2f min per cosmology. \n",
         elapsed.count()*1e-9/3600,
         (7*N_cosmo-i-1)*elapsed.count()*1e-9/3600/(i+1),
         elapsed.count()*1e-9/60/(i+1));
-
-      // Stop measuring time and calculate the elapsed time
     };
 }
