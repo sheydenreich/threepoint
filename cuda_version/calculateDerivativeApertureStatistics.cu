@@ -96,6 +96,7 @@ int main(int argc, char* argv[])
 
 
   std::vector<cosmology> cosmos; ///<container for all cosmologies
+  std::vector<double> derivative_parameters; //parameters the derivatives are taken in 
 
   cosmology newCosmo=cosmo;
   if(five_point)
@@ -112,6 +113,7 @@ int main(int argc, char* argv[])
       newCosmo.h=cosmo.h*(1.+2*h);
       cosmos.push_back(newCosmo);
     };
+    derivative_parameters.push_back(cosmo.h);
   
   newCosmo=cosmo;
   if(five_point)
@@ -129,6 +131,7 @@ int main(int argc, char* argv[])
       newCosmo.sigma8=cosmo.sigma8*(1.+2*h);
       cosmos.push_back(newCosmo);
     };
+    derivative_parameters.push_back(cosmo.sigma8);
   
   newCosmo=cosmo;
   if(five_point)
@@ -150,6 +153,7 @@ int main(int argc, char* argv[])
       newCosmo.omc=newCosmo.om-newCosmo.omb;
       cosmos.push_back(newCosmo);
     };
+    derivative_parameters.push_back(cosmo.omb);
   
   newCosmo=cosmo;
   if(five_point)
@@ -166,6 +170,8 @@ int main(int argc, char* argv[])
       newCosmo.ns=cosmo.ns*(1+2*h);
       cosmos.push_back(newCosmo);
     };
+  derivative_parameters.push_back(cosmo.ns);
+
   newCosmo=cosmo;
   if(five_point)
     {
@@ -181,6 +187,8 @@ int main(int argc, char* argv[])
       newCosmo.w=cosmo.w*(1+2*h);
       cosmos.push_back(newCosmo);
     };
+  derivative_parameters.push_back(cosmo.w);
+
   newCosmo=cosmo;
   if(five_point)
     {
@@ -200,6 +208,7 @@ int main(int argc, char* argv[])
       newCosmo.omc=newCosmo.om-newCosmo.omb;
       cosmos.push_back(newCosmo);
     };
+    derivative_parameters.push_back(cosmo.om);
 
   newCosmo=cosmo;
   if(five_point)
@@ -217,6 +226,8 @@ int main(int argc, char* argv[])
       newCosmo.ow=cosmo.ow*(1+2*h);
       cosmos.push_back(newCosmo);
     };
+  derivative_parameters.push_back(cosmo.ow);
+
   int Ncosmos=cosmos.size();///<Number of cosmologies
 
   // Calculation of Map^3
@@ -287,11 +298,11 @@ int main(int argc, char* argv[])
 	  if(five_point)
 	    {
 	      // Stencil calculation: df/dx = [f(x-2h)-8f(x-h)+8f(x+h)-f(x+2h)]/(12h)
-	      derivs_MapMapMaps[i][j]=(MapMapMaps[4*i][j]-8*MapMapMaps[4*i+1][j]+8*MapMapMaps[4*i+2][j]-MapMapMaps[4*i+3][j])/(12.*h);
+	      derivs_MapMapMaps[i][j]=(MapMapMaps[4*i][j]-8*MapMapMaps[4*i+1][j]+8*MapMapMaps[4*i+2][j]-MapMapMaps[4*i+3][j])/(12.*h*derivative_parameters.at(i));
 	    }
 	  else
 	    {
-	      derivs_MapMapMaps[i][j]=(MapMapMaps[2*i+1][j]-MapMapMaps[2*i][j])/2/h;
+	      derivs_MapMapMaps[i][j]=(MapMapMaps[2*i+1][j]-MapMapMaps[2*i][j])/2/h/derivative_parameters.at(i);
 	    }
 	}
     }
