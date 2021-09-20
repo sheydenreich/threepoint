@@ -51,11 +51,13 @@ int main()
 
     double* bispectrum_covariance_array = new double[n_ell*n_ell*n_ell];
     double* bispectrum_array = new double[n_ell*n_ell*n_ell];
+    double* powerspectrum_array = new double[n_ell];
 
   double ell_array[n_ell];
   for(int i=0;i<n_ell;i++)
   {
-      ell_array[i] = lell_min + (lell_max-lell_min)/n_ell*(i+0.5);
+      ell_array[i] = exp(lell_min + (lell_max-lell_min)/n_ell*(i+0.5));
+      powerspectrum_array[i] = bispectrum.convergence_power_spectrum(ell_array[i]);
   }
   for(int i=0;i<n_ell;i++)
   {
@@ -95,17 +97,23 @@ int main()
       }
   }
 
-  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/measured_bispectrum";
-    std::ofstream out;
-    std::ofstream out2;
+  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/model_bispectrum.dat";
+  std::ofstream out;
+  std::string outfn2 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/model_bispectrum_gaussian_covariance.dat";
+  std::ofstream out2;
+  std::string outfn3 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/model_powerspectrum.dat";
+  std::ofstream out3;
+
 
 std::cout<<"Writing results to "<<outfn<<std::endl;
-out.open(outfn.append(".dat").c_str());
-out2.open(outfn.append("_covariance.dat").c_str());
+out.open(outfn.c_str());
+out2.open(outfn2.c_str());
+out3.open(outfn3.c_str());
 
     //Print out ==> Should not be parallelized!!!
     for(int i=0; i<n_ell; i++)
       {
+        out3<<ell_array[i] << " " << powerspectrum_array[i] << std::endl;
 	for(int j=0; j<n_ell; j++)
 	  {
 	    for(int k=0; k<n_ell; k++)

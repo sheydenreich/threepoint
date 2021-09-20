@@ -29,7 +29,7 @@ def Dhat_func(npix = 4096,pixsize = 1.):
     with np.errstate(divide="ignore",invalid="ignore"):
         a = (xs1**2-xs2**2+2.j*xs1*xs2)/(xs1**2+xs2**2)
     a[(xs1**2+xs2**2==0)] = 0
-    return np.pi*a
+    return a
 
 
 def create_gaussian_random_field(power_spectrum, n_pix=4096,fieldsize=4.*np.pi/180,random_seed=None):
