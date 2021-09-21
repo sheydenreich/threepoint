@@ -78,26 +78,24 @@ class cov_analytic:
         th5sq=theta5*theta5
         th6sq=theta6*theta6
 
-        a=0.5*(th1sq+th3sq+th4sq+th6sq)+2*self.p2
-        b=0.5*(th2sq+th3sq+th5sq+th6sq)+2*self.p2
-        c=th3sq+th6sq+2*self.p2
+        a=-0.5*(th1sq+th3sq+th4sq+th6sq)-2*self.p2
+        b=-0.5*(th2sq+th3sq+th5sq+th6sq)-2*self.p2
+        c=-th3sq-th6sq-2*self.p2
 
-        d=pow(4*a*b-c*c, 10)
+        d=pow(c*c-4*a*b, 10)
 
-        G=128*pow(a*b, 3)*(a*a+a*b+b*b)+64*pow(a*b*c,2)*(9*a*a+11*a*b+9*b*b)+120*a*b*pow(c,4)*(3*a*a+5*a+b+3*b*b)+40*pow(c,6)*(a*a+3*a*b+b*b)+5*pow(c,8)
-        G*=8847360*(a+b)/d
+        G=128*pow(a*b, 3)*(a*a+a*b+b*b)+64*pow(a*b*c,2)*(9*a*a+11*a*b+9*b*b)+120*a*b*pow(c,4)*(3*a*a+5*a*b+3*b*b)+40*pow(c,6)*(a*a+3*a*b+b*b)+5*pow(c,8)
+        G*=-8847360*(a+b)/d
 
-        H=256*pow(a*b,4)*(a+b)-256*pow(a*b,3)*(3*a*a+5*a*b+3*b*b)*c+320*pow(a*b,3)*(a+b)*c*c-160*pow(a*b,2)*(9*a*a+16*a*b+9*b*b)*pow(c,3)-480*a*b*pow(a+b,2)*pow(c,5)-20*a*b*(a+b)*pow(c,6)-10*(3*a*a+8*a*b+3*b*b)*pow(c,7)-(a+b)*pow(c, 8)-pow(c,9)
+        H=-256*pow(a*b,4)*(a+b)+256*pow(a*b,3)*(3*a*a+5*a*b+3*b*b)*c-320*pow(a*b,3)*(a+b)*c*c+160*pow(a*b,2)*(9*a*a+16*a*b+9*b*b)*pow(c,3)+480*a*b*pow(a+b,2)*pow(c,5)+20*a*b*(a+b)*pow(c,6)+10*(3*a*a+8*a*b+3*b*b)*pow(c,7)+(a+b)*pow(c, 8)+pow(c,9)
         H*=17694720/d
 
-        J=2560*pow(a*b,3)*a*(b-3*c)-pow(c,7)*(48*b+c)-1280*pow(a*b,2)*a*c*(6*b*b-b*c+6*c*c)-240*pow(a*c,2)*b*c*(32*b*b+b*c+6*c*c)-8*a*pow(c,5)*(180*b*b+7*b*c+6*c*c)
-        J*=-4423680*c/d
+        J=-2560*pow(a*b,3)*a*(-b+3*c)-pow(c,7)*(48*b+c)-1280*pow(a*b,2)*a*c*(6*b*b-b*c+6*c*c)-240*pow(a*c,2)*b*c*(32*b*b+b*c+6*c*c)-8*a*pow(c,5)*(180*b*b+7*b*c+6*c*c)
+        J*=4423680*c/d
 
         K=1280*pow(a*b, 3)+720*pow(a*b*c,2)+72*a*b*pow(c,4)+pow(c,6)
-        K*=-17694720*pow(c,3)/d
+        K*=17694720*pow(c,3)/d
 
-        if(G+H+J+K < 0):
-            print(G, H, J, K)
         return G+H+J+K
 
 
