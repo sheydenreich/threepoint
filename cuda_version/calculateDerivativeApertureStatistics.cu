@@ -77,6 +77,7 @@ int main(int argc, char* argv[])
 
 
   double z_max=1.1; //maximal redshift
+  if(slics) z_max=3.;
   double dz = z_max/((double) n_redshift_bins); //redshift binsize
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));

@@ -193,8 +193,9 @@ __device__ void compute_coefficients(int idx, double didx, double *D1, double *r
 }
 
 __device__ double P_k_nonlinear(double k, double z){
+  printf("Warning! This is the bugged version. Not fixed yet.");
   /* get the interpolation coefficients */
-  double didx = z/z_max*(n_redshift_bins-1);
+  double didx = z/dev_z_max*(n_redshift_bins-1);
   int idx = didx;
   didx = didx - idx;
   if(idx==n_redshift_bins-1){
@@ -211,9 +212,9 @@ __device__ double P_k_nonlinear(double k, double z){
   double scalefactor,om_m,om_v;
   double nsqr,ncur;
 
-  f1   = pow(om, -0.0307);
-  f2   = pow(om, -0.0585);
-  f3   = pow(om, 0.0743);
+  f1   = pow(dev_om, -0.0307);
+  f2   = pow(dev_om, -0.0585);
+  f3   = pow(dev_om, 0.0743);
 
 
   nsqr = n_eff*n_eff;
@@ -223,7 +224,7 @@ __device__ double P_k_nonlinear(double k, double z){
 
   // ncur = 0.;
 
-  if(abs(om+ow-1)>1e-4)
+  if(abs(dev_om+dev_ow-1)>1e-4)
   {
     printf("Warning: omw as a function of redshift only implemented for flat universes yet!");
   }
@@ -245,9 +246,9 @@ __device__ double P_k_nonlinear(double k, double z){
 		f3=frac*f3b + (1-frac)*f3a;
 
   a = 1.5222 + 2.8553*n_eff + 2.3706*nsqr + 0.9903*n_eff*nsqr
-      + 0.2250*nsqr*nsqr - 0.6038*ncur + 0.1749*om_v*(1.0 + w);
+      + 0.2250*nsqr*nsqr - 0.6038*ncur + 0.1749*om_v*(1.0 + dev_w);
   a = pow(10.0, a);
-  b = pow(10.0, -0.5642 + 0.5864*n_eff + 0.5716*nsqr - 1.5474*ncur + 0.2279*om_v*(1.0 + w));
+  b = pow(10.0, -0.5642 + 0.5864*n_eff + 0.5716*nsqr - 1.5474*ncur + 0.2279*om_v*(1.0 + dev_w));
   c = pow(10.0, 0.3698 + 2.0404*n_eff + 0.8161*nsqr + 0.5869*ncur);
   gam = 0.1971 - 0.0843*n_eff + 0.8460*ncur;
   alpha = fabs(6.0835 + 1.3373*n_eff - 0.1959*nsqr - 5.5274*ncur);
@@ -458,8 +459,9 @@ void set_cosmology(cosmology cosmo, double dz_, double z_max_)
     
 	D1_array[i]=lgr(z_now)/lgr(0.);   // linear growth factor
 	r_sigma_array[i]=calc_r_sigma(D1_array[i]);  // =1/k_NL [Mpc/h] in Eq.(B1)
+  double d1 = -2.*pow(D1_array[i]*sigmam(r_sigma_array[i],2),2);
 	n_eff_array[i]=-3.+2.*pow(D1_array[i]*sigmam(r_sigma_array[i],2),2);   // n_eff in Eq.(B2)
-  ncur_array[i] = (n_eff_array[i]+3)*(n_eff_array[i]+3)+4.*pow(D1_array[i],2)*sigmam(r_sigma_array[i],3)/pow(sigmam(r_sigma_array[i],1),2);
+  ncur_array[i] = d1*d1+4.*sigmam(r_sigma_array[i],3)*pow(D1_array[i],2);
 
       }
 
