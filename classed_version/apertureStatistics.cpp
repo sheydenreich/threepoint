@@ -44,10 +44,22 @@ double ApertureStatistics::integrand_4d(const double& l1, const double& l2, cons
   return l1*l2*Bispectrum_->integrand_bkappa(z,ells)*uHat(l1*thetas[0])*uHat(l2*thetas[1])*uHat(l3*thetas[2]);
 }
 
-double ApertureStatistics::uHat_product(const double& l1, const double& l2, const double& l3, double* thetas)
-{
-  return uHat(l1*thetas[0])*uHat(l2*thetas[1])*uHat(l3*thetas[2]);
-}
+#if DO_CYCLIC_PERMUTATIONS
+  double ApertureStatistics::_uHat_product(const double& l1, const double& l2, const double& l3, double* thetas)
+  {
+    return uHat(l1*thetas[0])*uHat(l2*thetas[1])*uHat(l3*thetas[2]);
+  }
+  double ApertureStatistics::uHat_product(const double& l1, const double& l2, const double& l3, double* thetas)
+  {
+    std::cout << "test" << std::endl;
+    return (_uHat_product(l1, l2, l3, thetas)+_uHat_product(l2, l3, l1, thetas)+_uHat_product(l3, l1, l2, thetas))/3.;
+  }
+#else
+  double ApertureStatistics::uHat_product(const double& l1, const double& l2, const double& l3, double* thetas)
+  {
+    return uHat(l1*thetas[0])*uHat(l2*thetas[1])*uHat(l3*thetas[2]);
+  }
+#endif
 
 double ApertureStatistics::uHat_product_permutations(const double& l1, const double& l2, const double& l3, double* thetas)
 {

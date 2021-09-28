@@ -7,20 +7,9 @@
 //Make sure at the most one is on!!! Also: NO PARALLELIZATION IF GSL IS USED FOR BISPEC INTEGRATION!!!
 #define PARALLEL_INTEGRATION true
 #define PARALLEL_RADII false
-#define CONSTANT_POWERSPECTRUM false
-#define ANALYTICAL_POWERSPECTRUM false
-#define ANALYTICAL_POWERSPECTRUM_V2 true
 #include "bispectrum.hpp"
 
-#if ANALYTICAL_POWERSPECTRUM
-// Powerspectrum: P(l)=p1*l*l*exp(-p2*l*l)
-const double p1=1e-8;
-const double p2=1e-8;
-#elif ANALYTICAL_POWERSPECTRUM_V2
-// Powerspectrum: P(l)=p1*l*exp(-p2*l)
-const double p1=1e-4;
-const double p2=1e-4;
-#endif
+#define DO_CYCLIC_PERMUTATIONS true
 
 
 
@@ -68,6 +57,10 @@ private:
    * @return Value of product of filter functions
    */
   double uHat_product(const double& l1, const double& l2, const double& l3, double* thetas);
+
+#if DO_CYCLIC_PERMUTATIONS
+  double _uHat_product(const double& l1, const double& l2, const double& l3, double* thetas);
+#endif
 
   /**
    * @brief Sum of all possible Permutations of the product of three Filter functions in Fourier space
