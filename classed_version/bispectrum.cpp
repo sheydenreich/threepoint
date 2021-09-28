@@ -469,7 +469,28 @@ double BispectrumCalculator::bispectrumCovariance(double ell1, double ell2, doub
                                                   double delta_ell4, double delta_ell5, double delta_ell6,
                                                   double survey_area)
 {
-  double product_power_spectra = convergence_power_spectrum(ell1)*convergence_power_spectrum(ell2)*convergence_power_spectrum(ell3);
+  double product_power_spectra;
+  #if CONSTANT_POWERSPECTRUM
+    product_power_spectra = 1.;
+  #elif ANALYTICAL_POWERSPECTRUM
+  // double p1,p2,p3;
+  //   p1=p2=p3=pow(1./10000.,2);
+    double P1=p1*ell1*ell1*exp(-p2*ell1*ell1);
+    double P2=p1*ell2*ell2*exp(-p2*ell2*ell2);
+    double P3=p1*ell3*ell3*exp(-p2*ell3*ell3);
+
+    product_power_spectra = P1*P2*P3;
+  #elif ANALYTICAL_POWERSPECTRUM_V2
+  // double p1,p2,p3;
+  //   p1=p2=p3=1./10000.;
+    double P1=p1*ell1*exp(-p2*ell1);
+    double P2=p1*ell2*exp(-p2*ell2);
+    double P3=p1*ell3*exp(-p2*ell3);
+    product_power_spectra = P1*P2*P3;
+  #else
+    product_power_spectra = convergence_power_spectrum(ell1)*convergence_power_spectrum(ell2)*convergence_power_spectrum(ell3);
+  #endif
+
   double lambda_inv = 1./number_of_triangles(ell1, ell2, ell3);
   double prefactor = pow(2*M_PI,3)/(survey_area*ell1*ell2*ell3*delta_ell1*delta_ell2*delta_ell3);
   double delta = delta_distrib_permutations(ell1, ell2, ell3, ell4, ell5, ell6);

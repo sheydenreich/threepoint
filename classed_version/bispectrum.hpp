@@ -10,8 +10,23 @@
 
 // use slics cosmology (false -> millennium cosmology)
 // TODO: Implenment redshift distribution for Euclid-like SLICS
-#define slics false
+#define slics true
 #define test_analytical false
+
+#define CONSTANT_POWERSPECTRUM true
+#define ANALYTICAL_POWERSPECTRUM false
+#define ANALYTICAL_POWERSPECTRUM_V2 false
+
+#if ANALYTICAL_POWERSPECTRUM
+// Powerspectrum: P(l)=p1*l*l*exp(-p2*l*l)
+const double p1=1e-8;
+const double p2=1e-8;
+#elif ANALYTICAL_POWERSPECTRUM_V2
+// Powerspectrum: P(l)=p1*l*exp(-p2*l)
+const double p1=1e-4;
+const double p2=1e-4;
+#endif
+
 
   /**
    * @brief one permutation of Eq.(21) in Joachimi et al. (2009)
