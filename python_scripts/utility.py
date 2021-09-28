@@ -2,12 +2,13 @@ import numpy as np
 from scipy.signal import fftconvolve
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import griddata
-from astropy.convolution import interpolate_replace_nans,Gaussian2DKernel,convolve_fft
+from astropy.convolution import interpolate_replace_nans,Gaussian2DKernel#,convolve_fft
+import astropy.convolution as ac
 import collections
 import multiprocessing.managers
-from FyeldGenerator import generate_field
+#from FyeldGenerator import generate_field
 from scipy import stats
-from lenstools import GaussianNoiseGenerator
+#from lenstools import GaussianNoiseGenerator
 from astropy import units as u
 class MyManager(multiprocessing.managers.BaseManager):
     pass
@@ -115,7 +116,6 @@ class aperture_mass_computer:
         with np.errstate(divide='ignore',invalid='ignore'):
             res = self.Qfunc(self.dist)*(np.conj(self.idc)**2/np.abs(self.idc)**2)
         res[(self.dist==0)] = 0
-
         return res
 
 
@@ -190,7 +190,7 @@ class aperture_mass_computer:
         
         return fftconvolve(kappa_arr,self.u_arr,'same')*self.fieldsize**2/self.npix**2
 
-    def Map_fft(self,gamma_arr,norm=None,return_mcross=False,normalize_weighted=True):
+    def Map_fft(self,gamma_arr,norm=None,return_mcross=False,normalize_weighted=True, periodic_boundary=True):
         """
         Computes the signal-to-noise of an aperture mass map
         input:
@@ -200,6 +200,9 @@ class aperture_mass_computer:
                     if array, computes the mean number density within an aperture and uses this for n in
                                 the Bartelmann & Schneider (2001) Estimator
             return_mcross: bool -- if true, also computes the cross-aperture map and returns it
+            periodic_boundary: bool (default:False) 
+                               if true: computes FFT with astropy's convolve_fft without zero-padding, 
+                               if false: computes FFT with scipy's fftconvolve which uses zero padding 
 
         output:
             result: resulting aperture mass map and, if return_mcross, the cross aperture map
@@ -212,14 +215,23 @@ class aperture_mass_computer:
         yi = gamma_arr.imag
         qr = self.q_arr.real
         qi = self.q_arr.imag
-        rr = fftconvolve(yr,qr,'same')
-        ii = fftconvolve(yi,qi,'same')
+        if periodic_boundary:
+            rr=ac.convolve_fft(yr, qr, boundary='wrap', normalize_kernel=False, nan_treatment='fill')
+            ii=ac.convolve_fft(yi, qi, boundary='wrap', normalize_kernel=False, nan_treatment='fill')
+        else:
+            rr = fftconvolve(yr,qr,'same')
+            ii = fftconvolve(yi,qi,'same')
+        
         result = (ii-rr)
         if(np.any(np.isnan(result))):
             print("ERROR! NAN in aperture mass computation!")
         if(return_mcross):
-            ri = fftconvolve(yr,qi,'same')
-            ir = fftconvolve(yi,qr,'same')
+            if periodic_boundary:
+                ri = ac.convolve_fft(yr, qi, boundary='wrap', normalize_kernel=False, nan_treatment='fill')
+                ir = ac.convolve_fft(yi, qr,  boundary='wrap', normalize_kernel=False, nan_treatment='fill')
+            else:
+                ri = fftconvolve(yr,qi,'same')
+                ir = fftconvolve(yi,qr,'same')
             mcross = (-ri -ir)
 
         if norm is None:
