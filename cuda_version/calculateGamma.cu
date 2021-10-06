@@ -14,44 +14,53 @@
 
 int main(int argc, char** argv)
 {
-    std::cout << "Executing " << argv[0] << " ";
-    if(argc>=2)
+  std::cout << "Executing " << argv[0] << " ";
+  if(argc>=2)
     {
-        int deviceNumber = atoi(argv[1]);
-        std::cout << "on GPU " << deviceNumber << std::endl;
-        cudaSetDevice(deviceNumber);
+      int deviceNumber = atoi(argv[1]);
+      std::cout << "on GPU " << deviceNumber << std::endl;
+      cudaSetDevice(deviceNumber);
     }
-    else
+  else
     {
-        std::cout << "on default GPU";
-    }
-  // Set Up Cosmology
-  struct cosmology cosmo;
+      std::cout << "on default GPU";
+    };
+  
 
+  std::string cosmo_paramfile, outfn;
   if(slics)
     {
-      printf("using SLICS cosmology...\n");
-      cosmo.h=0.6898;     // Hubble parameter
-      cosmo.sigma8=0.826; // sigma 8
-      cosmo.omb=0.0473;   // Omega baryon
-      cosmo.omc=0.2905-cosmo.omb;   // Omega CDM
-      cosmo.ns=0.969;    // spectral index of linear P(k)
-      cosmo.w=-1.0;
-      cosmo.om = cosmo.omb+cosmo.omc;
-      cosmo.ow = 1-cosmo.om;
+      // Set Up Cosmology
+      cosmo_paramfile="SLICS_cosmo.dat";
+      // Set output file
+      outfn="../../results_SLICS/Gammas_0p1_to_60_10_15_15_bins.dat";
     }
-    else
+  else
     {
-      printf("using Millennium cosmology...\n");
-      cosmo.h = 0.73;
-      cosmo.sigma8 = 0.9;
-      cosmo.omb = 0.045;
-      cosmo.omc = 0.25 - cosmo.omb;
-      cosmo.ns = 1.;
-      cosmo.w = -1.0;
-      cosmo.om = cosmo.omc+cosmo.omb;
-      cosmo.ow = 1.-cosmo.om;
+      // Set Up Cosmology
+      cosmo_paramfile="MR_cosmo.dat";
+      // Set output file
+      outfn="../../results_MR/Gammas_0p1_to_60_10_15_15_bins.dat";
     };
+  
+  // Read in cosmology
+  cosmology cosmo(cosmo_paramfile);
+  
+  // Check output file
+  std::ofstream out;
+  out.open(outfn.c_str());
+  if(!out.is_open())
+    {
+      std::cerr<<"Couldn't open "<<outfn<<std::endl;
+      exit(1);
+    };
+
+  // User output
+  std::cerr<<"Using cosmology:"<<std::endl;
+  std::cerr<<cosmo;
+  std::cerr<<"Writing to:"<<outfn<<std::endl;
+
+
 
   // Binning
   int steps = 10;
@@ -65,21 +74,7 @@ int main(int argc, char** argv)
   double vmin = 0;
   double vmax = 1;
 
-    // Set output file
-  // std::string outfn="Gammas_"+std::to_string(rmin)+"_to_"+std::to_string(rmax)+".dat";
-  std::string outfn="/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/fisher/Gammas_0p1_to_60_10_15_15_bins.dat";
-  std::ofstream out;
-  out.open(outfn.c_str());
-  if(!out.is_open())
-    {
-      std::cerr<<"Couldn't open "<<outfn<<std::endl;
-      exit(1);
-    };
-
-
-  if(slics) z_max = 3.;
-  else z_max = 1.1;
-  double dz = z_max / ((double) n_redshift_bins);
+  double dz = cosmo.zmax / ((double) n_redshift_bins);
 
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));

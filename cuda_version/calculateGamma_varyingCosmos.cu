@@ -37,21 +37,29 @@ int main(int argc, char** argv)
     {
         std::cout << "on default GPU ";
     }
-// Set Up Cosmology
-  struct cosmology cosmo;
-  std::string outfn;
 
-  printf("using Millennium cosmology... \n");
-  cosmo.h = 0.73;
-  cosmo.sigma8 = 0.9;
-  cosmo.omb = 0.045;
-  cosmo.omc = 0.25 - cosmo.omb;
-  cosmo.ns = 1.;
-  cosmo.w = -1.0;
-  cosmo.om = cosmo.omc+cosmo.omb;
-  cosmo.ow = 1.-cosmo.om;
-  outfn="Gammas_varyingCosmos_0p5_perc.dat";
 
+
+  std::string cosmo_paramfile, outfn;
+  if(slics)
+    {
+      // Set Up Cosmology
+      cosmo_paramfile="SLICS_cosmo.dat";
+      // Set output file
+      outfn="../../results_SLICS/Gammas_varyingCosmos.dat";
+    }
+  else
+    {
+      // Set Up Cosmology
+      cosmo_paramfile="MR_cosmo.dat";
+      // Set output file
+      outfn="../../results_MR/Gammas_varyingCosmos.dat";
+    };
+  
+  // Read in cosmology
+  cosmology cosmo(cosmo_paramfile);
+  
+  // Check output file
   std::ofstream out;
   out.open(outfn.c_str());
   if(!out.is_open())
@@ -60,9 +68,14 @@ int main(int argc, char** argv)
       exit(1);
     };
 
+  // User output
+  std::cerr<<"Using cosmology:"<<std::endl;
+  std::cerr<<cosmo;
+  std::cerr<<"Writing to:"<<outfn<<std::endl;
   
-  cosmo.zmax=1.1; //maximal redshift
-  double dz = z_max/((double) n_redshift_bins); //redshift binsize
+  
+  
+  double dz = cosmo.zmax/((double) n_redshift_bins); //redshift binsize
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));
 

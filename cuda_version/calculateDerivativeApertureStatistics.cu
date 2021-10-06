@@ -25,8 +25,6 @@
  */
 int main(int argc, char* argv[])
 {
-  // Set up cosmology (at which derivative is calculated)
-  struct cosmology cosmo; ///<cosmology at which derivative is calculated
 
 
   bool five_point=false;
@@ -34,39 +32,34 @@ int main(int argc, char* argv[])
   
   if(argc!=3)
     {
-      std::cerr<<"calculateDerivativeApertureStatistics.x: Need to specify output and stencil stepsize"<<std::endl;
+      std::cerr<<"calculateDerivativeApertureStatistics.x: Need to specify stencil stepsize"<<std::endl;
       exit(1);
     };
   
-  std::string outfn=argv[1]; ///< Outputfilename
-  double h=std::stod(argv[2]); ///<Stepsize of Stencil
+  double h=std::stod(argv[1]); ///<Stepsize of Stencil
 
-  
+
+  std::string cosmo_paramfile, outfn;
+
   if(slics)
     {
-      printf("using SLICS cosmology...");
-      cosmo.h=0.6898;     // Hubble parameter
-      cosmo.sigma8=0.826; // sigma 8
-      cosmo.omb=0.0473;   // Omega baryon
-      cosmo.omc=0.2905-cosmo.omb;   // Omega CDM
-      cosmo.ns=0.969;    // spectral index of linear P(k)
-      cosmo.w=-1.0;
-      cosmo.om = cosmo.omb+cosmo.omc;
-      cosmo.ow = 1-cosmo.om;
+      // Set Up Cosmology
+      cosmo_paramfile="SLICS_cosmo.dat";
+      // Set output file
+      outfn="../../results_SLICS/MapMapMap_derivatives.dat";
     }
   else
     {
-      printf("using Millennium cosmology...");
-      cosmo.h = 0.73;
-      cosmo.sigma8 = 0.9;
-      cosmo.omb = 0.045;
-      cosmo.omc = 0.25 - cosmo.omb;
-      cosmo.ns = 1.;
-      cosmo.w = -1.0;
-      cosmo.om = cosmo.omc+cosmo.omb;
-      cosmo.ow = 1.-cosmo.om;
-    }
+      // Set Up Cosmology
+      cosmo_paramfile="MR_cosmo.dat";
+      // Set output file
+      outfn="../../results_MR/MapMapMap_derivatives.dat";
+    };
+  
+  // Read in cosmology
+  cosmology cosmo(cosmo_paramfile);///<cosmology at which derivative is calculated
 
+  // Check output file
   std::ofstream out;
   out.open(outfn.c_str());
   if(!out.is_open())
@@ -75,10 +68,13 @@ int main(int argc, char* argv[])
       exit(1);
     };
 
-
-  double z_max=1.1; //maximal redshift
-  if(slics) z_max=3.;
-  double dz = z_max/((double) n_redshift_bins); //redshift binsize
+  // User output
+  std::cerr<<"Using cosmology:"<<std::endl;
+  std::cerr<<cosmo;
+  std::cerr<<"Writing to:"<<outfn<<std::endl;
+  
+ 
+  double dz = cosmo.zmax/((double) n_redshift_bins); //redshift binsize
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));
 
@@ -241,7 +237,6 @@ int main(int argc, char* argv[])
       std::cout<<"Doing calculations for cosmology "<<i<<" of "<<Ncosmos<<std::endl;
       auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
       // Initialize Bispectrum
-      cosmos[i].zmax=z_max;
       set_cosmology(cosmos[i], dz);
 
 

@@ -20,12 +20,24 @@
  */
 int main()
 {
-    
-// Set Up Cosmology
-  std::string cosmo_paramfile="MR_cosmo.dat";
-  // Set output file
-  std::string outfn="../../results_MR/MapMapMap_bispec_gpu.dat";
 
+  std::string cosmo_paramfile, outfn;
+
+  if(slics)
+    {
+      // Set Up Cosmology
+      std::string cosmo_paramfile="SLICS_cosmo.dat";
+      // Set output file
+      std::string outfn="../../results_SLICS/MapMapMap_bispec_gpu.dat";
+    }
+  else
+    {
+      // Set Up Cosmology
+      std::string cosmo_paramfile="MR_cosmo.dat";
+      // Set output file
+      std::string outfn="../../results_MR/MapMapMap_bispec_gpu.dat";
+    };
+  
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);
 
@@ -37,32 +49,6 @@ int main()
       std::cerr<<"Couldn't open "<<outfn<<std::endl;
       exit(1);
     };
-
-
-  /*  if(slics)
-    {
-      printf("using SLICS cosmology...");
-      cosmo.h=0.6898;     // Hubble parameter
-      cosmo.sigma8=0.826; // sigma 8
-      cosmo.omb=0.0473;   // Omega baryon
-      cosmo.omc=0.2905-cosmo.omb;   // Omega CDM
-      cosmo.ns=0.969;    // spectral index of linear P(k)
-      cosmo.w=-1.0;
-      cosmo.om = cosmo.omb+cosmo.omc;
-      cosmo.ow = 1-cosmo.om;
-    }
-    else
-    {
-      printf("using Millennium cosmology...");
-      cosmo.h = 0.73;
-      cosmo.sigma8 = 0.9;
-      cosmo.omb = 0.045;
-      cosmo.omc = 0.25 - cosmo.omb;
-      cosmo.ns = 1.;
-      cosmo.w = -1.0;
-      cosmo.om = cosmo.omc+cosmo.omb;
-      cosmo.ow = 1.-cosmo.om;
-      }*/
 
   // User output
   std::cerr<<"Using cosmology:"<<std::endl;

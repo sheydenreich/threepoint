@@ -8,7 +8,7 @@
 #include <vector>
 #include <chrono> //For time measurements
 /**
- * @file calculateApertureStatistics.cu
+ * @file calculateApertureStatistics_varyingCosmos.cu
  * This executable calculates <MapMapMap> for variations of
  * the cosmological parameters \f$h$\f, \f$\sigma_8$\f, \f$\Omega_b$\f, 
  * \f$n_s$\f, \f$w$\f, \f$\Omega_m$\f, and \f$\Omega_\Lambda$\f 
@@ -25,21 +25,28 @@
 int main()
 {
     
-// Set Up Cosmology
-  struct cosmology cosmo;
-  std::string outfn;
 
-  printf("using Millennium cosmology... \n");
-  cosmo.h = 0.73;
-  cosmo.sigma8 = 0.9;
-  cosmo.omb = 0.045;
-  cosmo.omc = 0.25 - cosmo.omb;
-  cosmo.ns = 1.;
-  cosmo.w = -1.0;
-  cosmo.om = cosmo.omc+cosmo.omb;
-  cosmo.ow = 1.-cosmo.om;
-  outfn="../../results_MR/Map3_varyingCosmos_0_01_perc_0_5arcmin_lessacc.dat";
+  std::string cosmo_paramfile, outfn;
 
+  if(slics)
+    {
+      // Set Up Cosmology
+      cosmo_paramfile="SLICS_cosmo.dat";
+      // Set output file
+      outfn="../../results_SLICS/MapMapMap_varyingCosmos.dat";
+    }
+  else
+    {
+      // Set Up Cosmology
+      cosmo_paramfile="MR_cosmo.dat";
+      // Set output file
+      outfn="../../results_MR/MapMapMap_varyingCosmos.dat";
+    };
+  
+  // Read in cosmology
+  cosmology cosmo(cosmo_paramfile);
+
+  // Check output file
   std::ofstream out;
   out.open(outfn.c_str());
   if(!out.is_open())
@@ -48,9 +55,14 @@ int main()
       exit(1);
     };
 
+  // User output
+  std::cerr<<"Using cosmology:"<<std::endl;
+  std::cerr<<cosmo;
+  std::cerr<<"Writing to:"<<outfn<<std::endl;
   
-  double z_max=1.1; //maximal redshift
-  double dz = z_max/((double) n_redshift_bins); //redshift binsize
+  //Initialize Bispectrum
+
+  double dz = cosmo.zmax/((double) n_redshift_bins); //redshift binsize
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));
 
@@ -114,7 +126,6 @@ int main()
       std::cout<<"Doing calculations for cosmology "<<i+1<<" of "<<N_cosmo*7<<std::endl;
       auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
       // Initialize Bispectrum
-      cosmos[i].zmax=z_max;
       set_cosmology(cosmos[i], dz);
      
       
