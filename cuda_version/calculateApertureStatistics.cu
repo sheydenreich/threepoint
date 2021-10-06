@@ -65,7 +65,7 @@ int main()
     };
 
   // User output
-  std::cerr<<"Using cosmology:"<<std::endl;
+  std::cerr<<"Using cosmology from "<<cosmo_paramfile<<":"<<std::endl;
   std::cerr<<cosmo;
   std::cerr<<"Writing to:"<<outfn<<std::endl;
   
