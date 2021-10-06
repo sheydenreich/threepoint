@@ -101,14 +101,15 @@ Example:
   double lMin=1;
   
   // Set up vector for aperture statistics
-  std::vector<double> MapMapMaps(N*N*N);
+  int Ntotal=N*(N+1)*(N+2)/6.; //Total number of bins that need to be calculated, = (N+3+1) ncr 3
+  std::vector<double> MapMapMaps;
 
   //Needed for monitoring
-  int Ntotal=N*(N+1)*(N+2)/6.; //Total number of bins that need to be calculated, = (N+3+1) ncr 3
+
   int step=0;
 
   //Calculate <MapMapMap>(theta1, theta2, theta3) in three loops
-  // Calculation only for theta1<=theta2<=theta3, other combinations are assigned
+  // Calculation only for theta1<=theta2<=theta3
   for (int i=0; i<N; i++)
     {
       double theta1=thetas.at(i)*3.1416/180./60; //Conversion to rad
@@ -128,30 +129,25 @@ Example:
 	      std::cout.flush();
 
 	      double Map3=MapMapMap(thetas_calc, phiMin, phiMax, lMin); //Do calculation
-	      
-	      // Do assigment (including permutations)
-	      MapMapMaps.at(i*N*N+j*N+k)=Map3;
-	      MapMapMaps.at(i*N*N+k*N+j)=Map3;
-	      MapMapMaps.at(j*N*N+i*N+k)=Map3;
-	      MapMapMaps.at(j*N*N+k*N+i)=Map3;
-	      MapMapMaps.at(k*N*N+i*N+j)=Map3;
-	      MapMapMaps.at(k*N*N+j*N+i)=Map3;
+	      MapMapMaps.push_back(Map3);
 	    };
 	};
     };
 
   //Output
+  step=0;
   for (int i=0; i<N; i++)
     {
-      for(int j=0; j<N; j++)
+      for(int j=i; j<N; j++)
 	{
-	  for(int k=0; k<N; k++)
+	  for(int k=j; k<N; k++)
 	    {
 	      out<<thetas[i]<<" "
 		 <<thetas[j]<<" "
 		 <<thetas[k]<<" "
-		 <<MapMapMaps.at(k*N*N+i*N+j)<<" "
+		 <<MapMapMaps.at(step)<<" "
 		 <<std::endl;
+	      step++;
 	    };
 	};
     };
