@@ -1,6 +1,8 @@
 #ifndef BISPECTRUM_CUH
 #define BISPECTRUM_CUH
 
+#include "cosmology.cuh"
+
 /**
  * @file bispectrum.cuh
  * This file declares routines needed for the bispectrum calculation
@@ -8,21 +10,6 @@
  * These functions mirror the methods of class bispectrumCalculator in the pure c++ version
  * @author Laila Linke
  */
-
-/**
- *  @brief This structure contains parameters of a wCDM cosmology
- */
-struct cosmology
-{
-  double h; /**< dimensionless Hubble constant*/
-  double sigma8; /**< Powerspectrum normalisation \f$\sigma_8\f$*/
-  double omb; /**< dimensionless baryon density parameter \f$\Omega_b\f$*/
-  double omc; /**< dimensionless density parameter of CDM*/
-  double ns; /**< Power spectrum spectral index*/
-  double w; /**< Eq. of state of Dark Energy*/
-  double om; /**< dimensionless matter density parameter*/
-  double ow; /**< dimensionless density parameter of Dark Energy*/
-};
 
 
 // Declarations of  constant variables

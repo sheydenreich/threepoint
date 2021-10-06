@@ -1,6 +1,7 @@
 #include "apertureStatistics.cuh"
 #include "bispectrum.cuh"
 #include "cuda_helpers.cuh"
+#include "cosmology.cuh"
 
 #include <iostream>
 #include <fstream>
@@ -21,7 +22,22 @@ int main()
 {
     
 // Set Up Cosmology
-  struct cosmology cosmo;
+  std::string cosmo_paramfile="MR_cosmo.dat";
+  // Set output file
+  std::string outfn="../../results_MR/MapMapMap_bispec_gpu.dat";
+
+  // Read in cosmology
+  cosmology cosmo(cosmo_paramfile);
+
+  // Check output file
+  std::ofstream out;
+  out.open(outfn.c_str());
+  if(!out.is_open())
+    {
+      std::cerr<<"Couldn't open "<<outfn<<std::endl;
+      exit(1);
+    };
+
 
   /*  if(slics)
     {
@@ -35,7 +51,7 @@ int main()
       cosmo.om = cosmo.omb+cosmo.omc;
       cosmo.ow = 1-cosmo.om;
     }
-    else*/
+    else
     {
       printf("using Millennium cosmology...");
       cosmo.h = 0.73;
@@ -46,21 +62,14 @@ int main()
       cosmo.w = -1.0;
       cosmo.om = cosmo.omc+cosmo.omb;
       cosmo.ow = 1.-cosmo.om;
-    }
+      }*/
 
-  // Set output file
-  std::string outfn="../../results_MR/MapMapMap_bispec_gpu.dat";
-  std::ofstream out;
-  out.open(outfn.c_str());
-  if(!out.is_open())
-    {
-      std::cerr<<"Couldn't open "<<outfn<<std::endl;
-      exit(1);
-    };
-
+  // User output
+  std::cerr<<"Using cosmology:"<<std::endl;
+  std::cerr<<cosmo;
+  std::cerr<<"Writing to:"<<outfn<<std::endl;
   
   //Initialize Bispectrum
-
 
   double z_max=1.1; //maximal redshift
   double dz = z_max/((double) n_redshift_bins); //redshift binsize
