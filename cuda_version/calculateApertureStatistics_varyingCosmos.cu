@@ -114,7 +114,8 @@ int main()
       std::cout<<"Doing calculations for cosmology "<<i+1<<" of "<<N_cosmo*7<<std::endl;
       auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
       // Initialize Bispectrum
-      set_cosmology(cosmos[i], dz, z_max);
+      cosmos[i].zmax=z_max;
+      set_cosmology(cosmos[i], dz);
      
       
       //Needed for monitoring

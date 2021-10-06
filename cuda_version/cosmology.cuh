@@ -19,6 +19,7 @@ public:
   double w; /**< Eq. of state of Dark Energy*/
   double om; /**< dimensionless matter density parameter*/
   double ow; /**< dimensionless density parameter of Dark Energy*/
+  double zmax; /**< Maximal redshift of simulation */
 
   cosmology(){}; //Empty constructor
 

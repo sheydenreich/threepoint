@@ -71,12 +71,11 @@ int main()
   
   //Initialize Bispectrum
 
-  double z_max=1.1; //maximal redshift
-  double dz = z_max/((double) n_redshift_bins); //redshift binsize
+  double dz = cosmo.zmax/((double) n_redshift_bins); //redshift binsize
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));
 
-  set_cosmology(cosmo, dz, z_max);
+  set_cosmology(cosmo, dz);
 
   
   // Set up thetas for which ApertureStatistics are calculated

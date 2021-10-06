@@ -160,9 +160,8 @@ __device__ double F2_tree(double k1, double k2, double k3);  // F2 kernel in tre
    * All values are copied to the devices constant memory
    * @param cosmo cosmology that is to be used
    * @param dz_ redshiftbinsize
-   * @param z_max_ maximal redshift
    */
-__host__ void set_cosmology(cosmology cosmo, double dz_, double z_max_);
+__host__ void set_cosmology(cosmology cosmo, double dz_);
 
   /**
    * returns the unitless matter parameter for the currently set cosmology

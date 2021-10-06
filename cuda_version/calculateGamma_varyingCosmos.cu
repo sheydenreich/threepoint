@@ -61,7 +61,7 @@ int main(int argc, char** argv)
     };
 
   
-  double z_max=1.1; //maximal redshift
+  cosmo.zmax=1.1; //maximal redshift
   double dz = z_max/((double) n_redshift_bins); //redshift binsize
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));
@@ -127,7 +127,7 @@ int main(int argc, char** argv)
       std::cout<<"Doing calculations for cosmology "<<i+1<<" of "<<N_cosmo*7<<std::endl;
       auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
       // Initialize Bispectrum
-      set_cosmology(cosmos[i], dz, z_max);
+      set_cosmology(cosmos[i], dz);
      
       
       //Needed for monitoring

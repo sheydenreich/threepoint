@@ -241,7 +241,8 @@ int main(int argc, char* argv[])
       std::cout<<"Doing calculations for cosmology "<<i<<" of "<<Ncosmos<<std::endl;
       auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
       // Initialize Bispectrum
-      set_cosmology(cosmos[i], dz, z_max);
+      cosmos[i].zmax=z_max;
+      set_cosmology(cosmos[i], dz);
 
 
       //Needed for monitoring

@@ -372,7 +372,7 @@ double get_om()
   return om;
 }
 
-void set_cosmology(cosmology cosmo, double dz_, double z_max_)
+void set_cosmology(cosmology cosmo, double dz_)
 {
   //set cosmology
   h = cosmo.h;
@@ -401,7 +401,7 @@ void set_cosmology(cosmology cosmo, double dz_, double z_max_)
 
   // Copy redshift binning
   dz=dz_;
-  z_max=z_max_;
+  z_max=cosmo.zmax;
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_dz,&dz,sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_z_max,&z_max,sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n_redshift_bins,&n_redshift_bins,sizeof(int)));

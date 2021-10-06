@@ -84,7 +84,8 @@ int main(int argc, char** argv)
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));
 
-  set_cosmology(cosmo, dz, z_max);
+  cosmo.zmax=z_max;
+  set_cosmology(cosmo, dz);
 
   compute_weights_bessel();
 
