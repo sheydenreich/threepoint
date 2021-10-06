@@ -26,25 +26,40 @@ int main(int argc, char** argv)
       std::cout << "on default GPU";
     };
   
+  std::string cosmo_paramfile, outfn, nzfn;
+  bool nz_from_file=false;
 
-  std::string cosmo_paramfile, outfn;
   if(slics)
     {
       // Set Up Cosmology
       cosmo_paramfile="SLICS_cosmo.dat";
       // Set output file
-      outfn="../../results_SLICS/Gammas_0p1_to_60_10_15_15_bins.dat";
+      outfn="../../results_SLICS/Gamma.dat";
+      // Set n_z_file
+      nzfn="nz_SLICS_euclidlike.dat";
+      nz_from_file=true;
     }
   else
     {
       // Set Up Cosmology
       cosmo_paramfile="MR_cosmo.dat";
       // Set output file
-      outfn="../../results_MR/Gammas_0p1_to_60_10_15_15_bins.dat";
+      outfn="../../results_MR/Gamma.dat";
+      // Set n_z_file
+      nzfn="nz_MR.dat";
+      nz_from_file=true;
     };
   
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);
+  double dz = cosmo.zmax / ((double) n_redshift_bins);
+
+  std::vector<double> nz;
+  if(nz_from_file)
+    {
+      // Read in n_z
+      read_n_of_z(nzfn, dz, n_redshift_bins, nz);
+    };
   
   // Check output file
   std::ofstream out;
@@ -61,7 +76,6 @@ int main(int argc, char** argv)
   std::cerr<<"Writing to:"<<outfn<<std::endl;
 
 
-
   // Binning
   int steps = 10;
   int usteps = 15;
@@ -74,13 +88,20 @@ int main(int argc, char** argv)
   double vmin = 0;
   double vmax = 1;
 
-  double dz = cosmo.zmax / ((double) n_redshift_bins);
+  
 
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));
 
-  cosmo.zmax=z_max;
-  set_cosmology(cosmo, dz);
+
+  if(nz_from_file)
+    {
+      set_cosmology(cosmo, dz, nz_from_file, &nz);
+    }
+  else
+    {
+      set_cosmology(cosmo, dz);
+    };
 
   compute_weights_bessel();
 

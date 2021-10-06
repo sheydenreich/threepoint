@@ -38,15 +38,18 @@ int main(int argc, char** argv)
         std::cout << "on default GPU ";
     }
 
+  std::string cosmo_paramfile, outfn, nzfn;
+  bool nz_from_file=false;
 
-
-  std::string cosmo_paramfile, outfn;
   if(slics)
     {
       // Set Up Cosmology
       cosmo_paramfile="SLICS_cosmo.dat";
       // Set output file
       outfn="../../results_SLICS/Gammas_varyingCosmos.dat";
+      // Set n_z_file
+      nzfn="nz_SLICS_euclidlike.dat";
+      nz_from_file=true;
     }
   else
     {
@@ -54,10 +57,24 @@ int main(int argc, char** argv)
       cosmo_paramfile="MR_cosmo.dat";
       // Set output file
       outfn="../../results_MR/Gammas_varyingCosmos.dat";
+      // Set n_z_file
+      nzfn="nz_MR.dat";
+      nz_from_file=true;
     };
   
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);
+
+  double dz = cosmo.zmax/((double) n_redshift_bins); //redshift binsize
+  
+  std::vector<double> nz;
+  if(nz_from_file)
+    {
+      // Read in n_z
+      read_n_of_z(nzfn, dz, n_redshift_bins, nz);
+    };
+  
+
   
   // Check output file
   std::ofstream out;

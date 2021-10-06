@@ -39,7 +39,8 @@ int main(int argc, char* argv[])
   double h=std::stod(argv[1]); ///<Stepsize of Stencil
 
 
-  std::string cosmo_paramfile, outfn;
+  std::string cosmo_paramfile, outfn, nzfn;
+  bool nz_from_file=false;
 
   if(slics)
     {
@@ -47,6 +48,9 @@ int main(int argc, char* argv[])
       cosmo_paramfile="SLICS_cosmo.dat";
       // Set output file
       outfn="../../results_SLICS/MapMapMap_derivatives.dat";
+      // Set n_z_file
+      nzfn="nz_SLICS_euclidlike.dat";
+      nz_from_file=true;
     }
   else
     {
@@ -54,11 +58,23 @@ int main(int argc, char* argv[])
       cosmo_paramfile="MR_cosmo.dat";
       // Set output file
       outfn="../../results_MR/MapMapMap_derivatives.dat";
+      // Set n_z_file
+      nzfn="nz_MR.dat";
+      nz_from_file=true;
     };
   
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);///<cosmology at which derivative is calculated
 
+  
+  double dz = cosmo.zmax/((double) n_redshift_bins); //redshift binsize
+  std::vector<double> nz;
+  if(nz_from_file)
+    {
+      // Read in n_z
+      read_n_of_z(nzfn, dz, n_redshift_bins, nz);
+    };
+  
   // Check output file
   std::ofstream out;
   out.open(outfn.c_str());
@@ -69,12 +85,12 @@ int main(int argc, char* argv[])
     };
 
   // User output
-  std::cerr<<"Using cosmology:"<<std::endl;
+  std::cerr<<"Using cosmology from "<<cosmo_paramfile<<":"<<std::endl;
   std::cerr<<cosmo;
   std::cerr<<"Writing to:"<<outfn<<std::endl;
   
  
-  double dz = cosmo.zmax/((double) n_redshift_bins); //redshift binsize
+
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));
 
@@ -237,7 +253,14 @@ int main(int argc, char* argv[])
       std::cout<<"Doing calculations for cosmology "<<i<<" of "<<Ncosmos<<std::endl;
       auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
       // Initialize Bispectrum
-      set_cosmology(cosmos[i], dz);
+      if(nz_from_file)
+	{
+	  set_cosmology(cosmos[i], dz, nz_from_file, &nz);
+	}
+      else
+	{
+	  set_cosmology(cosmos[i], dz);
+	};
 
 
       //Needed for monitoring
