@@ -3,6 +3,7 @@
 
 #include <string>
 #include <fstream>
+#include <vector>
 
 /**
  * Class containing cosmological parameters
@@ -30,5 +31,16 @@ public:
 
 //Output
 std::ostream& operator<<(std::ostream& out, const cosmology& cosmo);
+
+
+
+
+
+// Read in of n(z) (Assumes linear binning in file!)
+void read_n_of_z(const std::string& fn, const double& dz, const int& n_bins, std::vector<double>& nz);
+
+
+
+
 
 #endif // COSMOLOGY_CUH
