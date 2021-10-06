@@ -3,6 +3,8 @@
 
 #include "cosmology.cuh"
 
+#include <vector>
+
 /**
  * @file bispectrum.cuh
  * This file declares routines needed for the bispectrum calculation
@@ -160,8 +162,10 @@ __device__ double F2_tree(double k1, double k2, double k3);  // F2 kernel in tre
    * All values are copied to the devices constant memory
    * @param cosmo cosmology that is to be used
    * @param dz_ redshiftbinsize
+   * @param nz_from_file If true: Uses lookup table for n(z), if false: uses analytical formula (Optional, default: False)
+   * @param nz Vector containing values of n(z) for the redshiftbins used for all functions (Optional, but needs to be provided if nz_from_file==True)
    */
-__host__ void set_cosmology(cosmology cosmo, double dz_);
+__host__ void set_cosmology(cosmology cosmo, double dz_, bool nz_from_file=false, std::vector<double>* nz=nullptr);
 
   /**
    * returns the unitless matter parameter for the currently set cosmology

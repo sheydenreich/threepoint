@@ -2,7 +2,7 @@
 #include "cuda_helpers.cuh"
 
 #include <iostream>
-
+#include <vector>
 
 // Gaussian Quadrature stuff
 double A96[48]={                   /* abscissas for 96-point Gauss quadrature */
@@ -372,8 +372,15 @@ double get_om()
   return om;
 }
 
-void set_cosmology(cosmology cosmo, double dz_)
+void set_cosmology(cosmology cosmo, double dz_, bool nz_from_file, std::vector<double>* nz)
 {
+
+  if(!nz_from_file && nz==nullptr)
+    {
+      std::cerr<<"set_cosmology: expected n(z) from file, but values not provided"<<std::endl;
+      exit(1);
+    };
+  
   //set cosmology
   h = cosmo.h;
   sigma8 = cosmo.sigma8;
@@ -427,14 +434,23 @@ void set_cosmology(cosmology cosmo, double dz_)
 	// perform trapezoidal integration
 	for(int j=i;j<n_redshift_bins;j++)
 	  {
-	  double z_now = j*dz;
+	    double z_now = j*dz;
+	    double nz_znow;
+	    if(nz_from_file)
+	      {
+		nz_znow=nz->at(j);
+	      }
+	    else
+	      {
+		nz_znow=n_of_z(z_now);
+	      };
 	  if(j==i || j==n_redshift_bins-1)
 	    {
-	      g_array[i] += n_of_z(z_now)*(f_K_array[j]-f_K_array[i])/f_K_array[j]/2;
+	      g_array[i] += nz_znow*(f_K_array[j]-f_K_array[i])/f_K_array[j]/2;
 	    }
 	  else
 	    {
-	      g_array[i] += n_of_z(z_now)*(f_K_array[j]-f_K_array[i])/f_K_array[j];
+	      g_array[i] += nz_znow*(f_K_array[j]-f_K_array[i])/f_K_array[j];
 	    }
 	}
 	g_array[i] = g_array[i]*dz;
