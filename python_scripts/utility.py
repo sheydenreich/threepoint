@@ -8,8 +8,9 @@ import collections
 import multiprocessing.managers
 #from FyeldGenerator import generate_field
 from scipy import stats
-#from lenstools import GaussianNoiseGenerator
+from lenstools import GaussianNoiseGenerator
 from astropy import units as u
+import matplotlib.pyplot as plt
 class MyManager(multiprocessing.managers.BaseManager):
     pass
 MyManager.register('np_zeros', np.zeros, multiprocessing.managers.ArrayProxy)
@@ -42,6 +43,9 @@ def create_gaussian_random_field(power_spectrum, n_pix=4096,fieldsize=4.*np.pi/1
     if random_seed is None:
         random_seed = np.random.randint(0,2**32)
     gaussian_map = gen.fromConvPower(np.array([ell_array,power_spectrum(ell_array)]),seed=random_seed,kind="linear",bounds_error=False,fill_value=0.0)
+    #gaussian_map.visualize()
+    #plt.show()
+    #plt.clf()
     return gaussian_map.data    
 
 def create_gamma_field(kappa_field,Dhat=None):
@@ -75,12 +79,14 @@ class aperture_mass_computer:
 
         # compute the Q filter function on a grid
         self.q_arr = self.Qfunc_array()
+        self.u_arr = self.Ufunc_array()
         self.disk = np.zeros((self.npix,self.npix))
         self.disk[(self.dist<self.theta_ap)] = 1
 
     def change_theta_ap(self,theta_ap):
         self.theta_ap = theta_ap
         self.q_arr = self.Qfunc_array()
+        self.u_arr = self.Ufunc_array()
         
         self.disk = np.zeros((self.npix,self.npix))
         self.disk[(self.dist<self.theta_ap)] = 1
@@ -91,6 +97,7 @@ class aperture_mass_computer:
         The Q filter function for the aperture mass calculation from Schneider et al. (2002)
 
         input: theta: aperture radius in arcmin
+        output: Q [arcmin^-2]
         """
         thsq = (theta/self.theta_ap)**2
         res = thsq/(4*np.pi*self.theta_ap**2)*np.exp(-thsq/2)
@@ -105,6 +112,28 @@ class aperture_mass_computer:
             res = self.Qfunc(self.dist)*(np.conj(self.idc)**2/np.abs(self.idc)**2)
         res[(self.dist==0)] = 0
         return res
+
+
+    def Ufunc(self, theta):
+        """
+        The U filter function (Crittenden 2002)
+        input: theta: value at which filter is evaluated [arcmin]
+        output: U [arcmin^-2]
+        """
+        thsq = (theta/self.theta_ap)**2 #(theta/theta_ap)^2
+        res = 1/(2*np.pi*self.theta_ap**2)*(1-0.5*thsq)*np.exp(-thsq/2)
+        return res
+
+    def Ufunc_array(self):
+        """
+        Computes the U filter function on an npix^2 grid
+        """
+        with np.errstate(divide='ignore',invalid='ignore'):
+            res = self.Ufunc(self.dist)
+        
+        return res
+    
+
     
     def interpolate_nans(self,array,interpolation_method,fill_value):
         """
@@ -163,6 +192,37 @@ class aperture_mass_computer:
 
         return array
 
+    def Map_fft_from_kappa(self, kappa_arr, kappa_cross_arr=None, return_mcross=False, periodic_boundary=True):
+        """
+        Computes the signal-to-noise of an aperture mass map from convergence
+        input:
+            kappa_arr: npix^2 grid with convergence
+            kappa_cross_arr: npix^2 grid with B-mode of convergence
+
+        output:
+            result: resulting aperture mass map and cross aperture map
+
+
+        this uses Map(theta) = int d^2 kappa(theta) U(|theta'-theta|)
+        """
+        if periodic_boundary:
+            result=ac.convolve_fft(kappa_arr, self.u_arr, boundary='wrap', normalize_kernel=False, nan_treatment='fill')*self.fieldsize**2/self.npix**2
+            if return_mcross:
+                mcross=ac.convolve_fft(kappa_cross_arr, self.u_arr, boundary='wrap', normalize_kernel=False, nan_treatment='fill')*self.fieldsize**2/self.npix**2
+        else:
+            result = fftconvolve(kappa_arr, self.u_arr, 'same')*self.fieldsize**2/self.npix**2
+            if return_mcross:
+                mcross = fftconvolve(kappa_cross_arr, self.u_arr, 'same')*self.fieldsize**2/self.npix**2
+
+#        plt.title(f'{self.theta_ap}')
+#        plt.imshow(result)
+#        plt.colorbar()
+#        plt.show()
+#        plt.clf()
+        if return_mcross:
+            return result, result_mcross
+        else:
+            return result
         
 
     def Map_fft(self,gamma_arr,norm=None,return_mcross=False,normalize_weighted=True, periodic_boundary=True):
@@ -191,8 +251,8 @@ class aperture_mass_computer:
         qr = self.q_arr.real
         qi = self.q_arr.imag
         if periodic_boundary:
-            rr=ac.convolve_fft(yr, qr, boundary='wrap', normalize_kernel=False, nan_treatment='fill')
-            ii=ac.convolve_fft(yi, qi, boundary='wrap', normalize_kernel=False, nan_treatment='fill')
+            rr=ac.convolve_fft(yr, qr, boundary='wrap', normalize_kernel=False, nan_treatment='fill', allow_huge=True)
+            ii=ac.convolve_fft(yi, qi, boundary='wrap', normalize_kernel=False, nan_treatment='fill', allow_huge=True)
         else:
             rr = fftconvolve(yr,qr,'same')
             ii = fftconvolve(yi,qi,'same')
