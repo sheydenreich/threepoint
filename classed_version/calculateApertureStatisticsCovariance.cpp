@@ -78,8 +78,9 @@ int main()
 
   //Initialize Bispectrum
 
-  int n_z=400; //Number of redshift bins for grids
+  int n_z=100; //Number of redshift bins for grids
   double z_max=1.1; //maximal redshift
+  if(slics) z_max=3.;
 
   bool fastCalc=false; //whether calculations should be sped up
   BispectrumCalculator bispectrum(cosmo, n_z, z_max, fastCalc);
@@ -88,7 +89,7 @@ int main()
   ApertureStatistics apertureStatistics(&bispectrum);
 
   // Set up thetas for which ApertureStatistics are calculated
-  std::vector<double> thetas{1, 2, 4, 8, 16}; //Thetas in arcmin
+  std::vector<double> thetas{0.5, 1, 2, 4, 8, 16, 32}; //Thetas in arcmin
   int N=thetas.size();
   
   // Set up vector for aperture statistics
@@ -219,15 +220,21 @@ auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
   sprintf(sigma_str, "%.1f", sigma);
   sprintf(n_str, "%.1f", n);
   sprintf(field_str, "%.0f", fieldlength);
-  outfn="../../Covariance_randomField/results/covariance_ccode_"+std::string(sigma_str)+"_"+std::string(n_str)+"_"+std::string(field_str)+"_pcubature.dat";
+  outfn="../../Covariance_randomField/results/covariance_ccode_"+std::string(sigma_str)+"_"+std::string(n_str)+"_"+std::string(field_str)+"_pcubature";
 #endif
 #if ANALYTICAL_POWERSPECTRUM
-  outfn="../../Covariance_randomField/results/covariance_ccode_analytical_powerspectrum_xSq_exp_minus_xSq.dat";
+  outfn="../../Covariance_randomField/results/covariance_ccode_analytical_powerspectrum_xSq_exp_minus_xSq";
 #endif
 
 #if ANALYTICAL_POWERSPECTRUM_V2
-  outfn="../../Covariance_randomField/results/covariance_ccode_analytical_powerspectrum_x_exp_minus_x.dat";
+  outfn="../../Covariance_randomField/results/covariance_ccode_analytical_powerspectrum_x_exp_minus_x";
 #endif
+
+  #if DO_CYCLIC_PERMUTATIONS
+  outfn.append("_cyclic_permutations");
+  #endif
+
+  outfn.append(".dat");
   std::cout<<"Writing results to "<<outfn<<std::endl;
   out.open(outfn.c_str());
   

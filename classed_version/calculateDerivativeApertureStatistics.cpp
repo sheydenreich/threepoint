@@ -70,6 +70,7 @@ int main(int argc, char* argv[])
 
 
   std::vector<cosmology> cosmos; ///<container for all cosmologies
+  std::vector<double> derivative_parameters; //parameters the derivatives are taken in 
 
   cosmology newCosmo=cosmo;
   newCosmo.h=cosmo.h*(1.-2*h);
@@ -80,6 +81,7 @@ int main(int argc, char* argv[])
   cosmos.push_back(newCosmo);
   newCosmo.h=cosmo.h*(1.+2*h);
   cosmos.push_back(newCosmo);
+  derivative_parameters.push_back(cosmo.h);
 
   newCosmo=cosmo;
   newCosmo.sigma8=cosmo.sigma8*(1.-2*h);
@@ -90,6 +92,7 @@ int main(int argc, char* argv[])
   cosmos.push_back(newCosmo);
   newCosmo.sigma8=cosmo.sigma8*(1.+2*h);
   cosmos.push_back(newCosmo);
+  derivative_parameters.push_back(cosmo.sigma8);
 
   newCosmo=cosmo;
   newCosmo.omb=cosmo.omb*(1-2*h);
@@ -104,6 +107,7 @@ int main(int argc, char* argv[])
   newCosmo.omb=cosmo.omb*(1+2*h);
   newCosmo.omc=newCosmo.om-newCosmo.omb;
   cosmos.push_back(newCosmo);
+  derivative_parameters.push_back(cosmo.omb);
 
   newCosmo=cosmo;
   newCosmo.ns=cosmo.ns*(1-2*h);
@@ -114,6 +118,7 @@ int main(int argc, char* argv[])
   cosmos.push_back(newCosmo);
   newCosmo.ns=cosmo.ns*(1+2*h);
   cosmos.push_back(newCosmo);
+  derivative_parameters.push_back(cosmo.ns);
   
   newCosmo=cosmo;
   newCosmo.w=cosmo.w*(1-2*h);
@@ -124,6 +129,7 @@ int main(int argc, char* argv[])
   cosmos.push_back(newCosmo);
   newCosmo.w=cosmo.w*(1+2*h);
   cosmos.push_back(newCosmo);
+  derivative_parameters.push_back(cosmo.w);
 
   newCosmo=cosmo;
   newCosmo.om=cosmo.om*(1-2*h);
@@ -138,6 +144,7 @@ int main(int argc, char* argv[])
   newCosmo.om=cosmo.om*(1+2*h);
   newCosmo.omc=newCosmo.om-newCosmo.omb;
   cosmos.push_back(newCosmo);
+  derivative_parameters.push_back(cosmo.om);
 
   newCosmo=cosmo;
   newCosmo.ow=cosmo.ow*(1-2*h);
@@ -148,6 +155,7 @@ int main(int argc, char* argv[])
   cosmos.push_back(newCosmo);
   newCosmo.ow=cosmo.ow*(1+2*h);
   cosmos.push_back(newCosmo);
+  derivative_parameters.push_back(cosmo.ow);
 
   int Ncosmos=cosmos.size();///<Number of cosmologies
   
@@ -205,7 +213,7 @@ int main(int argc, char* argv[])
     };
 #else
   //Needed for monitoring
-  int Ntotal=N*(N+1)*(N+2)/6.; //Total number of bins that need to be calculated, = (N+3+1) ncr 3
+  int Ntotal=N*(N+1)*(N+2)/6; //Total number of bins that need to be calculated, = (N+3+1) ncr 3
   int step=0;
 
   //Calculate <MapMapMap>(theta1, theta2, theta3) in three loops
@@ -256,7 +264,7 @@ int main(int argc, char* argv[])
       for(int j=0; j<N*N*N; j++)
 	{
 	  // Stencil calculation: df/dx = [f(x-2h)-8f(x-h)+8f(x+h)-f(x+2h)]/(12h)
-	  derivs_MapMapMaps[i][j]=(MapMapMaps[4*i][j]-8*MapMapMaps[4*i+1][j]+8*MapMapMaps[4*i+2][j]-MapMapMaps[4*i+3][j])/(12.*h);
+	  derivs_MapMapMaps[i][j]=(MapMapMaps[4*i][j]-8*MapMapMaps[4*i+1][j]+8*MapMapMaps[4*i+2][j]-MapMapMaps[4*i+3][j])/(12.*h*derivative_parameters.at(i));
 	  
 	}
     }

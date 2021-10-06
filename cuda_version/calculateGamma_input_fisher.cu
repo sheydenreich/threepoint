@@ -55,11 +55,11 @@ int main(int argc, char** argv)
 
   // Binning
   int steps = 10;
-  int usteps = 15;
-  int vsteps = 15;
+  int usteps = 10;
+  int vsteps = 10;
 
   double rmin = 0.1;
-  double rmax = 70.;
+  double rmax = 120.;
   double umin = 0;
   double umax = 1;
   double vmin = 0;
@@ -67,7 +67,39 @@ int main(int argc, char** argv)
 
     // Set output file
   // std::string outfn="Gammas_"+std::to_string(rmin)+"_to_"+std::to_string(rmax)+".dat";
-  std::string outfn="/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/fisher/Gammas_0p1_to_60_10_15_15_bins.dat";
+  if(argc<4)
+  {
+      std::cout << "need to provide parameter index (int) and stencil (float)!";
+      exit(1);
+  }
+  int parameter_index = atoi(argv[2]);
+  double stencil = atof(argv[3]);
+  std::string outfn;
+  if(parameter_index == 0)
+  {
+    std::cout << "modifying Omega_m by " << stencil << std::endl;
+    cosmo.om *= (1+stencil);
+    cosmo.ow = 1.-cosmo.om;
+    cosmo.omc = cosmo.om - cosmo.omb;
+    std::cout << "New Omega_m: " << cosmo.om << std::endl;
+
+
+    outfn="/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/fisher/Gammas_0p1_to_120_Omega_m_"+std::to_string(stencil)+".dat";
+  }
+  else if(parameter_index==1)
+  {
+    std::cout << "modifying sigma_8 by " << stencil << std::endl;
+    cosmo.sigma8 *= (1+stencil);
+    std::cout << "New sigma_8: " << cosmo.sigma8 << std::endl;
+
+    outfn="/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/fisher/Gammas_0p1_to_120_sigma_8_"+std::to_string(stencil)+".dat";
+  }
+  else
+  {
+      std::cout << "Invalid parameter index!" << std::endl;
+      exit(1);
+  }
+
   std::ofstream out;
   out.open(outfn.c_str());
   if(!out.is_open())

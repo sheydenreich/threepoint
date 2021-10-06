@@ -80,6 +80,7 @@ class aperture_mass_computer:
         # compute the Q filter function on a grid
         self.q_arr = self.Qfunc_array()
         self.u_arr = self.Ufunc_array()
+
         self.disk = np.zeros((self.npix,self.npix))
         self.disk[(self.dist<self.theta_ap)] = 1
 
@@ -87,10 +88,18 @@ class aperture_mass_computer:
         self.theta_ap = theta_ap
         self.q_arr = self.Qfunc_array()
         self.u_arr = self.Ufunc_array()
-        
         self.disk = np.zeros((self.npix,self.npix))
         self.disk[(self.dist<self.theta_ap)] = 1
 
+    def Ufunc(self,theta):
+        """
+        The U filter function for the aperture mass calculation from Schneider et al. (2002)
+
+        input: theta: aperture radius in arcmin
+        """
+        xsq_half = (theta/self.theta_ap)**2/2
+        small_ufunc = np.exp(-xsq_half)*(1.-xsq_half)/(2*np.pi)
+        return small_ufunc/self.theta_ap**2
 
     def Qfunc(self,theta):
         """
@@ -114,25 +123,14 @@ class aperture_mass_computer:
         return res
 
 
-    def Ufunc(self, theta):
-        """
-        The U filter function (Crittenden 2002)
-        input: theta: value at which filter is evaluated [arcmin]
-        output: U [arcmin^-2]
-        """
-        thsq = (theta/self.theta_ap)**2 #(theta/theta_ap)^2
-        res = 1/(2*np.pi*self.theta_ap**2)*(1-0.5*thsq)*np.exp(-thsq/2)
-        return res
 
     def Ufunc_array(self):
         """
         Computes the U filter function on an npix^2 grid
+        fieldsize: size of the grid in arcmin
         """
-        with np.errstate(divide='ignore',invalid='ignore'):
-            res = self.Ufunc(self.dist)
-        
+        res = self.Ufunc(self.dist)
         return res
-    
 
     
     def interpolate_nans(self,array,interpolation_method,fill_value):
@@ -192,38 +190,12 @@ class aperture_mass_computer:
 
         return array
 
-    def Map_fft_from_kappa(self, kappa_arr, kappa_cross_arr=None, return_mcross=False, periodic_boundary=True):
-        """
-        Computes the signal-to-noise of an aperture mass map from convergence
-        input:
-            kappa_arr: npix^2 grid with convergence
-            kappa_cross_arr: npix^2 grid with B-mode of convergence
 
-        output:
-            result: resulting aperture mass map and cross aperture map
-
-
-        this uses Map(theta) = int d^2 kappa(theta) U(|theta'-theta|)
-        """
-        if periodic_boundary:
-            result=ac.convolve_fft(kappa_arr, self.u_arr, boundary='wrap', normalize_kernel=False, nan_treatment='fill')*self.fieldsize**2/self.npix**2
-            if return_mcross:
-                mcross=ac.convolve_fft(kappa_cross_arr, self.u_arr, boundary='wrap', normalize_kernel=False, nan_treatment='fill')*self.fieldsize**2/self.npix**2
-        else:
-            result = fftconvolve(kappa_arr, self.u_arr, 'same')*self.fieldsize**2/self.npix**2
-            if return_mcross:
-                mcross = fftconvolve(kappa_cross_arr, self.u_arr, 'same')*self.fieldsize**2/self.npix**2
-
-#        plt.title(f'{self.theta_ap}')
-#        plt.imshow(result)
-#        plt.colorbar()
-#        plt.show()
-#        plt.clf()
-        if return_mcross:
-            return result, result_mcross
-        else:
-            return result
-        
+    def Map_fft_from_kappa(self,kappa_arr):
+        if self.u_arr is None:
+            self.u_arr = self.Ufunc_array()
+       
+        return fftconvolve(kappa_arr,self.u_arr,'same')*self.fieldsize**2/self.npix**2
 
     def Map_fft(self,gamma_arr,norm=None,return_mcross=False,normalize_weighted=True, periodic_boundary=True):
         """
@@ -503,10 +475,10 @@ def extract_power_spectrum(field,fieldsize,bins=20,linlog='log',lmin=100,lmax=10
     return Abins*pixel_size/fieldsize**2,kvals
 
 def is_triangle(l1,l2,l3):
-    if(np.abs(l1-l2)<l3 or l1+l2>l3):
+    if(np.abs(l1-l2)>l3 or l1+l2<l3):
         return False
-    if(np.abs(l2-l3)<l1 or l2+l3>l1):
+    if(np.abs(l2-l3)>l1 or l2+l3<l1):
         return False
-    if(np.abs(l3-l1)<l2 or l3+l1>l2):
+    if(np.abs(l3-l1)>l2 or l3+l1<l2):
         return False
     return True
