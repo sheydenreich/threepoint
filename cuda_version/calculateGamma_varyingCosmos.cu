@@ -92,7 +92,6 @@ int main(int argc, char** argv)
   
   
   
-  double dz = cosmo.zmax/((double) n_redshift_bins); //redshift binsize
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));
 
