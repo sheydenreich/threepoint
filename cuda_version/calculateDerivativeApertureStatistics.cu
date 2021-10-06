@@ -25,44 +25,42 @@
  */
 int main(int argc, char* argv[])
 {
+      // Read in command line
 
+  const char* message = R"( 
+calculateDerivativeApertureStatistics.x : Wrong number of command line parameters (Needed: 6)
+Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
+Argument 2: Outputfilename, directory needs to exist 
+Argument 3: 0: use three-point stencil, 1: use five-point stencil
+Argument 4: Stencil stepsize
+Argument 5: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) from file                  
+Argument 6 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
 
-  bool five_point=false;
-  if(five_point) std::cerr<<"Using five-point stencil"<<std::endl;
-  
-  if(argc!=3)
+Example:
+./calculateDerivativeApertureStatistics.x ../necessary_files/MR_cosmo.dat ../../results_MR/MapMapMap_derivatives.dat 1 0.01 1 ../necessary_files/nz_MR.dat
+)";
+
+  if(argc < 6)
     {
-      std::cerr<<"calculateDerivativeApertureStatistics.x: Need to specify stencil stepsize"<<std::endl;
+      std::cerr<<message<<std::endl;
       exit(1);
     };
-  
-  double h=std::stod(argv[1]); ///<Stepsize of Stencil
-
 
   std::string cosmo_paramfile, outfn, nzfn;
   bool nz_from_file=false;
-
-  if(slics)
-    {
-      // Set Up Cosmology
-      cosmo_paramfile="SLICS_cosmo.dat";
-      // Set output file
-      outfn="../../results_SLICS/MapMapMap_derivatives.dat";
-      // Set n_z_file
-      nzfn="nz_SLICS_euclidlike.dat";
-      nz_from_file=true;
-    }
-  else
-    {
-      // Set Up Cosmology
-      cosmo_paramfile="MR_cosmo.dat";
-      // Set output file
-      outfn="../../results_MR/MapMapMap_derivatives.dat";
-      // Set n_z_file
-      nzfn="nz_MR.dat";
-      nz_from_file=true;
-    };
+  bool five_point=false;
+  double h;
   
+  cosmo_paramfile=argv[1];
+  outfn=argv[2];
+  five_point=std::stoi(argv[3]);
+  h=std::stod(argv[4]);
+  nz_from_file=std::stoi(argv[5]);
+  if(nz_from_file)
+    {
+      nzfn=argv[6];
+    };
+
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);///<cosmology at which derivative is calculated
 
@@ -88,8 +86,9 @@ int main(int argc, char* argv[])
   std::cerr<<"Using cosmology from "<<cosmo_paramfile<<":"<<std::endl;
   std::cerr<<cosmo;
   std::cerr<<"Writing to:"<<outfn<<std::endl;
-  
+  if(five_point) std::cerr<<"Using five-point stencil"<<std::endl;
  
+
 
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));

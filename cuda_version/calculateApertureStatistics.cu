@@ -18,32 +18,39 @@
  * @todo Thetas should be read from command line
  * @todo Outputfilename should be read from command line
  */
-int main()
+int main(int argc, char* argv[])
 {
+  // Read in command line
+
+  const char* message = R"( 
+calculateApertureStatistics.x : Wrong number of command line parameters (Needed: 4)
+Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
+Argument 2: Outputfilename, directory needs to exist 
+Argument 3: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) from file                  
+Argument 4 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
+
+Example:
+./calculateApertureStatistics.x ../necessary_files/MR_cosmo.dat ../../results_MR/MapMapMap_bispec_gpu_nz.dat 1 ../necessary_files/nz_MR.dat
+)";
+
+  if(argc < 4)
+    {
+      std::cerr<<message<<std::endl;
+      exit(1);
+    };
+
   std::string cosmo_paramfile, outfn, nzfn;
   bool nz_from_file=false;
 
-  if(slics)
+  cosmo_paramfile=argv[1];
+  outfn=argv[2];
+  nz_from_file=std::stoi(argv[3]);
+  if(nz_from_file)
     {
-      // Set Up Cosmology
-      cosmo_paramfile="SLICS_cosmo.dat";
-      // Set output file
-      outfn="../../results_SLICS/MapMapMap_bispec_gpu_nz.dat";
-      // Set n_z_file
-      nzfn="nz_SLICS_euclidlike.dat";
-      nz_from_file=true;
-    }
-  else
-    {
-      // Set Up Cosmology
-      cosmo_paramfile="MR_cosmo.dat";
-      // Set output file
-      outfn="../../results_MR/MapMapMap_bispec_gpu_nz.dat";
-      // Set n_z_file
-      nzfn="nz_MR.dat";
-      nz_from_file=true;
+      nzfn=argv[4];
     };
   
+ 
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);
   double dz = cosmo.zmax/((double) n_redshift_bins); //redshift binsize
