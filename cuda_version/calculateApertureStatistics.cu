@@ -9,45 +9,43 @@
 #include <vector>
 /**
  * @file calculateApertureStatistics.cu
- * This executable calculates <MapMapMap> for predefined thetas from the
+ * This executable calculates <MapMapMap> from the
  * Takahashi+ Bispectrum
  * Code uses CUDA and cubature library  (See https://github.com/stevengj/cubature for documentation)
  * @author Laila Linke
- * @warning thetas currently hardcoded
- * @warning Output is hardcoded
- * @todo Thetas should be read from command line
- * @todo Outputfilename should be read from command line
  */
 int main(int argc, char* argv[])
 {
   // Read in command line
 
   const char* message = R"( 
-calculateApertureStatistics.x : Wrong number of command line parameters (Needed: 4)
+calculateApertureStatistics.x : Wrong number of command line parameters (Needed: 5)
 Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
-Argument 2: Outputfilename, directory needs to exist 
-Argument 3: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) from file                  
-Argument 4 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
+Argument 2: Filename with thetas
+Argument 3: Outputfilename, directory needs to exist 
+Argument 4: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) from file                  
+Argument 5 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
 
 Example:
 ./calculateApertureStatistics.x ../necessary_files/MR_cosmo.dat ../../results_MR/MapMapMap_bispec_gpu_nz.dat 1 ../necessary_files/nz_MR.dat
 )";
 
-  if(argc < 4)
+  if(argc < 5)
     {
       std::cerr<<message<<std::endl;
       exit(1);
     };
 
-  std::string cosmo_paramfile, outfn, nzfn;
+  std::string cosmo_paramfile, thetasfn, outfn, nzfn;
   bool nz_from_file=false;
 
   cosmo_paramfile=argv[1];
-  outfn=argv[2];
-  nz_from_file=std::stoi(argv[3]);
+  thetasfn=argv[2];
+  outfn=argv[3];
+  nz_from_file=std::stoi(argv[4]);
   if(nz_from_file)
     {
-      nzfn=argv[4];
+      nzfn=argv[5];
     };
   
  
@@ -55,10 +53,11 @@ Example:
   cosmology cosmo(cosmo_paramfile);
   double dz = cosmo.zmax/((double) n_redshift_bins-1); //redshift binsize
 
+  // Read in n_z
   std::vector<double> nz;
   if(nz_from_file)
     {
-      // Read in n_z
+
       read_n_of_z(nzfn, dz, n_redshift_bins, nz);
     };
   
@@ -71,9 +70,15 @@ Example:
       exit(1);
     };
 
+  // Read in thetas
+  std::vector<double> thetas;
+  read_thetas(thetasfn, thetas);
+  int N=thetas.size();
+  
   // User output
   std::cerr<<"Using cosmology from "<<cosmo_paramfile<<":"<<std::endl;
   std::cerr<<cosmo;
+  std::cerr<<"Using thetas in "<<thetasfn<<std::endl;
   std::cerr<<"Writing to:"<<outfn<<std::endl;
   
   //Initialize Bispectrum
@@ -92,9 +97,7 @@ Example:
       set_cosmology(cosmo, dz);
     };
   
-  // Set up thetas for which ApertureStatistics are calculated
-  std::vector<double> thetas{1.17, 2.34, 4.69, 9.37};//{0.5, 1, 2, 4, 8, 16, 32}; //Thetas in arcmin
-  int N=thetas.size();
+
 
   // Borders of integral
   double phiMin=0.0;

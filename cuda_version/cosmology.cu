@@ -12,7 +12,7 @@ cosmology::cosmology(const std::string& fn_parameters)
   if(input.fail())
     {
       std::cout<<"cosmology: Could not open "<<fn_parameters<<std::endl;
-      return;
+      exit(1);
     };
   std::vector<std::string> parameterNames;
   std::vector<double> parameterValues;
@@ -94,7 +94,7 @@ void read_n_of_z(const std::string& fn, const double& dz, const int& n_bins, std
   if(input.fail())
     {
       std::cout<<"read_n_of_z: Could not open "<<fn<<std::endl;
-      return;
+      exit(1);
     };
   std::vector<double> zs;
   std::vector<double> n_of_zs;
@@ -149,4 +149,31 @@ void read_n_of_z(const std::string& fn, const double& dz, const int& n_bins, std
       nz.at(i)/=norm;
     };
   
+}
+
+
+void read_thetas(const std::string& fn, std::vector<double>& thetas)
+{
+  // Open file
+  std::ifstream input(fn.c_str());
+  if(input.fail())
+    {
+      std::cout<<"read_thetas: Could not open "<<fn<<std::endl;
+      return;
+    };
+  
+  
+  // Read in file
+  if(input.is_open())
+    {
+      std::string line;
+      while(std::getline(input, line))
+	{
+	  if(line[0]=='#' || line.empty()) continue;
+	  double theta;
+	  std::istringstream iss(line);
+	  iss>>theta;
+	  thetas.push_back(theta);
+	};
+    };
 }
