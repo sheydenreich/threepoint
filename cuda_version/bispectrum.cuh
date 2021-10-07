@@ -16,7 +16,7 @@
 
 // Declarations of  constant variables
 // Extern keyword is needed, so that the actual definition can happen in bispectrum.cu!
-const bool slics=true; //If true: calculations are done for euclid-like slics, else for Millennium simulation
+const bool slics=false; //true; //If true: calculations are done for euclid-like slics, else for Millennium simulation
 extern double A96[48];
 extern double W96[48];
 extern __constant__ double dev_A96[48];// Abscissas for Gauss-Quadrature

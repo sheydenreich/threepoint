@@ -120,7 +120,7 @@ void read_n_of_z(const std::string& fn, const double& dz, const int& n_bins, std
   double zmin_file=zs.front(); //Minimal z in file
   double zmax_file=zs.back(); //Maximal z in file
 
-  double dz_file=(zmax_file-zmin_file)/n_bins_file;
+  double dz_file=(zmax_file-zmin_file)/(n_bins_file-1);
 
   for(int i=0; i<n_bins; i++)
     {
@@ -130,7 +130,7 @@ void read_n_of_z(const std::string& fn, const double& dz, const int& n_bins, std
       double n_of_z=0;
 
      
-      if(ix_file>0 && ix_file<n_bins_file-1)//Interpolate between closest bins
+      if(ix_file>=0 && ix_file<n_bins_file-1)//Interpolate between closest bins
 	{
 	  n_of_z=n_of_zs.at(ix_file+1)*dix_file+n_of_zs.at(ix_file)*(1-dix_file); 
 	};
