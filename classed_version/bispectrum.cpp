@@ -12,6 +12,14 @@ bool is_triangle(double ell1, double ell2, double ell3)
   return true;
 }
 
+bool triangle_is_degenerate(double ell1, double ell2, double ell3)
+{
+  if(abs(ell1-ell2)/ell3>0.8 || ell3/(ell1+ell2)>0.8) return true;
+  if(abs(ell2-ell3)/ell1>0.8 || ell1/(ell2+ell3)>0.8) return true;
+  if(abs(ell1-ell3)/ell2>0.8 || ell2/(ell1+ell3)>0.8) return true;
+  return false;
+}
+
 
 double number_of_triangles(double ell1, double ell2, double ell3){ //TODO: maybe write this into a utility.cpp?
     if(is_triangle(ell1,ell2,ell3))
@@ -491,7 +499,19 @@ double BispectrumCalculator::bispectrumCovariance(double ell1, double ell2, doub
     product_power_spectra = convergence_power_spectrum(ell1)*convergence_power_spectrum(ell2)*convergence_power_spectrum(ell3);
   #endif
 
-  double lambda_inv = 1./number_of_triangles(ell1, ell2, ell3);
+  #if TREAT_DEGENERATE_TRIANGLES
+    double lambda_inv;
+    if(triangle_is_degenerate(ell1,ell2,ell3))
+    {
+      lambda_inv = 1./number_of_triangles(ell1+delta_ell1/2.,ell2+delta_ell2/2.,ell3+delta_ell3/2.);
+    }
+    else
+    {
+      lambda_inv = 1./number_of_triangles(ell1, ell2, ell3);
+    }
+  #else
+    double lambda_inv = 1./number_of_triangles(ell1, ell2, ell3);
+  #endif
   double prefactor = pow(2*M_PI,3)/(survey_area*ell1*ell2*ell3*delta_ell1*delta_ell2*delta_ell3);
   double delta = delta_distrib_permutations(ell1, ell2, ell3, ell4, ell5, ell6);
   return prefactor*lambda_inv*delta*product_power_spectra;
