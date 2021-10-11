@@ -1,144 +1,146 @@
 #include "apertureStatistics.cuh"
 #include "bispectrum.cuh"
+#include "cosmology.cuh"
 #include "cuda_helpers.cuh"
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <string>
 #include <vector>
 /**
  * @file calculateApertureStatistics.cu
- * This executable calculates <MapMapMap> for predefined thetas from the
+ * This executable calculates <MapMapMap> from the
  * Takahashi+ Bispectrum
- * Code uses CUDA and cubature library  (See https://github.com/stevengj/cubature for documentation)
+ * Aperture radii are read from file and <MapMapMap> is only calculated for
+ * independent combis of thetas Code uses CUDA and cubature library  (See
+ * https://github.com/stevengj/cubature for documentation)
  * @author Laila Linke
- * @warning thetas currently hardcoded
- * @warning Output is hardcoded
- * @todo Thetas should be read from command line
- * @todo Outputfilename should be read from command line
  */
-int main()
-{
-    
-// Set Up Cosmology
-  struct cosmology cosmo;
+int main(int argc, char *argv[]) {
+  // Read in command line
 
-  /*  if(slics)
-    {
-      printf("using SLICS cosmology...");
-      cosmo.h=0.6898;     // Hubble parameter
-      cosmo.sigma8=0.826; // sigma 8
-      cosmo.omb=0.0473;   // Omega baryon
-      cosmo.omc=0.2905-cosmo.omb;   // Omega CDM
-      cosmo.ns=0.969;    // spectral index of linear P(k)
-      cosmo.w=-1.0;
-      cosmo.om = cosmo.omb+cosmo.omc;
-      cosmo.ow = 1-cosmo.om;
-    }
-    else*/
-    {
-      printf("using Millennium cosmology...");
-      cosmo.h = 0.73;
-      cosmo.sigma8 = 0.9;
-      cosmo.omb = 0.045;
-      cosmo.omc = 0.25 - cosmo.omb;
-      cosmo.ns = 1.;
-      cosmo.w = -1.0;
-      cosmo.om = cosmo.omc+cosmo.omb;
-      cosmo.ow = 1.-cosmo.om;
-    }
+  const char *message = R"( 
+calculateApertureStatistics.x : Wrong number of command line parameters (Needed: 5)
+Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
+Argument 2: Filename with thetas [arcmin]
+Argument 3: Outputfilename, directory needs to exist 
+Argument 4: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) from file                  
+Argument 5 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
 
-  // Set output file
-  std::string outfn="../../results_MR/MapMapMap_bispec_gpu.dat";
+Example:
+./calculateApertureStatistics.x ../necessary_files/MR_cosmo.dat ../necessary_files/HOWLS_thetas.dat ../../results_MR/MapMapMap_bispec_gpu_nz.dat 1 ../necessary_files/nz_MR.dat
+)";
+
+  if (argc < 5) // Give out error message if too few CLI arguments
+  {
+    std::cerr << message << std::endl;
+    exit(1);
+  };
+
+  std::string cosmo_paramfile, thetasfn, outfn, nzfn;
+  bool nz_from_file = false;
+
+  cosmo_paramfile = argv[1];
+  thetasfn = argv[2];
+  outfn = argv[3];
+  nz_from_file = std::stoi(argv[4]);
+  if (nz_from_file) {
+    nzfn = argv[5];
+  };
+
+  // Read in cosmology
+  cosmology cosmo(cosmo_paramfile);
+  double dz = cosmo.zmax / ((double)n_redshift_bins - 1); // redshift binsize
+
+  // Read in n_z
+  std::vector<double> nz;
+  if (nz_from_file) {
+
+    read_n_of_z(nzfn, dz, n_redshift_bins, nz);
+  };
+
+  // Check if output file can be opened
   std::ofstream out;
   out.open(outfn.c_str());
-  if(!out.is_open())
-    {
-      std::cerr<<"Couldn't open "<<outfn<<std::endl;
-      exit(1);
-    };
+  if (!out.is_open()) {
+    std::cerr << "Couldn't open " << outfn << std::endl;
+    exit(1);
+  };
 
-  
-  //Initialize Bispectrum
+  // Read in thetas
+  std::vector<double> thetas;
+  read_thetas(thetasfn, thetas);
+  int N = thetas.size();
 
+  // User output
+  std::cerr << "Using cosmology from " << cosmo_paramfile << ":" << std::endl;
+  std::cerr << cosmo;
+  std::cerr << "Using thetas in " << thetasfn << std::endl;
+  std::cerr << "Writing to:" << outfn << std::endl;
 
-  double z_max=1.1; //maximal redshift
-  double dz = z_max/((double) n_redshift_bins); //redshift binsize
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));
+  // Initialize Bispectrum
 
-  set_cosmology(cosmo, dz, z_max);
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96, &A96, 48 * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96, &W96, 48 * sizeof(double)));
 
-  
-  // Set up thetas for which ApertureStatistics are calculated
-  std::vector<double> thetas{0.5, 1, 2, 4, 8, 16, 32}; //Thetas in arcmin
-  int N=thetas.size();
+  if (nz_from_file) {
+    std::cerr << "Using n(z) from " << nzfn << std::endl;
+    set_cosmology(cosmo, dz, nz_from_file, &nz);
+  } else {
+    set_cosmology(cosmo, dz);
+  };
 
   // Borders of integral
-  double phiMin=0.0;
-  double phiMax=6.28319;
-  double lMin=1;
-  
+  double phiMin = 0.0;
+  double phiMax = 6.28319;
+  double lMin = 1;
+
   // Set up vector for aperture statistics
-  std::vector<double> MapMapMaps(N*N*N);
+  int Ntotal =
+      N * (N + 1) * (N + 2) /
+      6.; // Total number of bins that need to be calculated, = (N+3+1) ncr 3
+  std::vector<double> MapMapMaps;
 
-  //Needed for monitoring
-  int Ntotal=N*(N+1)*(N+2)/6.; //Total number of bins that need to be calculated, = (N+3+1) ncr 3
-  int step=0;
+  // Needed for monitoring
 
-  //Calculate <MapMapMap>(theta1, theta2, theta3) in three loops
-  // Calculation only for theta1<=theta2<=theta3, other combinations are assigned
-  for (int i=0; i<N; i++)
-    {
-      double theta1=thetas.at(i)*3.1416/180./60; //Conversion to rad
-      
-      for (int j=i; j<N; j++)
-	{
-	  double theta2=thetas.at(j)*3.1416/180./60.;
+  int step = 0;
 
-	  for(int k=j; k<N; k++)
-	    {
+  // Calculate <MapMapMap>(theta1, theta2, theta3) in three loops
+  // Calculation only for theta1<=theta2<=theta3
+  for (int i = 0; i < N; i++) {
+    double theta1 = thetas.at(i) * 3.1416 / 180. / 60; // Conversion to rad
 
-	      double theta3=thetas.at(k)*3.1416/180./60.;
-	      double thetas_calc[3]={theta1, theta2, theta3};
-	      //Progress for the impatient user (Thetas in arcmin)
-	      step+=1;
-	      std::cout<<step<<"/"<<Ntotal<<": Thetas:"<<thetas.at(i)<<" "<<thetas.at(j)<<" "<<thetas.at(k)<<" \r";
-	      std::cout.flush();
+    for (int j = i; j < N; j++) {
+      double theta2 = thetas.at(j) * 3.1416 / 180. / 60.;
 
-	      double Map3=MapMapMap(thetas_calc, phiMin, phiMax, lMin); //Do calculation
-	      
-	      // Do assigment (including permutations)
-	      MapMapMaps.at(i*N*N+j*N+k)=Map3;
-	      MapMapMaps.at(i*N*N+k*N+j)=Map3;
-	      MapMapMaps.at(j*N*N+i*N+k)=Map3;
-	      MapMapMaps.at(j*N*N+k*N+i)=Map3;
-	      MapMapMaps.at(k*N*N+i*N+j)=Map3;
-	      MapMapMaps.at(k*N*N+j*N+i)=Map3;
-	    };
-	};
+      for (int k = j; k < N; k++) {
+
+        double theta3 = thetas.at(k) * 3.1416 / 180. / 60.;
+        double thetas_calc[3] = {theta1, theta2, theta3};
+        // Progress for the impatient user (Thetas in arcmin)
+        step += 1;
+        std::cout << step << "/" << Ntotal << ": Thetas:" << thetas.at(i) << " "
+                  << thetas.at(j) << " " << thetas.at(k) << " \r";
+        std::cout.flush();
+
+        double Map3 =
+            MapMapMap(thetas_calc, phiMin, phiMax, lMin); // Do calculation
+        MapMapMaps.push_back(Map3);
+      };
     };
+  };
 
-  //Output
-  for (int i=0; i<N; i++)
-    {
-      for(int j=0; j<N; j++)
-	{
-	  for(int k=0; k<N; k++)
-	    {
-	      out<<thetas[i]<<" "
-		 <<thetas[j]<<" "
-		 <<thetas[k]<<" "
-		 <<MapMapMaps.at(k*N*N+i*N+j)<<" "
-		 <<std::endl;
-	    };
-	};
+  // Output
+  step = 0;
+  for (int i = 0; i < N; i++) {
+    for (int j = i; j < N; j++) {
+      for (int k = j; k < N; k++) {
+        out << thetas[i] << " " << thetas[j] << " " << thetas[k] << " "
+            << MapMapMaps.at(step) << " " << std::endl;
+        step++;
+      };
     };
-    
+  };
 
-
-
-
-  
   return 0;
 }

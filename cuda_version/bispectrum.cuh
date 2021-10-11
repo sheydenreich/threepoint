@@ -1,6 +1,10 @@
 #ifndef BISPECTRUM_CUH
 #define BISPECTRUM_CUH
 
+#include "cosmology.cuh"
+
+#include <vector>
+
 /**
  * @file bispectrum.cuh
  * This file declares routines needed for the bispectrum calculation
@@ -9,25 +13,10 @@
  * @author Laila Linke
  */
 
-/**
- *  @brief This structure contains parameters of a wCDM cosmology
- */
-struct cosmology
-{
-  double h; /**< dimensionless Hubble constant*/
-  double sigma8; /**< Powerspectrum normalisation \f$\sigma_8\f$*/
-  double omb; /**< dimensionless baryon density parameter \f$\Omega_b\f$*/
-  double omc; /**< dimensionless density parameter of CDM*/
-  double ns; /**< Power spectrum spectral index*/
-  double w; /**< Eq. of state of Dark Energy*/
-  double om; /**< dimensionless matter density parameter*/
-  double ow; /**< dimensionless density parameter of Dark Energy*/
-};
-
 
 // Declarations of  constant variables
 // Extern keyword is needed, so that the actual definition can happen in bispectrum.cu!
-const bool slics=true; //If true: calculations are done for euclid-like slics, else for Millennium simulation
+const bool slics=false; //true; //If true: calculations are done for euclid-like slics, else for Millennium simulation
 extern double A96[48];
 extern double W96[48];
 extern __constant__ double dev_A96[48];// Abscissas for Gauss-Quadrature
@@ -173,9 +162,10 @@ __device__ double F2_tree(double k1, double k2, double k3);  // F2 kernel in tre
    * All values are copied to the devices constant memory
    * @param cosmo cosmology that is to be used
    * @param dz_ redshiftbinsize
-   * @param z_max_ maximal redshift
+   * @param nz_from_file If true: Uses lookup table for n(z), if false: uses analytical formula (Optional, default: False)
+   * @param nz Vector containing values of n(z) for the redshiftbins used for all functions (Optional, but needs to be provided if nz_from_file==True)
    */
-__host__ void set_cosmology(cosmology cosmo, double dz_, double z_max_);
+__host__ void set_cosmology(cosmology cosmo, double dz_, bool nz_from_file=false, std::vector<double>* nz=nullptr);
 
   /**
    * returns the unitless matter parameter for the currently set cosmology

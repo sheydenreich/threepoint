@@ -30,6 +30,7 @@
 *.exe
 *.out
 *.app
+*.x
 
 # Doxygen Documentation
 docs/

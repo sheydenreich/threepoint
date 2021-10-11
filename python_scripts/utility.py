@@ -10,6 +10,7 @@ import multiprocessing.managers
 from scipy import stats
 from lenstools import GaussianNoiseGenerator
 from astropy import units as u
+import matplotlib.pyplot as plt
 class MyManager(multiprocessing.managers.BaseManager):
     pass
 MyManager.register('np_zeros', np.zeros, multiprocessing.managers.ArrayProxy)
@@ -42,6 +43,9 @@ def create_gaussian_random_field(power_spectrum, n_pix=4096,fieldsize=4.*np.pi/1
     if random_seed is None:
         random_seed = np.random.randint(0,2**32)
     gaussian_map = gen.fromConvPower(np.array([ell_array,power_spectrum(ell_array)]),seed=random_seed,kind="linear",bounds_error=False,fill_value=0.0)
+    #gaussian_map.visualize()
+    #plt.show()
+    #plt.clf()
     return gaussian_map.data    
 
 def create_gamma_field(kappa_field,Dhat=None):
@@ -75,7 +79,7 @@ class aperture_mass_computer:
 
         # compute the Q filter function on a grid
         self.q_arr = self.Qfunc_array()
-        self.u_arr = None
+        self.u_arr = self.Ufunc_array()
 
         self.disk = np.zeros((self.npix,self.npix))
         self.disk[(self.dist<self.theta_ap)] = 1
@@ -84,7 +88,6 @@ class aperture_mass_computer:
         self.theta_ap = theta_ap
         self.q_arr = self.Qfunc_array()
         self.u_arr = self.Ufunc_array()
-
         self.disk = np.zeros((self.npix,self.npix))
         self.disk[(self.dist<self.theta_ap)] = 1
 
@@ -103,6 +106,7 @@ class aperture_mass_computer:
         The Q filter function for the aperture mass calculation from Schneider et al. (2002)
 
         input: theta: aperture radius in arcmin
+        output: Q [arcmin^-2]
         """
         thsq = (theta/self.theta_ap)**2
         res = thsq/(4*np.pi*self.theta_ap**2)*np.exp(-thsq/2)
@@ -119,6 +123,7 @@ class aperture_mass_computer:
         return res
 
 
+
     def Ufunc_array(self):
         """
         Computes the U filter function on an npix^2 grid
@@ -126,6 +131,7 @@ class aperture_mass_computer:
         """
         res = self.Ufunc(self.dist)
         return res
+
     
     def interpolate_nans(self,array,interpolation_method,fill_value):
         """
@@ -184,10 +190,11 @@ class aperture_mass_computer:
 
         return array
 
+
     def Map_fft_from_kappa(self,kappa_arr):
         if self.u_arr is None:
             self.u_arr = self.Ufunc_array()
-        
+       
         return fftconvolve(kappa_arr,self.u_arr,'same')*self.fieldsize**2/self.npix**2
 
     def Map_fft(self,gamma_arr,norm=None,return_mcross=False,normalize_weighted=True, periodic_boundary=True):

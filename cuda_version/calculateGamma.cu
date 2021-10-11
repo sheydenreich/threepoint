@@ -14,44 +14,75 @@
 
 int main(int argc, char** argv)
 {
-    std::cout << "Executing " << argv[0] << " ";
-    if(argc>=2)
-    {
-        int deviceNumber = atoi(argv[1]);
-        std::cout << "on GPU " << deviceNumber << std::endl;
-        cudaSetDevice(deviceNumber);
-    }
-    else
-    {
-        std::cout << "on default GPU";
-    }
-  // Set Up Cosmology
-  struct cosmology cosmo;
+  // Read in command line
+  const char* message = R"( 
+calculateGamma.x : Wrong number of command line parameters (Needed: 4)
+Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
+Argument 2: Outputfilename, directory needs to exist 
+Argument 3: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) from file                  
+Argument 4 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
+Argument 5 (optional): GPU device number
+Example:
+./calculateGamma.x ../necessary_files/MR_cosmo.dat ../../results_MR/MapMapMap_varyingCosmos.dat 1 ../necessary_files/nz_MR.dat
+)";
 
-  if(slics)
+  if(argc < 4)
     {
-      printf("using SLICS cosmology...\n");
-      cosmo.h=0.6898;     // Hubble parameter
-      cosmo.sigma8=0.826; // sigma 8
-      cosmo.omb=0.0473;   // Omega baryon
-      cosmo.omc=0.2905-cosmo.omb;   // Omega CDM
-      cosmo.ns=0.969;    // spectral index of linear P(k)
-      cosmo.w=-1.0;
-      cosmo.om = cosmo.omb+cosmo.omc;
-      cosmo.ow = 1-cosmo.om;
-    }
-    else
-    {
-      printf("using Millennium cosmology...\n");
-      cosmo.h = 0.73;
-      cosmo.sigma8 = 0.9;
-      cosmo.omb = 0.045;
-      cosmo.omc = 0.25 - cosmo.omb;
-      cosmo.ns = 1.;
-      cosmo.w = -1.0;
-      cosmo.om = cosmo.omc+cosmo.omb;
-      cosmo.ow = 1.-cosmo.om;
+      std::cerr<<message<<std::endl;
+      exit(1);
     };
+
+  std::string cosmo_paramfile, outfn, nzfn;
+  bool nz_from_file=false;
+
+  cosmo_paramfile=argv[1];
+  outfn=argv[2];
+  nz_from_file=std::stoi(argv[3]);
+  if(nz_from_file)
+    {
+      nzfn=argv[4];
+    };
+
+  
+  std::cout << "Executing " << argv[0] << " ";
+  if(argc==6)
+    {
+      int deviceNumber = atoi(argv[5]);
+      std::cout << "on GPU " << deviceNumber << std::endl;
+      cudaSetDevice(deviceNumber);
+    }
+  else
+    {
+      std::cout << "on default GPU";
+    };
+  
+
+  
+  // Read in cosmology
+  cosmology cosmo(cosmo_paramfile);
+  double dz = cosmo.zmax / ((double) n_redshift_bins);
+
+  std::vector<double> nz;
+  if(nz_from_file)
+    {
+      // Read in n_z
+      read_n_of_z(nzfn, dz, n_redshift_bins, nz);
+    };
+  
+  // Check output file
+  std::ofstream out;
+  out.open(outfn.c_str());
+  if(!out.is_open())
+    {
+      std::cerr<<"Couldn't open "<<outfn<<std::endl;
+      exit(1);
+    };
+
+  // User output
+  std::cerr<<"Using cosmology:"<<std::endl;
+  std::cerr<<cosmo;
+  std::cerr<<"Writing to:"<<outfn<<std::endl;
+
 
   // Binning
   int steps = 10;
@@ -65,26 +96,20 @@ int main(int argc, char** argv)
   double vmin = 0;
   double vmax = 1;
 
-    // Set output file
-  // std::string outfn="Gammas_"+std::to_string(rmin)+"_to_"+std::to_string(rmax)+".dat";
-  std::string outfn="/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/fisher/Gammas_0p1_to_60_10_15_15_bins.dat";
-  std::ofstream out;
-  out.open(outfn.c_str());
-  if(!out.is_open())
-    {
-      std::cerr<<"Couldn't open "<<outfn<<std::endl;
-      exit(1);
-    };
-
-
-  if(slics) z_max = 3.;
-  else z_max = 1.1;
-  double dz = z_max / ((double) n_redshift_bins);
+  
 
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));
 
-  set_cosmology(cosmo, dz, z_max);
+
+  if(nz_from_file)
+    {
+      set_cosmology(cosmo, dz, nz_from_file, &nz);
+    }
+  else
+    {
+      set_cosmology(cosmo, dz);
+    };
 
   compute_weights_bessel();
 
