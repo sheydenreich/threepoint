@@ -110,9 +110,11 @@ Example:
   // This can probably be done smarter
 
   std::vector<cosmology> cosmos;             ///<container for all cosmologies
-  std::vector<double> derivative_parameters; //parameters the derivatives are taken in
+  std::vector<double> derivative_parameters; //parameters the derivatives are taken in (Why do we need this?)
 
   cosmology newCosmo = cosmo;
+
+  // Set h
   if (five_point)
   {
     newCosmo.h = cosmo.h * (1. - 2 * h);
@@ -129,13 +131,13 @@ Example:
   };
   derivative_parameters.push_back(cosmo.h);
 
+  // Set sigma_8
   newCosmo = cosmo;
   if (five_point)
   {
     newCosmo.sigma8 = cosmo.sigma8 * (1. - 2 * h);
     cosmos.push_back(newCosmo);
   };
-
   newCosmo.sigma8 = cosmo.sigma8 * (1. - h);
   cosmos.push_back(newCosmo);
   newCosmo.sigma8 = cosmo.sigma8 * (1. + h);
@@ -147,6 +149,7 @@ Example:
   };
   derivative_parameters.push_back(cosmo.sigma8);
 
+  // Set Omega_b (leaves Omega_m constant, changes Omega_cdm appropriately)
   newCosmo = cosmo;
   if (five_point)
   {
@@ -154,7 +157,6 @@ Example:
     newCosmo.omc = newCosmo.om - newCosmo.omb;
     cosmos.push_back(newCosmo);
   };
-
   newCosmo.omb = cosmo.omb * (1 - h);
   newCosmo.omc = newCosmo.om - newCosmo.omb;
   cosmos.push_back(newCosmo);
@@ -169,6 +171,7 @@ Example:
   };
   derivative_parameters.push_back(cosmo.omb);
 
+  // Set n_s
   newCosmo = cosmo;
   if (five_point)
   {
@@ -186,6 +189,7 @@ Example:
   };
   derivative_parameters.push_back(cosmo.ns);
 
+  // Set w
   newCosmo = cosmo;
   if (five_point)
   {
@@ -203,41 +207,55 @@ Example:
   };
   derivative_parameters.push_back(cosmo.w);
 
+  // Set Omega_m (changes Omega_Lambda to preserve flat Universe, leaves Omega_b constant, changes Omega_cdm appropriately)
   newCosmo = cosmo;
   if (five_point)
   {
     newCosmo.om = cosmo.om * (1 - 2 * h);
     newCosmo.omc = newCosmo.om - newCosmo.omb;
+    newCosmo.ow = 1 - newCosmo.om;
     cosmos.push_back(newCosmo);
   };
   newCosmo.om = cosmo.om * (1 - h);
   newCosmo.omc = newCosmo.om - newCosmo.omb;
+  newCosmo.ow = 1 - newCosmo.om;
   cosmos.push_back(newCosmo);
   newCosmo.om = cosmo.om * (1 + h);
   newCosmo.omc = newCosmo.om - newCosmo.omb;
+  newCosmo.ow = 1 - newCosmo.om;
   cosmos.push_back(newCosmo);
   if (five_point)
   {
     newCosmo.om = cosmo.om * (1 + 2 * h);
     newCosmo.omc = newCosmo.om - newCosmo.omb;
+    newCosmo.ow = 1 - newCosmo.om;
     cosmos.push_back(newCosmo);
   };
   derivative_parameters.push_back(cosmo.om);
 
+  // Set Omega_Lambda (changes Omega_m to preserve flat Universe, leaves Omega_b constant, changes Omega_cdm appropriately )
   newCosmo = cosmo;
   if (five_point)
   {
     newCosmo.ow = cosmo.ow * (1 - 2 * h);
+    newCosmo.om = 1 - newCosmo.ow;
+    newCosmo.omc = newCosmo.om-newCosmo.omb;
     cosmos.push_back(newCosmo);
   };
 
   newCosmo.ow = cosmo.ow * (1 - h);
+  newCosmo.om = 1 - newCosmo.ow;
+  newCosmo.omc = newCosmo.om-newCosmo.omb;
   cosmos.push_back(newCosmo);
   newCosmo.ow = cosmo.ow * (1 + h);
+  newCosmo.om = 1 - newCosmo.ow;
+  newCosmo.omc = newCosmo.om-newCosmo.omb;
   cosmos.push_back(newCosmo);
   if (five_point)
   {
     newCosmo.ow = cosmo.ow * (1 + 2 * h);
+    newCosmo.om = 1 - newCosmo.ow;
+    newCosmo.omc = newCosmo.om-newCosmo.omb;
     cosmos.push_back(newCosmo);
   };
   derivative_parameters.push_back(cosmo.ow);

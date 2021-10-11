@@ -120,35 +120,47 @@ Example:
   {
     double fac = fac_min + i * fac_bin;
     cosmology newCosmo = cosmo;
+
+    // Set h
     newCosmo.h = cosmo.h * fac;
     cosmos.at(i) = newCosmo;
 
+    // Set sigma_8
     newCosmo = cosmo;
     newCosmo.sigma8 = cosmo.sigma8 * fac;
     cosmos.at(i + N_cosmo) = newCosmo;
 
+    // Set Omega_b (leaves Omega_m constant, changes Omega_cdm appropriately)
     newCosmo = cosmo;
     newCosmo.omb = cosmo.omb * fac;
     newCosmo.omc = newCosmo.om - newCosmo.omb;
     cosmos.at(i + 2 * N_cosmo) = newCosmo;
 
+    // Set n_s
     newCosmo = cosmo;
     newCosmo.ns = cosmo.ns * fac;
     cosmos.at(i + 3 * N_cosmo) = newCosmo;
 
+    // Set w
     newCosmo = cosmo;
     newCosmo.w = cosmo.w * fac;
     cosmos.at(i + 4 * N_cosmo) = newCosmo;
 
+    // Set Omega_m (changes Omega_Lambda to preserve flat Universe, leaves Omega_b constant, changes Omega_cdm appropriately)
     newCosmo = cosmo;
     newCosmo.om = cosmo.om * fac;
     newCosmo.omc = newCosmo.om - newCosmo.omb;
+    newCosmo.ow = 1 - newCosmo.om;
     cosmos.at(i + 5 * N_cosmo) = newCosmo;
 
+    // Set Omega_Lambda (changes Omega_m to preserve flat Universe, leaves Omega_b constant, changes Omega_cdm appropriately )
     newCosmo = cosmo;
     newCosmo.ow = cosmo.ow * fac;
+    newCosmo.om = 1 - newCosmo.ow;
+    newCosmo.omc = newCosmo.om-newCosmo.omb;
     cosmos.at(i + 6 * N_cosmo) = newCosmo;
   }
+
 
   for (int i = 0; i < N_cosmo * 7; i++)
   {
