@@ -658,12 +658,12 @@ double GQ96_of_Einv(double a,double b)
 
 double E(double z)
 {   //assuming flat universe
-    return sqrt(om*pow(1+z,3)+ow);
+    return sqrt(om*pow(1+z,3)+ow*pow(1+z, 3*(1.0+w)));
 }
 
 __device__ double dev_E(double z)
 {   //assuming flat universe
-    return sqrt(dev_om*pow(1+z,3)+dev_ow);
+    return sqrt(dev_om*pow(1+z,3)+dev_ow*pow(1+z, 3*(1.0+dev_w)));
 }
 
 double E_inv(double z)
