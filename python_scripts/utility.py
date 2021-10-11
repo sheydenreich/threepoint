@@ -3,12 +3,12 @@ from scipy.signal import fftconvolve
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import griddata
 from astropy.convolution import interpolate_replace_nans,Gaussian2DKernel#,convolve_fft
-import astropy.convolution as ac
+import astropy.convolution as apc
 import collections
 import multiprocessing.managers
 #from FyeldGenerator import generate_field
 from scipy import stats
-#from lenstools import GaussianNoiseGenerator
+from lenstools import GaussianNoiseGenerator
 from astropy import units as u
 class MyManager(multiprocessing.managers.BaseManager):
     pass
@@ -36,8 +36,8 @@ def Dhat_func(npix = 4096,pixsize = 1.):
 def create_gaussian_random_field(power_spectrum, n_pix=4096,fieldsize=4.*np.pi/180,random_seed=None):
     """creates gaussian random field from given power spectrum, with mean 0 and variance sigma"""
     ell_min = 0
-    ell_max = 2.*np.pi/fieldsize/2*n_pix
-    ell_array = np.linspace(ell_min,ell_max,n_pix)
+    two_ell_max = 2.*np.pi/fieldsize*n_pix
+    ell_array = np.linspace(ell_min,two_ell_max,2*n_pix)
     gen = GaussianNoiseGenerator(shape=(n_pix,n_pix),side_angle=fieldsize*u.rad)
     if random_seed is None:
         random_seed = np.random.randint(0,2**32)
@@ -46,7 +46,7 @@ def create_gaussian_random_field(power_spectrum, n_pix=4096,fieldsize=4.*np.pi/1
 
 def create_gamma_field(kappa_field,Dhat=None):
     if Dhat is None:
-        Dhat = Dhat_func()
+        Dhat = Dhat_func(npix=kappa_field.shape[0])
     fieldhat = np.fft.fftshift(np.fft.fft2(kappa_field))
     gammahat = fieldhat*Dhat
     gamma = np.fft.ifft2(np.fft.ifftshift(gammahat))
@@ -67,8 +67,8 @@ class aperture_mass_computer:
 
         # compute distances to the center in arcmin
         idx,idy = np.indices([self.npix,self.npix])
-        idx = idx - (self.npix)/2
-        idy = idy - (self.npix)/2
+        idx = idx - ((self.npix)/2-0.5)
+        idy = idy - ((self.npix)/2-0.5)
 
         self.idc = idx + 1.0j*idy
         self.dist = np.abs(self.idc)*self.fieldsize/self.npix
@@ -216,8 +216,8 @@ class aperture_mass_computer:
         qr = self.q_arr.real
         qi = self.q_arr.imag
         if periodic_boundary:
-            rr=ac.convolve_fft(yr, qr, boundary='wrap', normalize_kernel=False, nan_treatment='fill')
-            ii=ac.convolve_fft(yi, qi, boundary='wrap', normalize_kernel=False, nan_treatment='fill')
+            rr=apc.convolve_fft(yr, qr, boundary='wrap', normalize_kernel=False, nan_treatment='fill',allow_huge=True)
+            ii=apc.convolve_fft(yi, qi, boundary='wrap', normalize_kernel=False, nan_treatment='fill',allow_huge=True)
         else:
             rr = fftconvolve(yr,qr,'same')
             ii = fftconvolve(yi,qi,'same')
@@ -227,8 +227,8 @@ class aperture_mass_computer:
             print("ERROR! NAN in aperture mass computation!")
         if(return_mcross):
             if periodic_boundary:
-                ri = ac.convolve_fft(yr, qi, boundary='wrap', normalize_kernel=False, nan_treatment='fill')
-                ir = ac.convolve_fft(yi, qr,  boundary='wrap', normalize_kernel=False, nan_treatment='fill')
+                ri = apc.convolve_fft(yr, qi, boundary='wrap', normalize_kernel=False, nan_treatment='fill',allow_huge=True)
+                ir = apc.convolve_fft(yi, qr,  boundary='wrap', normalize_kernel=False, nan_treatment='fill',allow_huge=True)
             else:
                 ri = fftconvolve(yr,qi,'same')
                 ir = fftconvolve(yi,qr,'same')
