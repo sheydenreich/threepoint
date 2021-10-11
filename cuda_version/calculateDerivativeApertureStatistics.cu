@@ -195,18 +195,22 @@ int main(int argc, char* argv[])
     {
       newCosmo.om=cosmo.om*(1-2*h);
       newCosmo.omc=newCosmo.om-newCosmo.omb;
+      newCosmo.ow=1.-newCosmo.om;
       cosmos.push_back(newCosmo);
     };
   newCosmo.om=cosmo.om*(1-h);
   newCosmo.omc=newCosmo.om-newCosmo.omb;
+  newCosmo.ow=1.-newCosmo.om;
   cosmos.push_back(newCosmo);
   newCosmo.om=cosmo.om*(1+h);
   newCosmo.omc=newCosmo.om-newCosmo.omb;
+  newCosmo.ow=1.-newCosmo.om;
   cosmos.push_back(newCosmo);
   if(five_point)
     {
       newCosmo.om=cosmo.om*(1+2*h);
       newCosmo.omc=newCosmo.om-newCosmo.omb;
+      newCosmo.ow=1.-newCosmo.om;
       cosmos.push_back(newCosmo);
     };
     derivative_parameters.push_back(cosmo.om);
