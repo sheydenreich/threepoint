@@ -59,6 +59,7 @@ int main(int argc, char* argv[])
 
   int n_z=400; //Number of redshift bins for grids
   double z_max=1.1; //maximal redshift
+  if(slics) z_max = 3.;
   bool fastCalc=false; //whether calculations should be sped up
   
   // Set up thetas for which ApertureStatistics are calculated
@@ -134,15 +135,19 @@ int main(int argc, char* argv[])
   newCosmo=cosmo;
   newCosmo.om=cosmo.om*(1-2*h);
   newCosmo.omc=newCosmo.om-newCosmo.omb;
+  newCosmo.ow=1.-newCosmo.om;
   cosmos.push_back(newCosmo);
   newCosmo.om=cosmo.om*(1-h);
   newCosmo.omc=newCosmo.om-newCosmo.omb;
+  newCosmo.ow=1.-newCosmo.om;
   cosmos.push_back(newCosmo);
   newCosmo.om=cosmo.om*(1+h);
   newCosmo.omc=newCosmo.om-newCosmo.omb;
+  newCosmo.ow=1.-newCosmo.om;
   cosmos.push_back(newCosmo);
   newCosmo.om=cosmo.om*(1+2*h);
   newCosmo.omc=newCosmo.om-newCosmo.omb;
+  newCosmo.ow=1.-newCosmo.om;
   cosmos.push_back(newCosmo);
   derivative_parameters.push_back(cosmo.om);
 
