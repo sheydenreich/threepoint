@@ -28,7 +28,7 @@ Argument 4: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) f
 Argument 5 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
 
 Example:
-./calculateApertureStatistics.x ../necessary_files/MR_cosmo.dat ../../results_MR/MapMapMap_bispec_gpu_nz.dat 1 ../necessary_files/nz_MR.dat
+./calculateApertureStatistics.x ../necessary_files/MR_cosmo.dat ../necessary_files/HOWLS_thetas.dat ../../results_MR/MapMapMap_bispec_gpu_nz.dat 1 ../necessary_files/nz_MR.dat
 )";
 
   if (argc < 5) // Give out error message if too few CLI arguments
