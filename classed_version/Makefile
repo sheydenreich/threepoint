@@ -2,13 +2,13 @@
 GCC = g++
 
 # define various compiler flags
-CFLAGS = -std=c++17 -fopenmp -W -Wall -Wpointer-arith -Wformat-nonliteral -Winit-self -g
+CFLAGS = -std=c++17 -fopenmp -W -Wall -Wpointer-arith -Wformat-nonliteral -Winit-self -g -fPIC
 
 # define library paths in addition to /usr/lib
-LFLAGS= -L
+LFLAGS= -L ~/cosmosis/cosmosis/datablock/
 
 # define any libraries
-LIBS = -lm -lgsl -lgslcblas
+LIBS = -lm -lgsl -lgslcblas -lcosmosis
 
 # define the source files
 SRCS = $(wildcard *.cpp)
@@ -24,8 +24,12 @@ OBJS = $(SRCS:.cpp=.o)
 DEPS = $(OBJS:%.o=%.d)
 
 # First make target, will be compiled, if "make" is called without arguments
-all:	$(EXECS)
+all: threepoint.so $(EXECS)
 	@echo Succesfully compiled whole project
+
+
+threepoint.so: $(OBJS)
+	$(GCC) $(CFLAGS) $(filter-out $(EXECS:.x=.o), $(OBJS)) -shared -o $@ 
 
 # Linking of all .o Files to create the EXECS
 $(EXECS): $(OBJS)
@@ -42,3 +46,7 @@ $(EXECS): $(OBJS)
 # Cleaning of directory, removes .o, .x, and .d files
 clean:
 	rm -f *.o *.x *.d
+
+
+test:
+	@echo "Alas, threepoint-module has no tests"
