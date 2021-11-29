@@ -14,7 +14,7 @@ MyManager.register('np_zeros', np.zeros, multiprocessing.managers.ArrayProxy)
 
 startpath = '/vol/euclid2/euclid2_raid2/sven/HOWLS/'
 
-def extract_aperture_masses(Xs,Ys,shear_catalogue,npix,thetas,fieldsize,compute_mcross=False):
+def extract_aperture_masses(Xs,Ys,shear_catalogue,npix,thetas,fieldsize,compute_mcross=False,save_map=None):
     n_thetas = len(thetas)
     maxtheta = np.max(thetas)
 
@@ -41,6 +41,9 @@ def extract_aperture_masses(Xs,Ys,shear_catalogue,npix,thetas,fieldsize,compute_
             map = ac.Map_fft(shears,norm=norm,return_mcross=False)
 
         aperture_mass_fields[:,:,x] = map
+
+    if(save_map is not None):
+        np.save(save_map,aperture_mass_fields)
 
     counter = 0
     for i in range(n_thetas):
@@ -87,30 +90,30 @@ def extract_aperture_masses(Xs,Ys,shear_catalogue,npix,thetas,fieldsize,compute_
     #                         result[i,j,k] = result[i_new,j_new,k_new]
     return result
 
-def compute_aperture_masses_of_field(filepath,theta_ap_array):
+def compute_aperture_masses_of_field(filepath,theta_ap_array,save_map=None):
     slics = ('SLICS' in filepath)
     if(slics):
         fieldsize = 600.
-        npix = 4096
+        npix = 1024
     else:
         fieldsize = 5*60.
-        npix = 2048
+        npix = 512
 
     field = fits.open(filepath)
     data = field[1].data
 
-    if(slics):
-        X_pos = data['x_arcmin']
-        Y_pos = data['y_arcmin']
-        shear = data['shear1']+1.0j*data['shear2']
-        noise = data['e1_intr']+1.0j*data['e2_intr']
-        shear_noise = (shear+noise)/(1+shear*np.conj(noise))
-    else:
-        X_pos = data['ra_gal']*60.
-        Y_pos = data['dec_gal']*60.
-        shear_noise = -data['gamma1_noise']+1.0j*data['gamma2_noise']
+    # if(slics):
+    #     X_pos = data['x_arcmin']
+    #     Y_pos = data['y_arcmin']
+    #     shear = data['shear1']+1.0j*data['shear2']
+    #     noise = data['e1_intr']+1.0j*data['e2_intr']
+    #     shear_noise = (shear+noise)/(1+shear*np.conj(noise))
+    # else:
+    X_pos = data['ra_gal']*60.
+    Y_pos = data['dec_gal']*60.
+    shear_noise = -data['gamma1_noise']+1.0j*data['gamma2_noise']
 
-    result = extract_aperture_masses(X_pos,Y_pos,shear_noise,npix,theta_ap_array,fieldsize,compute_mcross=False)
+    result = extract_aperture_masses(X_pos,Y_pos,shear_noise,npix,theta_ap_array,fieldsize,compute_mcross=False,save_map=save_map)
 
     return result
 
@@ -124,27 +127,54 @@ def compute_all_aperture_masses(openpath,filenames,savepath,aperture_masses = [1
         np.savetxt(savepath+'map_cubed',datavec)
 
 if(__name__=='__main__'):
-    for (dirpath,_,_filenames) in os.walk(startpath+"shear_catalogues/"):
-        if(len(_filenames)>2):
-            filenames = [filename for filename in _filenames if '.fits' in filename]
-            if not 'SLICS' in dirpath:
-            	# dir_end_path = dirpath.split('/')[-1]
-                savepath = dirpath.split('shear_catalogues')[0]+'map_cubed'+dirpath.split('shear_catalogues')[1]
-                print('Reading shear catalogues from ',dirpath)
-                print('Writing summary statistics to ',savepath)
-                if not os.path.exists(savepath):
-                    os.makedirs(savepath)
+    # print("Computing test aperture mass maps:")
+    # path_kappa_dustgrain = "/vol/euclid7/euclid7_2/llinke/HOWLS/convergence_maps/DUSTGRAIN_COSMO_128/kappa_noise_0_LCDM_Om02_ks_nomask_shear.fits"
 
-                compute_all_aperture_masses(dirpath+'/',filenames,savepath+'/')#,aperture_masses = [0.5,1,2,4,8,16,32])
+    # for (dirpath,_,_filenames) in os.walk(startpath+"shear_catalogues/"):
+    #     if(len(_filenames)>2 and 'SLICS' in dirpath):
+    #         filenames = [filename for filename in _filenames if '.fits' in filename]
+    #         # if not 'SLICS' in dirpath:
+    #         	# dir_end_path = dirpath.split('/')[-1]
+    #         savepath = dirpath.split('shear_catalogues')[0]+'map_cubed_lower_resolution'+dirpath.split('shear_catalogues')[1]
+    #         print('Reading shear catalogues from ',dirpath)
+    #         print('Writing summary statistics to ',savepath)
+    #         if not os.path.exists(savepath):
+    #             os.makedirs(savepath)
+
+    #         compute_all_aperture_masses(dirpath+'/',filenames,savepath+'/',n_processes=32)#,aperture_masses = [0.5,1,2,4,8,16,32])
+
+    # for (dirpath,_,_filenames) in os.walk(startpath+"shear_catalogues/"):
+    #     if(len(_filenames)>2 and 'SLICS' in dirpath):
+    #         filenames = [filename for filename in _filenames if '.fits' in filename]
+    #         # dir_end_path = dirpath.split('/')[-1]
+    #         savepath = dirpath.split('shear_catalogues')[0]+'map_cubed_lower_resolution_our_thetas'+dirpath.split('shear_catalogues')[1]
+    #         print('Reading shear catalogues from ',dirpath)
+    #         print('Writing summary statistics to ',savepath)
+    #         if not os.path.exists(savepath):
+    #             os.makedirs(savepath)
+
+    #         compute_all_aperture_masses(dirpath+'/',filenames,savepath+'/',aperture_masses = [0.5,1,2,4,8,16,32],n_processes=32)
 
     for (dirpath,_,_filenames) in os.walk(startpath+"shear_catalogues/"):
         if(len(_filenames)>2):
             filenames = [filename for filename in _filenames if '.fits' in filename]
             # dir_end_path = dirpath.split('/')[-1]
-            savepath = dirpath.split('shear_catalogues')[0]+'map_cubed_our_thetas'+dirpath.split('shear_catalogues')[1]
+            savepath = dirpath.split('shear_catalogues')[0]+'map_cubed_lower_resolution_our_thetas_1_to_8_arcmin'+dirpath.split('shear_catalogues')[1]
             print('Reading shear catalogues from ',dirpath)
             print('Writing summary statistics to ',savepath)
             if not os.path.exists(savepath):
                 os.makedirs(savepath)
 
-            compute_all_aperture_masses(dirpath+'/',filenames,savepath+'/',aperture_masses = [0.5,1,2,4,8,16,32])
+            compute_all_aperture_masses(dirpath+'/',filenames,savepath+'/',aperture_masses = [1,2,4,8],n_processes=16)
+
+    # for (dirpath,_,_filenames) in os.walk(startpath+"shear_catalogues/"):
+    #     if(len(_filenames)>2):
+    #         filenames = [filename for filename in _filenames if '.fits' in filename]
+    #         # dir_end_path = dirpath.split('/')[-1]
+    #         savepath = dirpath.split('shear_catalogues')[0]+'map_cubed_lower_resolution_intermediate_thetas'+dirpath.split('shear_catalogues')[1]
+    #         print('Reading shear catalogues from ',dirpath)
+    #         print('Writing summary statistics to ',savepath)
+    #         if not os.path.exists(savepath):
+    #             os.makedirs(savepath)
+
+    #         compute_all_aperture_masses(dirpath+'/',filenames,savepath+'/',aperture_masses = [1.085,1.085*2,1.085*4,1.085*8],n_processes=32)

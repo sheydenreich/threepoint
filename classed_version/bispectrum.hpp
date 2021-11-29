@@ -13,9 +13,11 @@
 #define slics true
 #define test_analytical false
 
-#define CONSTANT_POWERSPECTRUM true
+#define CONSTANT_POWERSPECTRUM false
 #define ANALYTICAL_POWERSPECTRUM false
 #define ANALYTICAL_POWERSPECTRUM_V2 false
+
+#define TREAT_DEGENERATE_TRIANGLES true
 
 #if ANALYTICAL_POWERSPECTRUM
 // Powerspectrum: P(l)=p1*l*l*exp(-p2*l*l)

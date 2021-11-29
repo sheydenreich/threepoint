@@ -110,44 +110,51 @@ int main()
   }
   #if CONSTANT_POWERSPECTRUM
 
-  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/constant_powerspectrum/model_bispectrum.dat";
+  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/constant_powerspectrum/model_bispectrum";
   std::ofstream out;
-  std::string outfn2 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/constant_powerspectrum/model_bispectrum_gaussian_covariance.dat";
+  std::string outfn2 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/constant_powerspectrum/model_bispectrum_gaussian_covariance";
   std::ofstream out2;
-  std::string outfn3 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/constant_powerspectrum/model_powerspectrum.dat";
+  std::string outfn3 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/constant_powerspectrum/model_powerspectrum";
   std::ofstream out3;
 
   #elif ANALYTICAL_POWERSPECTRUM
 
-  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum/model_bispectrum.dat";
+  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum/model_bispectrum";
   std::ofstream out;
-  std::string outfn2 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum/model_bispectrum_gaussian_covariance.dat";
+  std::string outfn2 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum/model_bispectrum_gaussian_covariance";
   std::ofstream out2;
-  std::string outfn3 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum/model_powerspectrum.dat";
+  std::string outfn3 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum/model_powerspectrum";
   std::ofstream out3;
 
   #elif ANALYTICAL_POWERSPECTRUM_V2
 
-  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum_v2/model_bispectrum.dat";
+  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum_v2/model_bispectrum";
   std::ofstream out;
-  std::string outfn2 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum_v2/model_bispectrum_gaussian_covariance.dat";
+  std::string outfn2 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum_v2/model_bispectrum_gaussian_covariance";
   std::ofstream out2;
-  std::string outfn3 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum_v2/model_powerspectrum.dat";
+  std::string outfn3 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum_v2/model_powerspectrum";
   std::ofstream out3;
 
   #else
 
-  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/model_bispectrum.dat";
+  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/model_bispectrum";
   std::ofstream out;
-  std::string outfn2 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/model_bispectrum_gaussian_covariance.dat";
+  std::string outfn2 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/model_bispectrum_gaussian_covariance";
   std::ofstream out2;
-  std::string outfn3 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/model_powerspectrum.dat";
+  std::string outfn3 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/model_powerspectrum";
   std::ofstream out3;
 
   #endif
 
+#if TREAT_DEGENERATE_TRIANGLES
+  outfn2.append("_approx_degenerate_triangles");
+#endif
+outfn.append(".dat");
+outfn2.append(".dat");
+outfn3.append(".dat");
 
-std::cout<<"Writing results to "<<outfn<<std::endl;
+
+std::cout<<"Writing results to "<<outfn2<<std::endl;
 out.open(outfn.c_str());
 out2.open(outfn2.c_str());
 out3.open(outfn3.c_str());
