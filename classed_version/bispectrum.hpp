@@ -7,6 +7,7 @@
 #include <memory>
 #include <functional>
 #include <gsl/gsl_integration.h>
+#include <vector>
 
 // use slics cosmology (false -> millennium cosmology)
 // TODO: Implenment redshift distribution for Euclid-like SLICS
@@ -295,25 +296,28 @@ private:
 
 
 
-  /**
-   * Reading in of n(z) from file
-   * @warning array not yet allocated, cannot be used yet
-   * @param filename Filename
-   * @todo filename should be a string
-   */
-    void read_nofz(char filename[255]);
+  // /**
+  //  * Reading in of n(z) from file
+  //  * @warning array not yet allocated, cannot be used yet
+  //  * @param filename Filename
+  //  * @todo filename should be a string
+  //  */
+  //   void read_nofz(char filename[255]);
 
-    /**
-   * Normalizing of n(z) from file
-   * @warning array not yet allocated, cannot be used yet
-   * @param filename Filename
-   * @todo filename should be a string
-   */
-    void normalize_nofz();
+  //   /**
+  //  * Normalizing of n(z) from file
+  //  * @warning array not yet allocated, cannot be used yet
+  //  * @param filename Filename
+  //  * @todo filename should be a string
+  //  */
+  //   void normalize_nofz();
+
+  bool n_of_z_fromFile; //Whether or not n(z) from file is given
+  std::vector<double> n_of_z_file; //Values for n_of_z from file
 
   double* f_K_array; /**< Array of f_k for interpolating*/
   double* g_array; /**< Array of lens efficiency g for interpolating*/
-  double* n_z_array_data; /**< Array for n(z) from file, not yet allocated!!*/
+  //double* n_z_array_data; /**< Array for n(z) from file, not yet allocated!!*/
   double* n_z_array_z; /**< Array for n(z) for interpolating*/
   int len_n_z_array = 100; /**< Length of n(z) array*/
 
@@ -508,7 +512,16 @@ double bispectrumCovariance(double ell1, double ell2, double ell3,
    */
   BispectrumCalculator(cosmology cosmo, int n_z, double z_max, bool fast_calculations);
   
-  
+  /**
+   * Constructor. Runs initialize and set_cosmology
+   * @param cosmo cosmology that is to be used
+   * @param n_of_z Array containing n(z) from file
+   * @param n_z number of redshift bins for grids
+   * @param z_max maximal redshift for grids
+   */
+  BispectrumCalculator(cosmology cosmo, const std::vector<double>& n_of_z, int n_z, double z_max);
+
+
 
   /**
    * Calculate bkappa without prefactor 
