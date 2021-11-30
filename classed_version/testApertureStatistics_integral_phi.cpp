@@ -66,7 +66,7 @@ int main()
 
   // Set up thetas
   double theta=10./60./180.*3.1416; //10 arcmin in rad
-  double thetas[3]={theta, theta, theta};
+  std::vector<double> thetas={theta, theta, theta};
 
   // Calculate integral and give the result
   for(unsigned int i=0; i<ls.size(); i++)

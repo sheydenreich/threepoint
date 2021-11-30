@@ -119,10 +119,10 @@ auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
 	  for(int k=j; k<N; k++)
 	    {
 	      double theta3=thetas.at(k)*3.1416/180./60.;
-	      double thetas_123[3]={theta1, theta2, theta3};
+	      std::vector<double> thetas_123={theta1, theta2, theta3};
 	      if(ONLY_DIAGONAL)
                 {
-		  double thetas_456[3]={theta1, theta2, theta3};
+		  std::vector<double> thetas_456={theta1, theta2, theta3};
 		  
 		  double MapMapMap=apertureStatistics.MapMapMap_covariance_Gauss(thetas_123,thetas_456,survey_area); //Do calculation
 		  
@@ -160,7 +160,7 @@ auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
                             {                          
                               
 			      double theta6=thetas.at(kk)*3.1416/180./60.;
-			      double thetas_456[3]={theta4, theta5, theta6};
+			      std::vector<double> thetas_456={theta4, theta5, theta6};
 
 			      double MapMapMap=apertureStatistics.MapMapMap_covariance_Gauss(thetas_123,thetas_456,survey_area); //Do calculation
 #if CONSTANT_POWERSPECTRUM

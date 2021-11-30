@@ -137,7 +137,7 @@ int main()
       for (int j=0; j<N; j++)
 	{
 	  double theta=thetas.at(j)*3.1416/180./60; //Conversion to rad
-	  double thetas_calc[3]={theta, theta, theta};
+	  std::vector<double> thetas_calc={theta, theta, theta};
 	  //Progress for the impatient user (Thetas in arcmin)
 	  step+=1;
 	  std::cout<<step<<"/"<<Ntotal<<": Thetas:"<<thetas.at(j)<<" "<<thetas.at(j)<<" "<<thetas.at(j)<<" \r"; //\r is so that only one line is shown

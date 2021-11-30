@@ -2,7 +2,7 @@
 #define APERTURESTATISTICS_HPP
 
 #define CUBATURE true
-#define INTEGRATE4D false //true
+#define INTEGRATE4D true
 //Switches for Parallelization
 //Make sure at the most one is on!!! Also: NO PARALLELIZATION IF GSL IS USED FOR BISPEC INTEGRATION!!!
 #define PARALLEL_INTEGRATION true
@@ -56,7 +56,7 @@ private:
    * @param thetas filter radii[rad]
    * @return Value of product of filter functions
    */
-  double uHat_product(const double& l1, const double& l2, const double& l3, double* thetas);
+  double uHat_product(const double& l1, const double& l2, const double& l3, std::vector<double> thetas);
 
 #if DO_CYCLIC_PERMUTATIONS
   double _uHat_product(const double& l1, const double& l2, const double& l3, double* thetas);
@@ -70,7 +70,7 @@ private:
    * @param thetas filter radii[rad]
    * @return Value of sum of permutations
    */
-  double uHat_product_permutations(const double& l1, const double& l2, const double& l3, double* thetas);
+  double uHat_product_permutations(const double& l1, const double& l2, const double& l3, std::vector<double> thetas);
 
 public: //Once debugging is finished, these members should be private!
 
@@ -102,7 +102,7 @@ public: //Once debugging is finished, these members should be private!
    * @param thetas Aperture radii [rad]
    * @return value of integrand
    */
-  double integrand(const double& l1, const double& l2, const double& phi, double* thetas);
+  double integrand(const double& l1, const double& l2, const double& phi, std::vector<double> thetas);
 
   /**
    * @brief 4d- Integrand of MapMapMap (combining limber-integration with the integrand function)
@@ -115,7 +115,7 @@ public: //Once debugging is finished, these members should be private!
    * @param thetas Aperture radii [rad]
    * @return value of integrand
    */
-  double integrand_4d(const double& l1, const double& l2, const double& phi, const double& z, double* thetas);
+  double integrand_4d(const double& l1, const double& l2, const double& phi, const double& z, std::vector<double> thetas);
 
   /**
    * @brief 4d- Integrand of MapMapMap Covariance (combining limber-integration with the integrand function)
@@ -127,7 +127,8 @@ public: //Once debugging is finished, these members should be private!
    * @param thetas_456 Aperture radii [rad]
    * @return value of integrand
    */
-  double integrand_Gaussian_Aperture_Covariance(const double& l1, const double& l2, const double& phi, const double& z, double* thetas_123, double* thetas_456);
+  double integrand_Gaussian_Aperture_Covariance(const double& l1, const double& l2, const double& phi, const double& z, 
+                                                std::vector<double> thetas_123, std::vector<double> thetas_456);
 
   /**
    * @brief MapMapMap integrand, integrated over phi
@@ -137,7 +138,7 @@ public: //Once debugging is finished, these members should be private!
    * @param thetas Aperture radii [rad]
    * @return value of integrand
    */
-  double integral_phi(double l1, double l2, double* thetas);
+  double integral_phi(double l1, double l2, std::vector<double> thetas);
 
     /**
    * @brief MapMapMap integrand, integrated over phi and l2
@@ -146,7 +147,7 @@ public: //Once debugging is finished, these members should be private!
    * @param thetas Aperture radii [rad]
    * @return value of integrand
    */
-  double integral_l2(double l1, double* thetas);
+  double integral_l2(double l1, std::vector<double> thetas);
 
   /**
    * @brief MapMapMap integrand, integrated over phi, l2 and l1
@@ -154,7 +155,7 @@ public: //Once debugging is finished, these members should be private!
    * @param thetas Aperture radii [rad]
    * @return value of integrand
    */
-  double integral_l1(double* thetas);
+  double integral_l1(std::vector<double> thetas);
 
 
   /**
@@ -238,7 +239,7 @@ public:
    * If CUBATURE is false / not defined, this uses GSL and three separate integrals over each dimension (SLOOOOOW AF)
    * @param thetas Aperture Radii, array should contain 3 values [rad]
    */
-   double MapMapMap(double* thetas);
+   double MapMapMap(std::vector<double> thetas);
 
   /**
    * @brief Gaussian Aperturestatistics covariance calculated from non-linear Power spectrum
@@ -247,7 +248,7 @@ public:
    * @param thetas_456 Aperture Radii, array should contain 3 values [rad]
    * @param survey_area Survey Area [rad^2]
    */
-   double MapMapMap_covariance_Gauss(double* thetas_123, double* thetas_456, double survey_area);
+   double MapMapMap_covariance_Gauss(std::vector<double> thetas_123, std::vector<double> thetas_456, double survey_area);
 };
 
 
@@ -262,10 +263,10 @@ struct ApertureStatisticsContainer
   ApertureStatistics* aperturestatistics;
 
   /** Apertureradii [rad]*/
-  double* thetas;
+  std::vector<double> thetas;
 
   /** For covariance: Apertureradii [rad]*/
-  double* thetas2;
+  std::vector<double> thetas2;
 };
 
 

@@ -68,7 +68,7 @@ int main()
   // Set up thetas
 
   double theta=10./60./180.*3.1416; //10 arcmin in rad
-  double thetas[3]={theta, theta, theta};
+  std::vector<double> thetas={theta, theta, theta};
   apertureStatistics.lMax=10./theta;
   apertureStatistics.lMin=1e-6;
   

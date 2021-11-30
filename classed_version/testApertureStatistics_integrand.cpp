@@ -74,7 +74,7 @@ int main()
   //Set up thetas
   double theta=10./60./180.*2*3.1416; //10 arcmin in rad
 
-  double thetas[3]={theta, theta, theta};
+  std::vector<double> thetas={theta, theta, theta};
 
   
   //Calculate integrand and print result

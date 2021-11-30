@@ -3,6 +3,7 @@
 #include "cubature.h"
 #include <cmath>
 #include <omp.h>
+#include <algorithm>
 
 
 double ApertureStatistics::uHat(const double& eta)
@@ -11,7 +12,7 @@ double ApertureStatistics::uHat(const double& eta)
   return temp*exp(-temp);
 }
 
-double ApertureStatistics::integrand(const double& l1, const double& l2, const double& phi, double* thetas)
+double ApertureStatistics::integrand(const double& l1, const double& l2, const double& phi, std::vector<double> thetas)
 {
   double l3=sqrt(l1*l1+l2*l2+2*l1*l2*cos(phi));
 
@@ -25,7 +26,7 @@ double ApertureStatistics::integrand(const double& l1, const double& l2, const d
   return l1*l2*Bispectrum_->bkappa(l1, l2, l3)*uHat(l1*thetas[0])*uHat(l2*thetas[1])*uHat(l3*thetas[2]);
 }
 
-double ApertureStatistics::integrand_4d(const double& l1, const double& l2, const double& phi, const double& z, double* thetas)
+double ApertureStatistics::integrand_4d(const double& l1, const double& l2, const double& phi, const double& z, std::vector<double> thetas)
 {
   double l3=sqrt(l1*l1+l2*l2+2*l1*l2*cos(phi));
 
@@ -55,13 +56,13 @@ double ApertureStatistics::integrand_4d(const double& l1, const double& l2, cons
     return (_uHat_product(l1, l2, l3, thetas)+_uHat_product(l2, l3, l1, thetas)+_uHat_product(l3, l1, l2, thetas))/3.;
   }
 #else
-  double ApertureStatistics::uHat_product(const double& l1, const double& l2, const double& l3, double* thetas)
+  double ApertureStatistics::uHat_product(const double& l1, const double& l2, const double& l3, std::vector<double> thetas)
   {
     return uHat(l1*thetas[0])*uHat(l2*thetas[1])*uHat(l3*thetas[2]);
   }
 #endif
 
-double ApertureStatistics::uHat_product_permutations(const double& l1, const double& l2, const double& l3, double* thetas)
+double ApertureStatistics::uHat_product_permutations(const double& l1, const double& l2, const double& l3, std::vector<double> thetas)
 {
   double _result;
   _result = uHat_product(l1,l2,l3,thetas);
@@ -74,7 +75,7 @@ double ApertureStatistics::uHat_product_permutations(const double& l1, const dou
 }
 
 double ApertureStatistics::integrand_Gaussian_Aperture_Covariance(const double& l1, const double& l2, const double& phi, const double& z, 
-                                                          double* thetas_123, double* thetas_456)
+                                                          std::vector<double> thetas_123, std::vector<double> thetas_456)
 {
   double l3 = sqrt(l1*l1+l2*l2+2*l1*l2*cos(phi));
   double result = uHat_product(l1, l2, l3, thetas_123);
@@ -123,8 +124,8 @@ int ApertureStatistics::integrand_Gaussian_Aperture_Covariance(unsigned ndim, si
   ApertureStatisticsContainer* container = (ApertureStatisticsContainer*) thisPtr;
 
   ApertureStatistics* apertureStatistics = container->aperturestatistics;
-  double* thetas_123 = container->thetas;
-  double* thetas_456 = container->thetas2;
+  std::vector<double> thetas_123 = container->thetas;
+  std::vector<double> thetas_456 = container->thetas2;
 
   if(npts>1e8)
   std::cout << "Npts: " << npts << " at thetas " << 
@@ -149,7 +150,6 @@ int ApertureStatistics::integrand_Gaussian_Aperture_Covariance(unsigned ndim, si
 #else
       double z=vars[i*ndim+3];
 #endif
-      // if(!is_triangle(ell1, ell2, sqrt(ell1*ell1+ell2*ell2+2*ell1*ell2*cos(phi)))) number_of_zeros++;
   
       value[i]=apertureStatistics->integrand_Gaussian_Aperture_Covariance(ell1, ell2, phi, z, thetas_123, thetas_456);
     }
@@ -163,12 +163,12 @@ double ApertureStatistics::integrand_phi(double phi, void * thisPtr)
   ApertureStatisticsContainer* container = (ApertureStatisticsContainer*) thisPtr;
 
   ApertureStatistics* apertureStatistics = container->aperturestatistics;
-  double* thetas = container->thetas;
+  std::vector<double> thetas = container->thetas;
   
   return apertureStatistics->integrand(apertureStatistics->l1_, apertureStatistics->l2_, phi, thetas);
 }
 
-double ApertureStatistics::integral_phi(double l1, double l2, double* thetas)
+double ApertureStatistics::integral_phi(double l1, double l2, std::vector<double> thetas)
 {
   l1_=l1;
   l2_=l2;
@@ -196,13 +196,13 @@ double ApertureStatistics::integrand_l2(double l2, void * thisPtr)
   ApertureStatisticsContainer* container = (ApertureStatisticsContainer*) thisPtr;
 
   ApertureStatistics* apertureStatistics = container->aperturestatistics;
-  double* thetas = container->thetas;
+  std::vector<double> thetas = container->thetas;
   
   return apertureStatistics->integral_phi(apertureStatistics->l1_, l2, thetas);
 }
 
 
-double ApertureStatistics::integral_l2(double l1, double* thetas)
+double ApertureStatistics::integral_l2(double l1, std::vector<double> thetas)
 {
   l1_=l1;
 
@@ -228,12 +228,12 @@ double ApertureStatistics::integrand_l1(double l1, void* thisPtr)
    ApertureStatisticsContainer* container = (ApertureStatisticsContainer*) thisPtr;
 
   ApertureStatistics* apertureStatistics = container->aperturestatistics;
-  double* thetas = container->thetas;
+  std::vector<double> thetas = container->thetas;
 
   return apertureStatistics->integral_l2(l1, thetas);
 }
 
-double ApertureStatistics::integral_l1(double* thetas)
+double ApertureStatistics::integral_l1(std::vector<double> thetas)
 {
 
   //variables for result and integration error
@@ -263,7 +263,7 @@ int ApertureStatistics::integrand(unsigned ndim, size_t npts, const double* vars
   ApertureStatisticsContainer* container = (ApertureStatisticsContainer*) thisPtr;
 
   ApertureStatistics* apertureStatistics = container->aperturestatistics;
-  double* thetas = container->thetas;
+  std::vector<double> thetas = container->thetas;
 
 #if PARALLEL_INTEGRATION
 #pragma omp parallel for
@@ -290,9 +290,8 @@ int ApertureStatistics::integrand_4d(unsigned ndim, size_t npts, const double* v
   ApertureStatisticsContainer* container = (ApertureStatisticsContainer*) thisPtr;
 
   ApertureStatistics* apertureStatistics = container->aperturestatistics;
-  double* thetas = container->thetas;
+  std::vector<double> thetas = container->thetas;
 
-//  std::cout << "Npts: " << npts << std::endl;
 #if PARALLEL_INTEGRATION
 #pragma omp parallel for
 #endif
@@ -306,15 +305,6 @@ int ApertureStatistics::integrand_4d(unsigned ndim, size_t npts, const double* v
       value[i]=apertureStatistics->integrand_4d(ell1, ell2, phi, z, thetas);
     }
 
-  // for(unsigned int i=0; i<npts; i++)
-  // {
-  //     double ell1=vars[i*ndim];
-  //     double ell2=vars[i*ndim+1];
-  //     double phi=vars[i*ndim+2];
-  //     double z=vars[i*ndim+3];
-
-  //     std::cout << ell1 << ", " << ell2 << ", " << phi << ", " << z << ", " << value[i] << std::endl;
-  // }
   
   return 0; //Success :)
 }
@@ -324,7 +314,6 @@ int ApertureStatistics::integrand_4d(unsigned ndim, size_t npts, const double* v
 
 ApertureStatistics::ApertureStatistics(BispectrumCalculator* Bispectrum)
 {
-  std::cout<<"Started initializing Aperture Statistics"<<std::endl;
 
   // Set bispectrum
   Bispectrum_=Bispectrum;
@@ -333,16 +322,15 @@ ApertureStatistics::ApertureStatistics(BispectrumCalculator* Bispectrum)
   w_l1=gsl_integration_workspace_alloc(1000);
   w_l2=gsl_integration_workspace_alloc(1000);
   w_phi=gsl_integration_workspace_alloc(1000);
-  std::cout<<"Finished initializing Aperture Statistics"<<std::endl;
 }
 
 
 
-double ApertureStatistics::MapMapMap(double* thetas)
+double ApertureStatistics::MapMapMap(std::vector<double> thetas)
 {
 
   //Set maximal l value such, that theta*l <= 10
-  double thetaMin=std::min({thetas[0], thetas[1], thetas[2]});
+  double thetaMin=*std::min_element(std::begin(thetas), std::end(thetas));
   lMax=10./thetaMin;
 
 
@@ -357,7 +345,7 @@ double ApertureStatistics::MapMapMap(double* thetas)
     double vals_min[4]={lMin, lMin, phiMin, 0};
     double vals_max[4]={lMax, lMax, phiMax, Bispectrum_->get_z_max()};
 
-    hcubature_v(1, integrand_4d, &container, 4, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
+    pcubature_v(1, integrand_4d, &container, 4, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
     result *= 27./8.*pow(Bispectrum_->get_om(),3)*pow(100./299792.,5); //account for prefactor of limber integration
 
   #else //do limber integration separately
@@ -373,12 +361,12 @@ double ApertureStatistics::MapMapMap(double* thetas)
   return result/248.050213442;//Divided by (2*pi)³
 }
 
-double ApertureStatistics::MapMapMap_covariance_Gauss(double* thetas_123, double* thetas_456, double survey_area)
+double ApertureStatistics::MapMapMap_covariance_Gauss(std::vector<double> thetas_123, std::vector<double> thetas_456, double survey_area)
 {
 
   //Set maximal l value such, that theta*l <= 10
-  double thetaMin_123=std::min({thetas_123[0], thetas_123[1], thetas_123[2]});
-  double thetaMin_456=std::min({thetas_456[0], thetas_456[1], thetas_456[2]});
+  double thetaMin_123=*std::min_element(std::begin(thetas_123), std::end(thetas_123));
+  double thetaMin_456=*std::min_element(std::begin(thetas_456), std::end(thetas_456));
   double thetaMin=std::max({thetaMin_123,thetaMin_456}); //should increase runtime, if either theta_123 or theta_456 is zero, so is their product
   lMax=10./thetaMin;
 

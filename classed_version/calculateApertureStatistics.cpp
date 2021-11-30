@@ -131,7 +131,7 @@ int main()
 	    {
 
 	      double theta3=thetas.at(k)*3.1416/180./60.;
-	      double thetas_calc[3]={theta1, theta2, theta3};
+	      std::vector<double> thetas_calc={theta1, theta2, theta3};
 
 	      //Progress for the impatient user (Thetas in arcmin)
 	      step+=1;
