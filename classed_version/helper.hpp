@@ -43,4 +43,11 @@ void read_measurement(const std::string& fn, std::vector<std::vector<double>>& t
  */
 double convert_angle_to_rad(const double& value, const std::string& unit="arcmin");
 
+/**
+ * Converts radians to angular unit
+ * @param value Value that is to be converted
+ * @param unit Unit value should have, possible values are "deg" and "arcmin", default is arcmin
+*/
+double convert_rad_to_angle(const double& value, const std::string& unit="arcmin");
+
 #endif //HELPER_HPP

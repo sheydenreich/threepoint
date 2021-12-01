@@ -139,7 +139,7 @@ double convert_angle_to_rad(const double& value, const std::string& unit)
 
     if(unit=="arcmin")
     {
-        conversion = 2.90888e-4;
+        conversion = 2.9088820866e-4;
     }
     else if(unit=="deg")
     {
@@ -152,6 +152,27 @@ double convert_angle_to_rad(const double& value, const std::string& unit)
     else
     {
         std::cerr<<"Unit not correctly specified. Needs to be arcmin, deg, or rad. Exiting.";
+        exit(1);
+    };
+    return conversion*value;
+}
+
+double convert_rad_to_angle(const double& value, const std::string& unit)
+{
+    //Conversion factor
+    double conversion;
+
+    if(unit=="arcmin")
+    {
+        conversion = 3437.74677;
+    }
+    else if(unit=="deg")
+    {
+        conversion = 57.3;
+    }
+    else
+    {
+        std::cerr<<"Unit not correctly specified. Needs to be arcmin or deg. Exiting.";
         exit(1);
     };
     return conversion*value;
