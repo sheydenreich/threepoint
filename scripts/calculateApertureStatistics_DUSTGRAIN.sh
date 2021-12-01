@@ -1,6 +1,6 @@
 DIR_BIN=../cuda_version/
 
-DIR_RESULTS=~/OneDrive/1_Work/ThreePtStatistics/results_HOWLS/
+DIR_RESULTS=~/OneDrive/1_Work/ThreePtStatistics/results_HOWLS/model/
 
 FILE_NZ=../necessary_files/n_z_DUSTGRAIN_euclid_nz_cosmos15_vis24.5cut_fu08fit_dz0.01.cat
 

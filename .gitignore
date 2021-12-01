@@ -37,3 +37,6 @@ docs/
 
 # Emacs buffer
 *~
+
+# Pycache stuff
+python_scripts/__pycache__/*

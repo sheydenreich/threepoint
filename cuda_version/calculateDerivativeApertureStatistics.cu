@@ -189,20 +189,20 @@ Example:
   };
   derivative_parameters.push_back(cosmo.ns);
 
-  // Set w
+  // Set w (here h--> -h because w<0)
   newCosmo = cosmo;
   if (five_point)
   {
-    newCosmo.w = cosmo.w * (1 - 2 * h);
+    newCosmo.w = cosmo.w * (1 + 2 * h);
     cosmos.push_back(newCosmo);
   };
-  newCosmo.w = cosmo.w * (1 - h);
-  cosmos.push_back(newCosmo);
   newCosmo.w = cosmo.w * (1 + h);
+  cosmos.push_back(newCosmo);
+  newCosmo.w = cosmo.w * (1 - h);
   cosmos.push_back(newCosmo);
   if (five_point)
   {
-    newCosmo.w = cosmo.w * (1 + 2 * h);
+    newCosmo.w = cosmo.w * (1 - 2 * h);
     cosmos.push_back(newCosmo);
   };
   derivative_parameters.push_back(cosmo.w);
