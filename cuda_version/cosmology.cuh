@@ -43,5 +43,18 @@ void read_n_of_z(const std::string& fn, const double& dz, const int& n_bins, std
 // Read in of thetas (in arcmin!)
 void read_thetas(const std::string& fn, std::vector<double>& thetas);
 
+struct covarianceParameters
+{
+  double survey_area; //survey area [rad^2]
+  double shapenoise_sigma;
+  double galaxy_density; //rad^-2
+  double power_spectrum_contribution;
+};
+
+// Read in of covariance parameters
+void read_covariance_param(const std::string& fn, covarianceParameters& covPar);
+
+// Output
+std::ostream& operator<<(std::ostream& out, const covarianceParameters& covPar);
 
 #endif // COSMOLOGY_CUH

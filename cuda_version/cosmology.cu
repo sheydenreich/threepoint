@@ -87,6 +87,7 @@ std::ostream& operator<<(std::ostream& out, const cosmology& cosmo)
 }
 
 
+
 void read_n_of_z(const std::string& fn, const double& dz, const int& n_bins, std::vector<double>& nz)
 {
   //Open file
@@ -176,4 +177,72 @@ void read_thetas(const std::string& fn, std::vector<double>& thetas)
 	  thetas.push_back(theta);
 	};
     };
+}
+
+void read_covariance_param(const std::string& fn, covarianceParameters& covPar)
+{
+  
+  // Open file
+  std::ifstream input(fn.c_str());
+  if(input.fail())
+    {
+      std::cout<<"read_covariance_param: Could not open "<<fn<<std::endl;
+      return;
+    };
+  
+  
+  // Read in file
+  std::vector<std::string> parameterNames;
+  std::vector<double> parameterValues;
+  
+  if(input.is_open())
+    {
+      std::string line;
+      while(std::getline(input, line))
+	{
+	  if(line[0]=='#' || line.empty()) continue;
+	  std::string name;
+	  double value;
+	  std::istringstream iss(line);
+	  iss>>name>>value;
+	  parameterNames.push_back(name);
+	  parameterValues.push_back(value);
+	};
+  };
+
+  for(unsigned int i=0; i<parameterNames.size(); i++)
+  {
+    if(parameterNames.at(i)=="survey_area")
+    {
+      covPar.survey_area=parameterValues.at(i);
+    }
+    else if(parameterNames.at(i)=="shapenoise_sigma")
+    {
+      covPar.shapenoise_sigma=parameterValues.at(i);
+    }
+    else if(parameterNames.at(i)=="galaxy_density")
+    {
+      covPar.galaxy_density=parameterValues.at(i);
+    }
+    else
+    {
+      std::cout<<"Cosmology::Parameter file is not in the right format"
+        <<std::endl;
+      return;
+    };
+  };
+  // double survey_area_radsq = covPar.survey_area*pow(M_PI/180.,2);
+  // double galaxy_number_density = covPar.galaxy_density;
+  double power_spectrum_term = pow(covPar.shapenoise_sigma,2)/2./covPar.galaxy_density;
+  covPar.power_spectrum_contribution = power_spectrum_term;
+}
+
+std::ostream& operator<<(std::ostream& out, const covarianceParameters& covPar)
+{
+  out<<"survey area [deg^2]: "<<covPar.survey_area<<std::endl;
+  // out<<"number of galaxies: "<<covPar.n_gal<<std::endl;
+  out<<"galaxy density [arcmin^-2]: "<<covPar.galaxy_density/pow(180*60./M_PI,2)<<std::endl;
+  out<<"shapenoise: "<<covPar.shapenoise_sigma<<std::endl;
+  out<<"power spectrum: "<<covPar.power_spectrum_contribution<<std::endl;
+  return out;
 }
