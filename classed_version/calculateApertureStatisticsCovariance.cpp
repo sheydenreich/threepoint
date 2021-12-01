@@ -12,6 +12,7 @@
 
 
 #include "apertureStatistics.hpp"
+#include "helper.hpp"
 #include <fstream>
 #include <chrono>
 
@@ -89,7 +90,8 @@ int main()
   ApertureStatistics apertureStatistics(&bispectrum);
 
   // Set up thetas for which ApertureStatistics are calculated
-  std::vector<double> thetas{0.5, 1, 2, 4, 8, 16, 32}; //Thetas in arcmin
+  //std::vector<double> thetas{0.5, 1, 2, 4, 8, 16, 32}; //Thetas in arcmin
+  std::vector<double> thetas{2,4,8, 16};
   int N=thetas.size();
   
   // Set up vector for aperture statistics
@@ -107,59 +109,58 @@ else Ntotal = pow(N*(N+1)*(N+2)/6,2);
 
 
 auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
-  //Calculate <MapMapMap>(theta1, theta2, theta3) 
-  //This does the calculation only for theta1<=theta2<=theta3, but because of
-  //the properties of omp collapse, the for-loops are defined starting from 0
-  for (int i=0; i<N; i++)
-    {
-      double theta1=thetas.at(i)*3.1416/180./60; //Conversion to rad
-      for (int j=i; j<N; j++)
+//Calculate <MapMapMap>(theta1, theta2, theta3) 
+for (int i=0; i<N; i++)
+  {
+  double theta1=convert_angle_to_rad(thetas.at(i), "arcmin"); //Conversion to rad
+  for (int j=i; j<N; j++)
 	{
-	  double theta2=thetas.at(j)*3.1416/180./60.;
+	  double theta2=convert_angle_to_rad(thetas.at(j), "arcmin");
 	  for(int k=j; k<N; k++)
 	    {
-	      double theta3=thetas.at(k)*3.1416/180./60.;
+	      double theta3=convert_angle_to_rad(thetas.at(k), "arcmin");
 	      std::vector<double> thetas_123={theta1, theta2, theta3};
 	      if(ONLY_DIAGONAL)
-                {
-		  std::vector<double> thetas_456={theta1, theta2, theta3};
+        {
+		    std::vector<double> thetas_456={theta1, theta2, theta3};
 		  
-		  double MapMapMap=apertureStatistics.MapMapMap_covariance_Gauss(thetas_123,thetas_456,survey_area); //Do calculation
+		    double MapMapMap=apertureStatistics.MapMapMap_covariance_Gauss(thetas_123,thetas_456,survey_area); //Do calculation
 		  
 #if CONSTANT_POWERSPECTRUM
 		  MapMapMap*=P*P*P;
 #endif
-		  // Do assigment (including permutations)
-		  Cov_MapMapMaps.at(i*N*N+j*N+k)=MapMapMap;
-		  Cov_MapMapMaps.at(i*N*N+k*N+j)=MapMapMap;
-		  Cov_MapMapMaps.at(j*N*N+i*N+k)=MapMapMap;
-		  Cov_MapMapMaps.at(j*N*N+k*N+i)=MapMapMap;
-		  Cov_MapMapMaps.at(k*N*N+i*N+j)=MapMapMap;
-		  Cov_MapMapMaps.at(k*N*N+j*N+i)=MapMapMap;
-		  auto end = std::chrono::high_resolution_clock::now();
-		  auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
-		  completed_steps++;
-		  double progress = (completed_steps*1.)/(Ntotal);
+		    // Do assigment (including permutations)
+		    Cov_MapMapMaps.at(i*N*N+j*N+k)=MapMapMap;
+		    Cov_MapMapMaps.at(i*N*N+k*N+j)=MapMapMap;
+		    Cov_MapMapMaps.at(j*N*N+i*N+k)=MapMapMap;
+		    Cov_MapMapMaps.at(j*N*N+k*N+i)=MapMapMap;
+		    Cov_MapMapMaps.at(k*N*N+i*N+j)=MapMapMap;
+		    Cov_MapMapMaps.at(k*N*N+j*N+i)=MapMapMap;
+
+		    auto end = std::chrono::high_resolution_clock::now();
+		    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
+		    completed_steps++;
+		    double progress = (completed_steps*1.)/(Ntotal);
 		  
-		  printf("\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step.",
-			 static_cast<int>(progress*100),
-			 elapsed.count()*1e-9/3600,
-			 (Ntotal-completed_steps)*elapsed.count()*1e-9/3600/completed_steps,
-			 elapsed.count()*1e-9/completed_steps);
+		    printf("\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step.",
+			  static_cast<int>(progress*100),
+			  elapsed.count()*1e-9/3600,
+			  (Ntotal-completed_steps)*elapsed.count()*1e-9/3600/completed_steps,
+			  elapsed.count()*1e-9/completed_steps);
 		  
-                }
+        }
 	      else
-                {
-		  for(int ii=0; ii<N; ii++)
-                    {
-		      double theta4=thetas.at(ii)*3.1416/180./60; //Conversion to rad
+        {
+		    for(int ii=0; ii<N; ii++)
+        {
+		      double theta4=convert_angle_to_rad(thetas.at(ii)); //Conversion to rad
 		      for(int jj=ii; jj<N; jj++)
-                        {
-			  double theta5=thetas.at(jj)*3.1416/180./60.;
-			  for(int kk=jj; kk<N; kk++)
-                            {                          
+          {
+			    double theta5=convert_angle_to_rad(thetas.at(jj));
+			    for(int kk=jj; kk<N; kk++)
+          {                          
                               
-			      double theta6=thetas.at(kk)*3.1416/180./60.;
+			      double theta6=convert_angle_to_rad(thetas.at(kk));
 			      std::vector<double> thetas_456={theta4, theta5, theta6};
 
 			      double MapMapMap=apertureStatistics.MapMapMap_covariance_Gauss(thetas_123,thetas_456,survey_area); //Do calculation
@@ -210,8 +211,8 @@ auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
   if(ONLY_DIAGONAL) outfn="../results_SLICS/MapMapMap_cov_diag.dat";
   else outfn="../results_SLICS/MapMapMap_cov.dat";
 #else
-  if(ONLY_DIAGONAL) outfn="../results_MR/MapMapMap_cov_diag.dat";
-  else outfn="../results_MR/MapMapMap_cov.dat";
+  if(ONLY_DIAGONAL) outfn="MR_like_cov_diag";//"../results_MR/MapMapMap_cov_diag.dat";
+  else outfn="MR_like_cov"; //"../results_MR/MapMapMap_cov.dat";
 #endif
 #if CONSTANT_POWERSPECTRUM
   char sigma_str[10];
@@ -243,9 +244,9 @@ auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
     {
     for (int i=0; i<N; i++)
       {
-        for(int j=0; j<N; j++)
+        for(int j=i; j<N; j++)
 	  {
-            for(int k=0; k<N; k++)
+            for(int k=j; k<N; k++)
 	      {
 		out<<thetas[i]<<" "
 		   <<thetas[j]<<" "
@@ -260,15 +261,15 @@ auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
     {
       for (int i=0; i<N; i++)
 	{
-	  for(int j=0; j<N; j++)
+	  for(int j=i; j<N; j++)
 	    {
-	      for(int k=0; k<N; k++)
+	      for(int k=j; k<N; k++)
 		{
 		  for(int ii=0; ii<N; ii++)
 		    {
-		      for(int jj=0; jj<N; jj++)
+		      for(int jj=ii; jj<N; jj++)
 			{
-			  for(int kk=0; kk<N; kk++)
+			  for(int kk=jj; kk<N; kk++)
 			    {
 			      out<<thetas[i]<<" "
 				 <<thetas[j]<<" "

@@ -11,7 +11,7 @@
 
 // use slics cosmology (false -> millennium cosmology)
 // TODO: Implenment redshift distribution for Euclid-like SLICS
-#define slics true
+#define slics false //true
 #define test_analytical false
 
 #define CONSTANT_POWERSPECTRUM false
