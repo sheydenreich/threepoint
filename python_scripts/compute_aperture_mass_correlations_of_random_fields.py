@@ -1,11 +1,9 @@
-from utility import aperture_mass_computer, create_gaussian_random_field, create_gamma_field
+from utility import aperture_mass_computer, create_gaussian_random_field, create_gamma_field, extract_power_spectrum
 import numpy as np
 import sys
 from tqdm import tqdm
 import multiprocessing.managers
 from multiprocessing import Pool
-from utility import extract_power_spectrum,create_gaussian_random_field
-from file_loader import get_millennium
 import os
 import sys
 import argparse
@@ -201,7 +199,7 @@ def compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,
     return final_results_gamma,final_results_kappa
 
 
-def extract_aperture_masses(shears,npix,thetas,compute_mcross=False,kappa_field=False, periodic_boundary=True):
+def extract_aperture_masses(shears,npix,thetas,compute_mcross=False,kappa_field=False, periodic_boundary=False):
     n_thetas = len(thetas)
     maxtheta = np.max(thetas)
 
@@ -234,7 +232,7 @@ def extract_aperture_masses(shears,npix,thetas,compute_mcross=False,kappa_field=
             print("Error! NAN in map!")
             sys.exit()
 
-    index_maxtheta = int(maxtheta/(global_fieldsize_arcmin)*npix)*2 #take double the aperture radius and cut it off
+    index_maxtheta = int(round(maxtheta/(global_fieldsize_arcmin)*npix*4)) #take 4* the aperture radius and cut it off
     # print(index_maxtheta,npix,maxtheta,global_fieldsize_arcmin)
     if(periodic_boundary):
         index_maxtheta = 0

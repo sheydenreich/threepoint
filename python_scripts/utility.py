@@ -46,6 +46,17 @@ def create_gaussian_random_field(power_spectrum, n_pix=4096,fieldsize=4.*np.pi/1
     #gaussian_map.visualize()
     #plt.show()
     #plt.clf()
+    return gaussian_map.data
+
+def create_gaussian_random_field_array(ell_array, power_spectrum_array, n_pix=4096,fieldsize=4.*np.pi/180,random_seed=None):
+    """creates gaussian random field from given power spectrum, with mean 0 and variance sigma"""
+    gen = GaussianNoiseGenerator(shape=(n_pix,n_pix),side_angle=fieldsize*u.rad)
+    if random_seed is None:
+        random_seed = np.random.randint(0,2**32)
+    gaussian_map = gen.fromConvPower(np.array([ell_array,power_spectrum_array]),seed=random_seed,kind="linear",bounds_error=False,fill_value=0.0)
+    #gaussian_map.visualize()
+    #plt.show()
+    #plt.clf()
     return gaussian_map.data    
 
 def create_gamma_field(kappa_field,Dhat=None):
@@ -64,15 +75,19 @@ class aperture_mass_computer:
         theta_ap: aperture radius of desired aperture mass map (in arcmin)
         fieldsize: fieldsize of desired aperture mass map (in arcmin)
     """
-    def __init__(self,npix,theta_ap,fieldsize):
+    def __init__(self,npix,theta_ap,fieldsize,use_polynomial_filter = False):
         self.theta_ap = theta_ap
         self.npix = npix
         self.fieldsize = fieldsize
+        self.use_polynomial_filter = use_polynomial_filter
+        if(use_polynomial_filter):
+            print("WARNING! Using polynomial filter!")
+
 
         # compute distances to the center in arcmin
         idx,idy = np.indices([self.npix,self.npix])
-        idx = idx - ((self.npix)/2-0.5)
-        idy = idy - ((self.npix)/2-0.5)
+        idx = idx - ((self.npix)/2)
+        idy = idy - ((self.npix)/2)
 
         self.idc = idx + 1.0j*idy
         self.dist = np.abs(self.idc)*self.fieldsize/self.npix
@@ -109,8 +124,13 @@ class aperture_mass_computer:
         output: Q [arcmin^-2]
         """
         thsq = (theta/self.theta_ap)**2
-        res = thsq/(4*np.pi*self.theta_ap**2)*np.exp(-thsq/2)
-        return res
+        if(self.use_polynomial_filter):
+            res = 6/np.pi*thsq**2*(1.-thsq**2)
+            res[(thsq>1)] = 0
+            return res/self.theta_ap**2
+        else:
+            res = thsq/(4*np.pi*self.theta_ap**2)*np.exp(-thsq/2)
+            return res
 
     def Qfunc_array(self):
         """
@@ -444,7 +464,8 @@ class bispectrum_extractor:
 
         return self.prefactor*np.sum(field_k1*field_k2*field_k3)/np.sum(ones_k1*ones_k2*ones_k3)
 
-def extract_power_spectrum(field,fieldsize,bins=20,linlog='log',lmin=100,lmax=10**5):
+def extract_power_spectrum(field,fieldsize,
+    bins=10,linlog='log',lmin=200,lmax=10**4):
     n_pix = field.shape[0]
     pixel_size = (fieldsize/n_pix)**2
     fourier_image = np.fft.fftn(field)
@@ -482,3 +503,91 @@ def is_triangle(l1,l2,l3):
     if(np.abs(l3-l1)>l2 or l3+l1<l2):
         return False
     return True
+
+def extract_aperture_masses(Xs,Ys,shear_catalogue,npix,thetas,fieldsize,compute_mcross=False,save_map=None,same_fieldsize_for_all_theta=False,use_polynomial_filter=False):
+    ac = aperture_mass_computer(npix,1.,fieldsize,use_polynomial_filter=use_polynomial_filter)
+    shears,norm = ac.normalize_shear(Xs,Ys,shear_catalogue)
+    result = extract_aperture_masses_of_field(shears,npix,thetas,fieldsize,norm=norm,ac=ac,compute_mcross=compute_mcross,
+    save_map=save_map,same_fieldsize_for_all_theta=same_fieldsize_for_all_theta,use_polynomial_filter=use_polynomial_filter)
+    return result
+
+
+def extract_aperture_masses_of_field(shears,npix,thetas,fieldsize,norm=None,ac=None,compute_mcross=False,
+    save_map=None,same_fieldsize_for_all_theta=False,use_polynomial_filter=False):
+    n_thetas = len(thetas)
+    maxtheta = np.max(thetas)
+    if ac is None:
+        ac = aperture_mass_computer(npix,1.,fieldsize,use_polynomial_filter=use_polynomial_filter)
+
+ 
+    if(compute_mcross):
+        # result = np.zeros((n_thetas,n_thetas,n_thetas,8))
+        return
+    else:
+        result = np.zeros(n_thetas*(n_thetas+1)*(n_thetas+2)//6)
+
+    aperture_mass_fields = np.zeros((npix,npix,n_thetas))
+    if(compute_mcross):
+        cross_aperture_fields = np.zeros((npix,npix,n_thetas))
+
+    for x,theta in enumerate(thetas):
+        ac.change_theta_ap(theta)
+        if(compute_mcross):
+            map,mx = ac.Map_fft(shears,norm=norm,return_mcross=True,periodic_boundary=False)
+            cross_aperture_fields[:,:,x] = mx
+        else:
+            map = ac.Map_fft(shears,norm=norm,return_mcross=False,periodic_boundary=False)
+
+        aperture_mass_fields[:,:,x] = map
+
+    if(save_map is not None):
+        np.save(save_map,aperture_mass_fields)
+
+    counter = 0
+    for i in range(n_thetas):
+        field1 = aperture_mass_fields[:,:,i]
+        if(compute_mcross):
+            error1 = cross_aperture_fields[:,:,i]
+        for j in range(i,n_thetas):
+            field2 = aperture_mass_fields[:,:,j]
+            if(compute_mcross):
+                error2 = cross_aperture_fields[:,:,j]
+            for k in range(j,n_thetas):                     
+                field3 = aperture_mass_fields[:,:,k]
+                if(compute_mcross):
+                    error3 = cross_aperture_fields[:,:,k]
+
+                if not same_fieldsize_for_all_theta:
+                    maxtheta = thetas[k]
+                
+                if(use_polynomial_filter):
+                    factor_cutoff = 1. #polynomial filter is zero outside of theta_ap
+                else:
+                    factor_cutoff = 4. #exponential filter has 99.8 percent of its power within 4*theta_ap
+
+                index_maxtheta = int(np.round(maxtheta/(fieldsize)*npix*factor_cutoff)) #cut off boundaries
+                
+                field1_cut = field1[index_maxtheta:(npix-index_maxtheta),index_maxtheta:(npix-index_maxtheta)]
+                field2_cut = field2[index_maxtheta:npix-index_maxtheta,index_maxtheta:npix-index_maxtheta]
+                field3_cut = field3[index_maxtheta:npix-index_maxtheta,index_maxtheta:npix-index_maxtheta]
+                if(compute_mcross):
+                    error1_cut = error1[index_maxtheta:npix-index_maxtheta,index_maxtheta:npix-index_maxtheta]
+                    error2_cut = error2[index_maxtheta:npix-index_maxtheta,index_maxtheta:npix-index_maxtheta]
+                    error3_cut = error3[index_maxtheta:npix-index_maxtheta,index_maxtheta:npix-index_maxtheta]
+
+
+
+                if(compute_mcross):
+                    result[i,j,k,0] = np.mean(field1_cut*field2_cut*field3_cut)
+                    result[i,j,k,1] = np.mean(field1_cut*field2_cut*error3_cut)
+                    result[i,j,k,2] = np.mean(field1_cut*error2_cut*field3_cut)
+                    result[i,j,k,3] = np.mean(error1_cut*field2_cut*field3_cut)
+                    result[i,j,k,4] = np.mean(error1_cut*error2_cut*field3_cut)
+                    result[i,j,k,5] = np.mean(error1_cut*field2_cut*error3_cut)
+                    result[i,j,k,6] = np.mean(field1_cut*error2_cut*error3_cut)
+                    result[i,j,k,7] = np.mean(error1_cut*error2_cut*error3_cut)
+                else:
+                    result[counter] = np.mean(field1_cut*field2_cut*field3_cut)
+                counter += 1
+
+    return result
