@@ -5,7 +5,7 @@ GCC = g++
 CFLAGS = -std=c++17 -fopenmp -W -Wall -Wpointer-arith -Wformat-nonliteral -Winit-self -g -fPIC
 
 # define library paths in addition to /usr/lib
-LFLAGS= -L ~/cosmosis/cosmosis/datablock/ -L /usr/local/lib/
+LFLAGS= -L /home/laila/cosmosis/cosmosis/datablock/ -Wl,-R /home/laila/cosmosis/cosmosis/datablock/  -L /usr/local/lib/
 
 # define include
 INCLUDES= -I /usr/local/include/
@@ -45,7 +45,7 @@ $(EXECS): $(OBJS)
 # Build target for every single object file
 # -MMD flag creates a .d file with the same name as the .o file
 %.o: %.cpp
-	$(GCC) $(CFLAGS) $(INCLUDES) -MMD -c $< -o $@ $(LIBS)
+	$(GCC) $(CFLAGS) $(INCLUDES) -MMD -c $< -o $@ $(LFLAGS) $(LIBS)
 
 # Cleaning of directory, removes .o, .x, and .d files
 clean:
