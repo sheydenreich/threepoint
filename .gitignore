@@ -43,6 +43,5 @@ python_scripts/__pycache__/*
 python_scripts/tests.ipynb
 
 # Cosmosis outputs
-cosmosis/Cov_Inv.dat    
-cosmosis/Cov.dat
-cosmosis/output.txt
+cosmosis/outputs/
+cosmosis/__pycache__/
