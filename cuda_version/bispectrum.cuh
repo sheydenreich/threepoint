@@ -27,7 +27,7 @@ extern const double eps;
 extern __constant__ double dev_dz,dev_z_max; //Redshift bin and maximal redshift
 extern double dz, z_max;
 extern __constant__ int dev_n_redshift_bins; // Number of redshift bins
-const int n_redshift_bins = 256;
+const int n_redshift_bins = 100;
 
 // Cosmological Parameters
 extern __constant__ double dev_h,dev_sigma8,dev_omb,dev_omc,dev_ns,dev_w,dev_om,dev_ow,dev_norm;
@@ -245,5 +245,17 @@ __device__ double dev_E(double z);
    * @param z redshift
    */
     double E_inv(double z);
+
+
+   double get_P_k_nonlinear(double* k, double* z, double* value, int npts);
+   __device__ double limber_integrand_triple_power_spectrum(double ell1, double ell2, double ell3, double z, double shapenoise_contribution);
+   __device__ double limber_integrand_prefactor(double z, double g_value);
+   __device__ double om_v_of_z(double z);
+   __device__ double om_m_of_z(double z);
+   __global__ void global_get_P_k_nonlinear(double* k, double* z, double* values);
+   __device__ double limber_integrand(double ell, double z);
+   __global__ void limber_integrand_wrapper(const double* vars, unsigned ndim, int npts, double ell, double* value);
+   static int limber_integrand_wrapper(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
+   double convergence_power_spectrum(double ell);
 
 #endif //BISPECTRUM_CUH
