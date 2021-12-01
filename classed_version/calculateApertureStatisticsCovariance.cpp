@@ -89,7 +89,7 @@ int main()
   ApertureStatistics apertureStatistics(&bispectrum);
 
   // Set up thetas for which ApertureStatistics are calculated
-  std::vector<double> thetas{0.5, 1, 2, 4, 8, 16, 32}; //Thetas in arcmin
+  std::vector<double> thetas{1.17,2.34,4.69,9.37}; //Thetas in arcmin
   int N=thetas.size();
   
   // Set up vector for aperture statistics
@@ -204,14 +204,14 @@ auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
   std::ofstream out;
   
 #if test_analytical
-  if(ONLY_DIAGONAL) outfn="../results_analytical/MapMapMap_cov_diag.dat";
-  else outfn="../results_analytical/MapMapMap_cov.dat";
+  if(ONLY_DIAGONAL) outfn="../results_analytical/MapMapMap_cov_diag";
+  else outfn="../results_analytical/MapMapMap_cov";
 #elif slics
-  if(ONLY_DIAGONAL) outfn="../results_SLICS/MapMapMap_cov_diag.dat";
-  else outfn="../results_SLICS/MapMapMap_cov.dat";
+  if(ONLY_DIAGONAL) outfn="../results_SLICS/MapMapMap_cov_diag";
+  else outfn="../results_SLICS/MapMapMap_cov";
 #else
-  if(ONLY_DIAGONAL) outfn="../results_MR/MapMapMap_cov_diag.dat";
-  else outfn="../results_MR/MapMapMap_cov.dat";
+  if(ONLY_DIAGONAL) outfn="../results_MR/MapMapMap_cov_diag";
+  else outfn="../results_MR/MapMapMap_cov";
 #endif
 #if CONSTANT_POWERSPECTRUM
   char sigma_str[10];

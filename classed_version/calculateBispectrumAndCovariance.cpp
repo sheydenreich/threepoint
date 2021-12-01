@@ -44,6 +44,7 @@ int main()
 
   int n_z=100; //Number of redshift bins for grids
   double z_max=1.1; //maximal redshift
+  if(slics) z_max=3.;
 
   bool fastCalc=false; //whether calculations should be sped up
   BispectrumCalculator bispectrum(cosmo, n_z, z_max, fastCalc);
@@ -137,11 +138,11 @@ int main()
 
   #else
 
-  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/model_bispectrum";
+  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_SLICS/model_bispectrum_2";
   std::ofstream out;
-  std::string outfn2 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/model_bispectrum_gaussian_covariance";
+  std::string outfn2 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_SLICS/model_bispectrum_gaussian_covariance_2";
   std::ofstream out2;
-  std::string outfn3 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/model_powerspectrum";
+  std::string outfn3 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_SLICS/model_powerspectrum_2";
   std::ofstream out3;
 
   #endif
