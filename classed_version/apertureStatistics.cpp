@@ -1,6 +1,7 @@
 #include "apertureStatistics.hpp"
 #include "bispectrum.hpp"
 #include "cubature.h"
+#include "helper.hpp"
 #include <cmath>
 #include <omp.h>
 #include <algorithm>
@@ -129,12 +130,12 @@ int ApertureStatistics::integrand_Gaussian_Aperture_Covariance(unsigned ndim, si
 
   if(npts>1e8)
   std::cout << "Npts: " << npts << " at thetas " << 
-   thetas_123[0]*180*60/3.1416 << ", " <<
-   thetas_123[1]*180*60/3.1416 << ", " <<
-   thetas_123[2]*180*60/3.1416 << ", " <<
-   thetas_456[0]*180*60/3.1416 << ", " <<
-   thetas_456[1]*180*60/3.1416 << ", " <<
-   thetas_456[2]*180*60/3.1416 << ", " <<
+   convert_rad_to_angle(thetas_123[0]) << ", " <<
+   convert_rad_to_angle(thetas_123[1]) << ", " <<
+   convert_rad_to_angle(thetas_123[2]) << ", " <<
+   convert_rad_to_angle(thetas_456[0]) << ", " <<
+   convert_rad_to_angle(thetas_456[1]) << ", " <<
+   convert_rad_to_angle(thetas_456[2]) << ", " <<
    std::endl;
 
 #if PARALLEL_INTEGRATION
@@ -343,10 +344,10 @@ double ApertureStatistics::MapMapMap(std::vector<double> thetas)
 
   #if INTEGRATE4D //do limber integration via cubature
     double vals_min[4]={lMin, lMin, phiMin, 0};
-    double vals_max[4]={lMax, lMax, phiMax, Bispectrum_->get_z_max()};
+    double vals_max[4]={lMax, lMax, phiMax, Bispectrum_->z_max};
 
     pcubature_v(1, integrand_4d, &container, 4, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
-    result *= 27./8.*pow(Bispectrum_->get_om(),3)*pow(100./299792.,5); //account for prefactor of limber integration
+    result *= 27./8.*pow(Bispectrum_->cosmo->om,3)*pow(100./299792.,5); //account for prefactor of limber integration
 
   #else //do limber integration separately
     double vals_min[3]={lMin, lMin, phiMin};
@@ -388,7 +389,7 @@ double ApertureStatistics::MapMapMap_covariance_Gauss(std::vector<double> thetas
 
 #else
   double vals_min[4]={lMin, lMin, phiMin, 0};
-  double vals_max[4]={lMax, lMax, phiMax/2., Bispectrum_->get_z_max()}; //use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
+  double vals_max[4]={lMax, lMax, phiMax/2., Bispectrum_->z_max}; //use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
 
   pcubature_v(1, integrand_Gaussian_Aperture_Covariance, &container, 4, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
 #endif
