@@ -8,10 +8,11 @@
 #include <functional>
 #include <gsl/gsl_integration.h>
 #include <vector>
+#include <map>
 
 // use slics cosmology (false -> millennium cosmology)
 // TODO: Implenment redshift distribution for Euclid-like SLICS
-#define slics false //true
+#define slics true //false //true
 #define test_analytical false
 
 #define CONSTANT_POWERSPECTRUM false
@@ -195,7 +196,7 @@ private:
 
 
   /**
-   * Linear Powerspectrum. Currently uses only linear_pk_eh
+   * Linear Powerspectrum. Either uses the powerspectrum given in constructor (with linear interpolation) or Eisenstein & Hu (without wiggle)
    * @param k Mode [h/Mpc]
    * @return Power spectrum at k [(Mpc/h)^3]
    */
@@ -321,6 +322,8 @@ private:
   double* n_z_array_z; /**< Array for n(z) for interpolating*/
   int len_n_z_array = 100; /**< Length of n(z) array*/
 
+  bool Pk_given; // Whether or not linear matter power spectrum is given by constructor
+  std::map<double, double> linearPk_given; // Given linear matter powerspectrum, key are wavevectors in h/Mpc, values are P(k) at z=0 in Mpc³/h³
 
   // For testing the gamma-integration
   double bispectrum_analytic_single_a(double l1, double l2, double phi, double a);
@@ -513,13 +516,26 @@ double bispectrumCovariance(double ell1, double ell2, double ell3,
   BispectrumCalculator(cosmology cosmo, int n_z, double z_max, bool fast_calculations);
   
   /**
-   * Constructor. Runs initialize and set_cosmology
+   * Constructor from n(z). Runs initialize and set_cosmology
    * @param cosmo cosmology that is to be used
    * @param n_of_z Array containing n(z) from file
    * @param n_z number of redshift bins for grids
    * @param z_max maximal redshift for grids
    */
   BispectrumCalculator(cosmology cosmo, const std::vector<double>& n_of_z, int n_z, double z_max);
+
+
+/**
+ * @brief Constructor from n(z) and linear P(k). Runs initialize and set_cosmology
+ * 
+ * @param cosmo cosmology that is to be used
+ * @param n_of_z Array containing n(z) from file
+ * @param n_z number of redshift bins for grids
+ * @param z_max maximal redshift for grids
+ * @param P_k linear matter power spectrum, keys are wavevectors k [h/Mpc], values are P(k) [Mpc^3/h^3]
+ */
+  BispectrumCalculator(cosmology cosmo, const std::vector<double>& n_of_z, int n_z, double z_max,
+                        const std::map<double, double>& P_k);
 
 
 

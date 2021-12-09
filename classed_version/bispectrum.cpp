@@ -52,6 +52,18 @@
     initialize(cosmo, n_z, z_max_arg, false);
   }
 
+  BispectrumCalculator::BispectrumCalculator(cosmology cosmo, const std::vector<double>& n_of_z, int n_z, double z_max_arg,
+                        const std::map<double, double>& P_k)
+  {
+    Pk_given=true;
+    linearPk_given=P_k;
+    n_of_z_fromFile=true;
+    n_of_z_file=n_of_z;
+    initialize(cosmo, n_z, z_max_arg, false);
+
+  }
+
+
 
   void BispectrumCalculator::initialize(cosmology cosmo, int n_z, double z_max_arg, bool fast_calculations_arg)
   {
@@ -60,16 +72,13 @@
       n_redshift_bins = n_z;
       z_max = z_max_arg;
       dz = z_max / ((double) n_redshift_bins);
-      //  printf("Initializing BispectrumCalculator... Filling the arrays... \n");
       // Allocate memory
-      std::cout<<"Allocating Memory"<<std::endl;
       f_K_array = new double[n_redshift_bins];
       g_array = new double[n_redshift_bins];
       D1_array = new double[n_redshift_bins];
       r_sigma_array = new double[n_redshift_bins];
       n_eff_array = new double[n_redshift_bins];
       ncur_array = new double[n_redshift_bins];
-      std::cout<<"Memory is allocated"<<std::endl;
       set_cosmology(cosmo);
       initialized = true;
   }
@@ -167,49 +176,16 @@
       return c_over_H0*result;
   }
 
-  // void BispectrumCalculator::read_nofz(char filename[255]){
-  //     // TODO: n_z_array_z and n_z_array_data are not allocated yet!
-  //     FILE *fp;
-
-  //     printf("Reading nofz \n");
-
-  //     fp = fopen(filename,"r");
-
-  //     if(fp == NULL){
-  //         perror("Error while opening file. \n");
-  //         exit(EXIT_FAILURE);
-  //     }
-
-  //     for(int i=0;i<len_n_z_array;i++){
-  //         fscanf(fp, "%lf %lf",&n_z_array_z[i],&n_z_array_data[i]);
-  //     }
-
-  //     fclose(fp);
-
-  //     normalize_nofz();
-  //     return;
-  // }
-
-  // void BispectrumCalculator::normalize_nofz(){
-  //     double dz_read = n_z_array_z[1]-n_z_array_z[0];
-  //     double sum_z = 0;
-  //     for(int i=0;i<len_n_z_array;i++){
-  //         sum_z += n_z_array_data[i];
-  //     }
-  //     sum_z *= dz_read;
-  //     for(int i=0;i<len_n_z_array;i++){
-  //         n_z_array_data[i] = n_z_array_data[i]/sum_z;
-  //     }
-  // }
 
   double BispectrumCalculator::n_of_z(double z){
       if(z<=0 || z>=z_max) return 0;
 
       if(n_of_z_fromFile)
       {
-        double dz=z_max/n_redshift_bins;
-        int ix_z=int(z/dz);
-        return n_of_z_file[ix_z];
+        double diff_z = z/z_max*(n_redshift_bins);
+        int ix_z=diff_z;
+        diff_z=diff_z-ix_z;
+        return n_of_z_file[ix_z]*(1.-diff_z)+n_of_z_file[ix_z+1]*diff_z;
       };
 
 
@@ -225,12 +201,6 @@
           if(z>=1 && z<1+dz) return 1./dz;
           else return 0;
       }
-
-      // if(z<0 || z>=z_max) return 0;
-      // double diff_z = z/z_max*(len_n_z_array-1.);
-      // int pos_z = diff_z;
-      // diff_z = diff_z-pos_z;
-      // return n_z_array_data[pos_z]*(1.-diff_z)+n_z_array_data[pos_z+1]*diff_z;
   }
 
   double BispectrumCalculator::bispectrum_analytic_single_a(double l1, double l2, double phi, double a){
@@ -797,6 +767,28 @@
   double BispectrumCalculator::linear_pk(double k)  // linear P(k)   k[h/Mpc], P(k)[(Mpc/h)^3]
   {
   //   if(n_data!=0) return linear_pk_data(k); 
+
+    if(Pk_given)
+    {
+      auto ix=linearPk_given.upper_bound(k); //Upper index limit
+      if(ix==linearPk_given.end())
+      {
+        return (--ix)->second;
+      };
+
+      if(ix==linearPk_given.begin())
+      {
+        return ix->second;
+      };
+
+      auto ix_lower=ix;
+      --ix_lower;
+
+      double diff=(k-ix_lower->first)/(ix->first-ix_lower->first);
+      return diff*ix->second + (1-diff)*ix_lower->second;
+
+    };
+
     return linear_pk_eh(k);
   }
 
