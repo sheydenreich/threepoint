@@ -160,7 +160,7 @@ DATABLOCK_STATUS execute(cosmosis::DataBlock * block, void * config)
 
     std::string section_cosmology="cosmological_parameters"; // Section in pipeline containing cosmo parameters
     COSMOSIS_SAFE_CALL(block->get_val(section_cosmology, std::string("omega_m"), cosmo.om)); // Read in Omega_m
-    COSMOSIS_SAFE_CALL(block->get_val(section_cosmology, std::string("sigma8"), cosmo.sigma8)); // Read in sigma_8
+    COSMOSIS_SAFE_CALL(block->get_val(section_cosmology, std::string("sigma_8"), cosmo.sigma8)); // Read in sigma_8
     COSMOSIS_SAFE_CALL(block->get_val(section_cosmology, std::string("h0"), cosmo.h)); // Read in h
     COSMOSIS_SAFE_CALL(block->get_val(section_cosmology, std::string("omega_b"), cosmo.omb)); // Read in Omega_b
     COSMOSIS_SAFE_CALL(block->get_val(section_cosmology, std::string("n_s"), cosmo.ns)); // Read in n_s
@@ -169,8 +169,29 @@ DATABLOCK_STATUS execute(cosmosis::DataBlock * block, void * config)
     cosmo.omc = cosmo.om-cosmo.omb; // Omega_cdm, this is Omega_m - Omega_b
     cosmo.ow = 1-cosmo.om; // Omega_lambda, for flat universes, this is 1-Omega_m
 
+    // Load power spectrum from the datablock
+    std::vector<double> k;
+    
+    COSMOSIS_SAFE_CALL(block->get_val("matter_power_lin", "k_h", k));
+    
+
+    std::vector<size_t> extents_Pk;
+    COSMOSIS_SAFE_CALL(block->get_array_shape<double>(std::string("matter_power_lin"), std::string("p_k"), extents_Pk));
+
+    std::vector<double> P_k_vals;
+    cosmosis::ndarray<double> P_k(P_k_vals,extents_Pk);
+
+    COSMOSIS_SAFE_CALL(block->get_val("matter_power_lin", "p_k", P_k));
+    
+    std::map<double, double> linearPk;
+    for(int i=0; i<k.size(); i++)
+    {
+        linearPk[k[i]]=P_k(0, i);
+    };
+
+
     // Initialize bispectrum 
-    BispectrumCalculator bispectrum(cosmo, config_data->nz, config_data->zBins, config_data->zMax); // Object for calculating the bispectrum
+    BispectrumCalculator bispectrum(cosmo, config_data->nz, config_data->zBins, config_data->zMax, linearPk); // Object for calculating the bispectrum
 
     // Initialize aperture statistics
     ApertureStatistics apertureStatistics(&bispectrum); // Object for calculating <Map^3>
