@@ -33,14 +33,15 @@ def initPlot(fontsize=20, titlesize=14, labelsize=18, legendsize=14, usetex=True
         "legend.fontsize": legendsize,
         "xtick.labelsize": labelsize,
         "ytick.labelsize": labelsize,
-        "axes.titlesize": titlesize
+        "axes.titlesize": titlesize,
+        "axes.facecolor": 'white'
     }
 
     plt.rcParams.update(properties)
     
 
 
-def finalizePlot(ax, title="", outputFn="", showplot=True,  showlegend=True, tightlayout=True, legendcols=1, loc_legend="best"):
+def finalizePlot(ax, title="", outputFn="", showplot=True,  showlegend=True, tightlayout=True, legendcols=1, loc_legend="best", facecolor="white"):
     """
     Finalizes Plots, saves it and shows it
 
@@ -71,7 +72,7 @@ def finalizePlot(ax, title="", outputFn="", showplot=True,  showlegend=True, tig
         plt.tight_layout()
 
     if(outputFn != ""):
-        plt.savefig(outputFn, dpi=300)
+        plt.savefig(outputFn, dpi=300, facecolor=facecolor)
 
     if(showplot):
         plt.show()
