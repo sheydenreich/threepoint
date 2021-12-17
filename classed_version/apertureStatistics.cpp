@@ -327,7 +327,7 @@ ApertureStatistics::ApertureStatistics(BispectrumCalculator* Bispectrum)
 
 
 
-double ApertureStatistics::MapMapMap(std::vector<double> thetas)
+double ApertureStatistics::MapMapMap(const std::vector<double>& thetas)
 {
 
   //Set maximal l value such, that theta*l <= 10
@@ -359,10 +359,10 @@ double ApertureStatistics::MapMapMap(std::vector<double> thetas)
     result= integral_l1(); 
 #endif
   
-  return result/248.050213442;//Divided by (2*pi)³
+  return result/8/M_PI/M_PI/M_PI;//Divided by (2*pi)³
 }
 
-double ApertureStatistics::MapMapMap_covariance_Gauss(std::vector<double> thetas_123, std::vector<double> thetas_456, double survey_area)
+double ApertureStatistics::MapMapMap_covariance_Gauss(const std::vector<double>& thetas_123, const std::vector<double>& thetas_456, double survey_area)
 {
 
   //Set maximal l value such, that theta*l <= 10

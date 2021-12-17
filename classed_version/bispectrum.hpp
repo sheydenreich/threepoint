@@ -127,14 +127,15 @@ public:
 
 private:
   double eps = 1.e-4; /**< Integration precision*/
+  int n_redshift_bins; /**< Number of redshift bins*/
 
   bool n_of_z_fromFile;            //Whether or not n(z) from file is given
   std::vector<double> n_of_z_file; //Values for n_of_z from file, is allocated and filled in constructor, if n_of_z_fromFile=True
 
   std::vector<double> f_K_array;       // Array of f_k for interpolating, allocated in initialize()
   std::vector<double> g_array;         //Array of lens efficiency g for interpolating, allocated in initialize()
-  std::vector<double> n_z_array_z;     // Array for n(z) for interpolating, allocated in initialize()
-  int len_n_z_array = 100; // Length of n(z) array
+  //std::vector<double> n_z_array_z;     // Array for n(z) for interpolating, allocated in initialize()
+ // int len_n_z_array = 100; // Length of n(z) array
 
   bool Pk_given;                           // Whether or not linear matter power spectrum is given by constructor
   std::map<double, double> linearPk_given; // Given linear matter powerspectrum, key are wavevectors in h/Mpc, values are P(k) at z=0 in Mpc³/h³
@@ -143,7 +144,7 @@ private:
   std::vector<double> r_sigma_array; /**< Array for r_sigma on a grid, is initialized in initialize()*/
   std::vector<double> n_eff_array;   /**< Array for n_eff on a grid, is initialized in initialize()*/
   std::vector<double> ncur_array;
-  int n_redshift_bins; /**< Number of redshift bins*/
+
 public:
   double z_max; /**< Maximal redshift to which D1, r_sigma and n_eff are calculated*/
 private:
@@ -159,7 +160,7 @@ private:
   bool fast_calculations;   // Switch to decide if calculations should be sped up (Doesn't do anything right now!!!)
 
   // These are the necessary integration routines. Avoids overhead, since otherwise the function needs to be casted to a static function every time before use.
-  double A96[96] = {
+  double A96[48] = {
       0.016276744849603, 0.048812985136050, 0.081297495464426, 0.113695850110666,
       0.145973714654897, 0.178096882367619, 0.210031310460567, 0.241743156163840,
       0.273198812591049, 0.304364944354496, 0.335208522892625, 0.365696861472314,
@@ -173,7 +174,7 @@ private:
       0.968326828463264, 0.975939174585137, 0.982517263563015, 0.988054126329624,
       0.992543900323763, 0.995981842987209, 0.998364375863182, 0.999689503883231}; /**<abscissas for 96-point Gauss quadrature */
 
-  double W96[96] = {
+  double W96[48] = {
       0.032550614492363, 0.032516118713869, 0.032447163714064, 0.032343822568576,
       0.032206204794030, 0.032034456231993, 0.031828758894411, 0.031589330770727,
       0.031316425596861, 0.031010332586314, 0.030671376123669, 0.030299915420828,
