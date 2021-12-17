@@ -36,12 +36,5 @@ std::ostream& operator<<(std::ostream& out, const cosmology& cosmo);
 
 
 
-// Read in of n(z) (Assumes linear binning in file!)
-void read_n_of_z(const std::string& fn, const double& dz, const int& n_bins, std::vector<double>& nz);
-
-
-// Read in of thetas (in arcmin!)
-void read_thetas(const std::string& fn, std::vector<double>& thetas);
-
 
 #endif // COSMOLOGY_CUH

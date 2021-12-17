@@ -1,6 +1,7 @@
 #include "gamma.cuh"
 #include "bispectrum.cuh"
 #include "cuda_helpers.cuh"
+#include "helpers.cuh"
 
 
 #include <iostream>
@@ -60,13 +61,12 @@ Example:
   
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);
-  double dz = cosmo.zmax / ((double) n_redshift_bins);
 
   std::vector<double> nz;
   if(nz_from_file)
     {
       // Read in n_z
-      read_n_of_z(nzfn, dz, n_redshift_bins, nz);
+      read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
     };
   
   // Check output file
@@ -96,19 +96,16 @@ Example:
   double vmin = 0;
   double vmax = 1;
 
-  
-
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));
+  copyConstants();
 
 
   if(nz_from_file)
     {
-      set_cosmology(cosmo, dz, nz_from_file, &nz);
+      set_cosmology(cosmo, &nz);
     }
   else
     {
-      set_cosmology(cosmo, dz);
+      set_cosmology(cosmo);
     };
 
   compute_weights_bessel();
