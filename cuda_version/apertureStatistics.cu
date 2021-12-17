@@ -86,7 +86,7 @@ double MapMapMap(const std::vector<double>& thetas, const double& phiMin, const 
   double vals_max[3]={lMax, lMax, phiMax};
 
  
-  pcubature_v(1, integrand_Map3, &container, 3, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
+  hcubature_v(1, integrand_Map3, &container, 3, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
 
   
   return result/8/M_PI/M_PI/M_PI;//Divided by (2*pi)³
