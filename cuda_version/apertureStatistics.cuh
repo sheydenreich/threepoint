@@ -1,7 +1,7 @@
 #ifndef APERTURESTATISTICS_CUH
 #define APERTURESTATISTICS_CUH
 
-
+#include <vector>
 
 /**
  * @file apertureStatistics.cuh
@@ -22,18 +22,18 @@ __device__ double uHat(double eta);
 
 
   /**
-   * @brief Integrand of MapMapMap
+   * @brief Kernel for Integrand of MapMapMap
    * @warning This is different from Eq 58 in Schneider, Kilbinger & Lombardi (2003) because the Bispectrum is defined differently!
    * \f$ \ell_1 \ell_2 b(\ell_1, \ell_2, \phi)[\hat{u}(\theta_1\ell_1)\hat{u}(\theta_2\ell_2)\hat{u}(\theta_3\ell_3)]\f$
-   * @param l1 ell1
-   * @param l2 ell2
-   * @param phi angle between l1 and l2 [rad]
+   * @param vars Integration parameters (ell1 [1/rad], ell2 [1/rad], phi [rad])
+   * @param ndim Number of dimensions of integral (here: 3)
+   * @param npts Number of integration points
    * @param theta1 Aperture radii [rad]
    * @param theta2 Aperture radii [rad]
    * @param theta3 Aperture radii [rad]
    * @return value of integrand
    */
-__global__ void integrand_Map3(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double* value);
+__global__ void integrand_Map3_kernel(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double* value);
 
 
   /**
@@ -47,26 +47,26 @@ __global__ void integrand_Map3(const double* vars, unsigned ndim, int npts, doub
    * @param value Value of integral
    * @return 0 on success
    */
-int integral_Map3(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
+int integrand_Map3(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
 
   /**
    * @brief Aperturestatistics calculated from Bispectrum
    * @warning This is NOT Eq 58 from Schneider, Kilbinger & Lombardi (2003), but a third of that, due to the bispectrum definition
-   * This uses the hcubature_v routine from the cubature library
+   * This uses the pcubature_v routine from the cubature library
    * @param thetas Aperture Radii, array should contain 3 values [rad]
-   * @param phiMin Minimal phi [rad]
-   * @param phiMax Maximal phi [rad]
-   * @param lMin Minimal ell
+   * @param phiMin Minimal phi [rad] (optional, default: 0)
+   * @param phiMax Maximal phi [rad] (optional, default: 6.283185307)
+   * @param lMin Minimal ell (optional, default: 1)
    */
-double MapMapMap(double* thetas, const double& phiMin, const double& phiMax, const double& lMin);
+double MapMapMap(const std::vector<double>& thetas, const double& phiMin=0, const double& phiMax=6.283185307, const double& lMin=1);
   
+
+
 
 struct ApertureStatisticsContainer
 {
   /** Apertureradii [rad]*/
-  double theta1;
-  double theta2;
-  double theta3;
+  std::vector<double> thetas;
 };
 
 

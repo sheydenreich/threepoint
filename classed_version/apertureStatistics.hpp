@@ -81,7 +81,7 @@ public: //Once debugging is finished, these members should be private!
   /*****Integral borders******/
 
   double phiMin = 0;       //!< Minimal phi [rad]
-  double phiMax = 6.28318; //!< Maximal phi [rad]
+  double phiMax = 2*M_PI;  //!< Maximal phi [rad]
   double lMin = 1;         //!<Minimal ell
   double lMax = 1e4;       //!< Maximal ell (Overwritten by 10/min(theta) in inegration)
 
@@ -227,7 +227,7 @@ public:
    * If CUBATURE is false / not defined, this uses GSL and three separate integrals over each dimension (SLOOOOOW AF)
    * @param thetas Aperture Radii, array should contain 3 values [rad]
    */
-  double MapMapMap(std::vector<double> thetas);
+  double MapMapMap(const std::vector<double>& thetas);
 
   /**
    * @brief Gaussian Aperturestatistics covariance calculated from non-linear Power spectrum
@@ -236,7 +236,7 @@ public:
    * @param thetas_456 Aperture Radii, array should contain 3 values [rad]
    * @param survey_area Survey Area [rad^2]
    */
-  double MapMapMap_covariance_Gauss(std::vector<double> thetas_123, std::vector<double> thetas_456, double survey_area);
+  double MapMapMap_covariance_Gauss(const std::vector<double>& thetas_123, const std::vector<double>& thetas_456, double survey_area);
 };
 
 /**
