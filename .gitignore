@@ -49,3 +49,4 @@ cosmosis/__pycache__/
 # Results / Plots
 *.png
 *.dat
+*.npy
