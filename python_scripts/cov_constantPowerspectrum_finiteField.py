@@ -39,7 +39,7 @@ class cov_constantPowerspectrum_finiteField:
         """
 
         # Set shapenoise
-        self.sigma=sigma
+        self.sigma=sigma/np.sqrt(2)
 
         # Determine conversion from "unit" to "rad"
         # (In python 3.10 this could be a match/case statement, but this is not released yet)
@@ -197,7 +197,7 @@ class cov_constantPowerspectrum_finiteField:
         T1+=self.term1(thetas[0], thetas[1], thetas[2], thetas[5], thetas[4], thetas[3])
 
 
-        return T1*self.Pcubed/2/np.pi
+        return T1*self.Pcubed
 
     def term2_total(self, thetas, unit='rad'):
         """Calculates all Permutations of L2
@@ -241,7 +241,7 @@ class cov_constantPowerspectrum_finiteField:
         T2+=self.term2(thetas[2], thetas[1], thetas[0], thetas[3], thetas[4], thetas[5])
         T2+=self.term2(thetas[2], thetas[1], thetas[0], thetas[4], thetas[3], thetas[5])
         T2+=self.term2(thetas[2], thetas[1], thetas[0], thetas[5], thetas[3], thetas[4])
-        return T2*self.Pcubed/2/np.pi
+        return T2*self.Pcubed
 
 
     def covariance(self, thetas, unit='rad'):
