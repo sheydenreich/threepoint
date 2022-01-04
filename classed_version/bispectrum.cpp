@@ -1030,3 +1030,23 @@ double BispectrumCalculator::om_v_of_z(double z)
   double aa = 1. / (1 + z);
   return cosmo->ow * pow(aa, 3) / (cosmo->om + aa * (aa * aa * cosmo->ow + (1 - cosmo->om - cosmo->ow)));
 }
+
+
+double BispectrumCalculator::GQ96_of_Pk(double a, double b, double ell)
+{/* 96-pt Gauss qaudrature integrates bdelta(x,ells) from x=a to b */
+  int i;
+  double cx, dx, q;
+  cx = (a + b) / 2;
+  dx = (b - a) / 2;
+  q = 0;
+  for (i = 0; i < 48; i++)
+    q += W96[i] * (limber_integrand_power_spectrum(ell, cx - dx * A96[i], true) + limber_integrand_power_spectrum(ell, cx + dx * A96[i], true));
+  return (q * dx);
+
+}
+
+double BispectrumCalculator::Pell(double ell)
+{
+  double result = GQ96_of_Pk(0, z_max, ell);
+  return result;
+}

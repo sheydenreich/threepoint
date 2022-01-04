@@ -3,8 +3,8 @@
 
 #define CUBATURE true
 #define INTEGRATE4D true
-//Switches for Parallelization
-//Make sure at the most one is on!!! Also: NO PARALLELIZATION IF GSL IS USED FOR BISPEC INTEGRATION!!!
+// Switches for Parallelization
+// Make sure at the most one is on!!! Also: NO PARALLELIZATION IF GSL IS USED FOR BISPEC INTEGRATION!!!
 #define PARALLEL_INTEGRATION true
 #define PARALLEL_RADII false
 #include "bispectrum.hpp"
@@ -12,7 +12,7 @@
 #define DO_CYCLIC_PERMUTATIONS false
 
 /**
- * @brief Class computing <Map^3> from a bispectrum. 
+ * @brief Class computing <Map^3> from a bispectrum.
  * This class takes a matter bispectrum as input and computes the 3pt Aperture Statistics
  */
 class ApertureStatistics
@@ -67,23 +67,23 @@ private:
    */
   double uHat_product_permutations(const double &l1, const double &l2, const double &l3, std::vector<double> thetas);
 
-public: //Once debugging is finished, these members should be private!
+public: // Once debugging is finished, these members should be private!
   /**
-   * @brief Bispectrum for which MapMapMap is calculated 
+   * @brief Bispectrum for which MapMapMap is calculated
    */
   BispectrumCalculator *Bispectrum_;
 
   /*****Temporary variables for integrations****/
 
-  double l1_; //!<Temporary ell1
-  double l2_; //!<Temporary ell2
+  double l1_; //!< Temporary ell1
+  double l2_; //!< Temporary ell2
 
   /*****Integral borders******/
 
-  double phiMin = 0;       //!< Minimal phi [rad]
-  double phiMax = 2*M_PI;  //!< Maximal phi [rad]
-  double lMin = 1;         //!<Minimal ell
-  double lMax = 1e4;       //!< Maximal ell (Overwritten by 10/min(theta) in inegration)
+  double phiMin = 0;        //!< Minimal phi [rad]
+  double phiMax = 2 * M_PI; //!< Maximal phi [rad]
+  double lMin = 1;          //!< Minimal ell
+  double lMax = 1e4;        //!< Maximal ell (Overwritten by 10/min(theta) in inegration)
 
   /**
    * @brief Integrand of MapMapMap
@@ -227,7 +227,7 @@ public:
    * If CUBATURE is false / not defined, this uses GSL and three separate integrals over each dimension (SLOOOOOW AF)
    * @param thetas Aperture Radii, array should contain 3 values [rad]
    */
-  double MapMapMap(const std::vector<double>& thetas);
+  double MapMapMap(const std::vector<double> &thetas);
 
   /**
    * @brief Gaussian Aperturestatistics covariance calculated from non-linear Power spectrum
@@ -236,7 +236,37 @@ public:
    * @param thetas_456 Aperture Radii, array should contain 3 values [rad]
    * @param survey_area Survey Area [rad^2]
    */
-  double MapMapMap_covariance_Gauss(const std::vector<double>& thetas_123, const std::vector<double>& thetas_456, double survey_area);
+  double MapMapMap_covariance_Gauss(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456, double survey_area);
+
+  /**
+   * @brief Geometric factor in covariance calculation for square survey, Eq. 137 in document.pdf
+   *
+   * @param ellX first component of wavevector [1/rad]
+   * @param ellY second component of wavevector [1/rad]
+   * @param thetaMax sidelength of survey [rad]
+   * @return double
+   */
+  double G(double ellX, double ellY, double thetaMax);
+
+  double integrand_L1(double ell1X, double ell1Y, double ell2X, double ell2Y, double ell3X, double ell3Y, double thetaMax,
+                      double theta1, double theta2, double theta3, double theta4, double theta5, double theta6);
+
+  double integrand_L2_A(double ell, double theta1, double theta2);
+
+  double integrand_L2_B(double ellX, double ellY, double thetaMax, double theta1, double theta2);
+
+  static int integrand_L1(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
+
+  static int integrand_L2_A(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
+
+  static int integrand_L2_B(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
+
+
+  double L1(double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double thetaMax);
+
+  double L2(double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double thetaMax);
+
+  double Cov(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax);
 };
 
 /**
@@ -253,6 +283,9 @@ struct ApertureStatisticsContainer
 
   /** For covariance: Apertureradii [rad]*/
   std::vector<double> thetas2;
+
+  /** For covariance: Sidelength of square survey [rad]*/
+  double thetaMax;
 };
 
-#endif //APERTURESTATISTICS_HPP
+#endif // APERTURESTATISTICS_HPP

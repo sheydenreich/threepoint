@@ -24,6 +24,7 @@ int main()
   struct cosmology cosmo;
   int n_los = 1; //number of lines-of-sight considered for covariance
   double survey_area;
+  double thetaMax;
   if (slics)
   {
     printf("using SLICS cosmology...\n");
@@ -36,6 +37,7 @@ int main()
     cosmo.om = cosmo.omb + cosmo.omc;
     cosmo.ow = 1 - cosmo.om;
     survey_area = 10. * 10. * n_los * pow(M_PI / 180., 2);
+    thetaMax = convert_angle_to_rad(10, "deg");
   }
   else
   {
@@ -49,6 +51,7 @@ int main()
     cosmo.om = cosmo.omc + cosmo.omb;
     cosmo.ow = 1. - cosmo.om;
     survey_area = 4. * 4. * n_los * pow(M_PI / 180., 2);
+    thetaMax = convert_angle_to_rad(4, "deg");
   }
 
 #if CONSTANT_POWERSPECTRUM

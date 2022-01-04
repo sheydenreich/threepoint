@@ -506,6 +506,12 @@ private:
    * @param z redshift
    */
   double om_v_of_z(double z);
+
+
+  double GQ96_of_Pk(double a, double b, double ell);
+
+public:
+  double Pell(double ell);
 };
 
 struct BispectrumContainer
