@@ -110,7 +110,7 @@ void BispectrumCalculator::initialize(cosmology* cosmo_arg, int n_z, double z_ma
 
 void BispectrumCalculator::set_cosmology(cosmology* cosmo_arg)
 {
-  std::cout << "Started setting cosmology" << std::endl;
+  std::cerr << "Started setting cosmology" << std::endl;
   // Necessary temporary variables
   double z_now;
   // Assign the correct cosmology
@@ -146,12 +146,12 @@ void BispectrumCalculator::set_cosmology(cosmology* cosmo_arg)
   norm = 1.;
   norm *= cosmo->sigma8 / sigmam(8., 0);
   // Computation of non-linear scales on a grid
-  printf("Computing nonlinear scales...\n");
+  std::cerr<<"Computing nonlinear scales..."<<std::endl;
   // Fill the allocated arrays
   for (int i = 0; i < n_redshift_bins; i++)
   {
-    printf("\b\b\b\b\b\b\b\b %3d/%3d", i, n_redshift_bins);
-    fflush(stdout);
+    fprintf(stderr, "\b\b\b\b\b\b\b\b %3d/%3d", i, n_redshift_bins);
+    fflush(stderr);
     z_now = i * dz;
 
     D1_array[i] = lgr(z_now) / lgr(0.);           // linear growth factor
@@ -160,7 +160,7 @@ void BispectrumCalculator::set_cosmology(cosmology* cosmo_arg)
     n_eff_array[i] = -3. + 2. * pow(D1_array[i] * sigmam(r_sigma_array[i], 2), 2); // n_eff in Eq.(B2)
     ncur_array[i] = d1 * d1 + 4. * sigmam(r_sigma_array[i], 3) * pow(D1_array[i], 2);
   }
-  std::cout << "Finished setting Cosmology" << std::endl;
+  std::cerr << "Finished setting Cosmology" << std::endl;
 }
 
 double BispectrumCalculator::bispec(double k1, double k2, double k3, double z, int idx, double didx) // non-linear BS w/o baryons [(Mpc/h)^6]
@@ -1047,6 +1047,14 @@ double BispectrumCalculator::GQ96_of_Pk(double a, double b, double ell)
 
 double BispectrumCalculator::Pell(double ell)
 {
+  #if CONSTANT_POWERSPECTRUM
+  double sigma=0.3;
+  double n = 4096 / (10 * M_PI /180);
+  n= n*n;
+  //std::cerr<<"n:"<<n<<std::endl;
+  double result = 0.5*sigma*sigma/n;
+  #else
   double result = GQ96_of_Pk(0, z_max, ell);
+  #endif
   return result;
 }

@@ -21,8 +21,12 @@ int main()
     double z_max = 1.1;
     int n_z = 100;
 
-    double thetaMax = 10;
+    double thetaMax = 8.93;
     std::cerr << "Fieldsize:" << thetaMax << "x" << thetaMax << "deg^2" << std::endl;
+
+    #if CONSTANT_POWERSPECTRUM
+    std::cerr << "Warning: Using constant powerspectrum" <<std::endl;
+    #endif
 
     thetaMax = convert_angle_to_rad(thetaMax, "deg"); // Convert to radians
 
@@ -70,6 +74,7 @@ int main()
                             double Cov_MapMapMap = apertureStatistics.Cov(thetas_123, thetas_456, thetaMax);
 
                             Cov_MapMapMaps.push_back(Cov_MapMapMap);
+                            std::cerr<<Cov_MapMapMap<<std::endl;
 
                             // Progress for the impatient user
                             auto end = std::chrono::high_resolution_clock::now();
@@ -78,7 +83,7 @@ int main()
                             double progress = (completed_steps * 1.) / (N_total);
 
 
-                            printf("\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step. Current thetas: (%.1f, %.1f, %.1f, %.1f, %.1f, %.1f)",
+                            fprintf(stderr, "\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step. Current thetas: (%.1f, %.1f, %.1f, %.1f, %.1f, %.1f)",
                                    static_cast<int>(progress * 100),
                                    elapsed.count() * 1e-9 / 3600,
                                    (N_total - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,

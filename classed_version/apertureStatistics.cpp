@@ -128,7 +128,7 @@ int ApertureStatistics::integrand_Gaussian_Aperture_Covariance(unsigned ndim, si
   std::vector<double> thetas_456 = container->thetas2;
 
   if (npts > 1e8)
-    std::cout << "Npts: " << npts << " at thetas " << convert_rad_to_angle(thetas_123[0]) << ", " << convert_rad_to_angle(thetas_123[1]) << ", " << convert_rad_to_angle(thetas_123[2]) << ", " << convert_rad_to_angle(thetas_456[0]) << ", " << convert_rad_to_angle(thetas_456[1]) << ", " << convert_rad_to_angle(thetas_456[2]) << ", " << std::endl;
+    std::cerr << "Npts: " << npts << " at thetas " << convert_rad_to_angle(thetas_123[0]) << ", " << convert_rad_to_angle(thetas_123[1]) << ", " << convert_rad_to_angle(thetas_123[2]) << ", " << convert_rad_to_angle(thetas_456[0]) << ", " << convert_rad_to_angle(thetas_456[1]) << ", " << convert_rad_to_angle(thetas_456[2]) << ", " << std::endl;
 
 #if PARALLEL_INTEGRATION
 #pragma omp parallel for
@@ -388,17 +388,80 @@ double ApertureStatistics::MapMapMap_covariance_Gauss(const std::vector<double> 
 
 double ApertureStatistics::G(double ellX, double ellY, double thetaMax)
 {
-  return 2.0 / (ellX * ellX * ellY * ellY) * (1 - cos(ellX * thetaMax)) * (1 - cos(ellY * thetaMax));
+  double tmp1=0.5*ellX*thetaMax;
+  double tmp2=0.5*ellY*thetaMax;
+
+  double j01, j02;
+  if(abs(tmp1)<=0.01)
+  {
+    j01=1;
+  }
+  else
+  {
+    j01=1/tmp1;
+  }
+  // else
+  // {
+  // j01=sin(tmp1)/tmp1;
+  // }
+
+
+  if(abs(tmp2)<=0.01)
+  {
+     j02=1;
+  }
+  else 
+  {
+     j02=1/tmp2;
+  }
+  //else
+  //{
+  // j02=sin(tmp2)/tmp2;
+  // }
+
+  // j01=sin(tmp1)/tmp1;
+  // j02=sin(tmp2)/tmp2;
+
+  // if(!isfinite(j01)) j01=1;
+  // if(!isfinite(j02)) j02=1;
+
+  return j01*j01*j02*j02;
 };
 
 double ApertureStatistics::integrand_L1(double ell1X, double ell1Y, double ell2X, double ell2Y, double ell3X, double ell3Y, double thetaMax,
                                         double theta1, double theta2, double theta3, double theta4, double theta5, double theta6)
 {
-  double Gfactor = G(ell1X + ell2X + ell3X, ell1Y + ell2Y + ell3Y, thetaMax);
+  double Gfactor, factor1, factor2;
+  double sumX=ell1X+ell2X+ell3X; //+ ell2X + ell3X);
+  double sumY=ell1Y+ell2Y+ell3Y; //+ ell2Y + ell3Y);
+
+  if (abs(sumX*thetaMax)<=1e-6)
+  {
+    factor1=1;
+  }
+  else
+  {
+   factor1=sin(sumX*thetaMax)/(sumX*thetaMax);
+  }
+    if (abs(sumY*thetaMax)<=1e-6)
+  {
+    factor2=1;
+  }
+  else
+  {
+   factor2= sin(sumY*thetaMax)/(sumY*thetaMax);
+  }
+  Gfactor=factor1*factor1*factor2*factor2;
+  fprintf(stdout, "%f, %f, %f, %f, %f, %f \n", sumX, sumY, sumX*thetaMax, sumY*thetaMax, sumX*sumY*thetaMax*thetaMax, Gfactor);
+
+
+  //G(ell1X + ell2X + ell3X, ell1Y + ell2Y + ell3Y, thetaMax);
 
   double ell1 = sqrt(ell1X * ell1X + ell1Y * ell1Y);
   double ell2 = sqrt(ell2X * ell2X + ell2Y * ell2Y);
   double ell3 = sqrt(ell3X * ell3X + ell3Y * ell3Y);
+
+  if(ell1==0 || ell2==0 || ell3==0) return 0;
 
   double result = Bispectrum_->Pell(ell1) * Bispectrum_->Pell(ell2) * Bispectrum_->Pell(ell3);
   result *= uHat(ell1 * theta1) * uHat(ell2 * theta2) * uHat(ell3 * theta3);
@@ -428,7 +491,7 @@ double ApertureStatistics::integrand_L2_B(double ellX, double ellY, double theta
 
 int ApertureStatistics::integrand_L1(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value)
 {
-  std::cerr<<npts<<std::endl;
+
   if (fdim != 1)
   {
     std::cerr << "ApertureStatistics::integrand_L1: Wrong number of function dimensions" << std::endl;
@@ -438,6 +501,12 @@ int ApertureStatistics::integrand_L1(unsigned ndim, size_t npts, const double *v
   ApertureStatisticsContainer *container = (ApertureStatisticsContainer *)thisPtr;
 
   ApertureStatistics *apertureStatistics = container->aperturestatistics;
+
+  if(npts>1e8)
+  {
+    std::cerr<<"WARNING: Large Number of points:"<<npts<<" "
+    <<std::endl;
+  };
 
 #pragma omp parallel for
   for (unsigned int i = 0; i < npts; i++)
@@ -514,11 +583,16 @@ double ApertureStatistics::L1(double theta1, double theta2, double theta3, doubl
   container.thetaMax = thetaMax;
   double result, error;
 
-  double vals_min[6] = {lMin, lMin, lMin, lMin, lMin, lMin};
-  double vals_max[6] = {lMax, lMax, lMax, lMax, lMax, lMax};
-  hcubature_v(1, integrand_L1, &container, 6, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
-  std::cerr<<result<<std::endl;
-  return 2*result;
+//  double vals_min[6] = {1e-1, 1e-1, 1e-1, 1e-1, 1e-1, 1e-1};
+  double vals_min[6] = {-1e2, -1e2, -1e2, -1e2, -1e2, -1e2};
+  double vals_max[6] = {1e2, 1e2, 1e2, 1e2, 1e2, 1e2};
+  int errcode=hcubature_v(1, integrand_L1, &container, 6, vals_min, vals_max, 0, 0, 0.2, ERROR_L1, &result, &error);
+  if(errcode!=0)
+  {
+    std::cerr<<"errcode in hcubature:"<<errcode<<std::endl;
+  };
+  std::cerr<<"res L1:"<<result<<std::endl;
+  return result;
 }
 
 double ApertureStatistics::L2(double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double thetaMax)
@@ -534,8 +608,8 @@ double ApertureStatistics::L2(double theta1, double theta2, double theta3, doubl
   
   double result_A1, error_A1;
 
-  double vals_min1[1] = {lMin};
-  double vals_max1[1] = {lMax};
+  double vals_min1[1] = {1e-1};
+  double vals_max1[1] = {1e4};
   hcubature_v(1, integrand_L2_A, &container, 1, vals_min1, vals_max1, 0, 0, 1e-3, ERROR_L1, &result_A1, &error_A1);
 
 // Integral over ell 3
@@ -552,12 +626,11 @@ double ApertureStatistics::L2(double theta1, double theta2, double theta3, doubl
   
   double result_B, error_B;
 
-  double vals_min2[2] = {lMin, lMin};
-  double vals_max2[2] = {lMax, lMax};
+  double vals_min2[2] = {-1e4, -1e4};
+  double vals_max2[2] = {1e4, 1e4};
   hcubature_v(1, integrand_L2_B, &container, 2, vals_min2, vals_max2, 0, 0, 1e-3, ERROR_L1, &result_B, &error_B);
 
-  double result=2*result_A1*result_A2*result_B;
-  //std::cerr<<result<<std::endl;
+  double result=result_A1*result_A2*result_B;
   return result;
 }
 
@@ -570,19 +643,20 @@ double ApertureStatistics::Cov(const std::vector<double>& thetas123, const std::
   term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(0), thetas456.at(1), thetaMax);
   term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
 
-  term1/=pow(2*M_PI, 6)*thetaMax*thetaMax;
+  term1/=pow(2*M_PI, 6);
 
-  double term2 = L2(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
-  term2 += L2(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
-  term2 += L2(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
-  term2 += L2(thetas123.at(0), thetas123.at(2), thetas123.at(1), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
-  term2 += L2(thetas123.at(0), thetas123.at(2), thetas123.at(1), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
-  term2 += L2(thetas123.at(0), thetas123.at(2), thetas123.at(1), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
-  term2 += L2(thetas123.at(1), thetas123.at(2), thetas123.at(0), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
-  term2 += L2(thetas123.at(1), thetas123.at(2), thetas123.at(0), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
-  term2 += L2(thetas123.at(1), thetas123.at(2), thetas123.at(0), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
+  // double term2 = L2(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
+  // term2 += L2(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
+  // term2 += L2(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
+  // term2 += L2(thetas123.at(0), thetas123.at(2), thetas123.at(1), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
+  // term2 += L2(thetas123.at(0), thetas123.at(2), thetas123.at(1), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
+  // term2 += L2(thetas123.at(0), thetas123.at(2), thetas123.at(1), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
+  // term2 += L2(thetas123.at(1), thetas123.at(2), thetas123.at(0), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
+  // term2 += L2(thetas123.at(1), thetas123.at(2), thetas123.at(0), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
+  // term2 += L2(thetas123.at(1), thetas123.at(2), thetas123.at(0), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
 
-  term2/=pow(2*M_PI, 4)*thetaMax*thetaMax;
+  // term2/=pow(2*M_PI, 4);
 
-  return term1+term2;
+  return term1;
+  //return term1+term2;
 }
