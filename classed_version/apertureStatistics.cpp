@@ -392,38 +392,25 @@ double ApertureStatistics::G(double ellX, double ellY, double thetaMax)
   double tmp2=0.5*ellY*thetaMax;
 
   double j01, j02;
-  if(abs(tmp1)<=0.01)
+  if(abs(tmp1)<=1e-6)
   {
     j01=1;
   }
   else
   {
-    j01=1/tmp1;
+  j01=sin(tmp1)/tmp1;
   }
-  // else
-  // {
-  // j01=sin(tmp1)/tmp1;
-  // }
 
 
-  if(abs(tmp2)<=0.01)
+  if(abs(tmp2)<=1e-6)
   {
      j02=1;
   }
-  else 
+  else
   {
-     j02=1/tmp2;
+  j02=sin(tmp2)/tmp2;
   }
-  //else
-  //{
-  // j02=sin(tmp2)/tmp2;
-  // }
 
-  // j01=sin(tmp1)/tmp1;
-  // j02=sin(tmp2)/tmp2;
-
-  // if(!isfinite(j01)) j01=1;
-  // if(!isfinite(j02)) j02=1;
 
   return j01*j01*j02*j02;
 };
@@ -431,31 +418,7 @@ double ApertureStatistics::G(double ellX, double ellY, double thetaMax)
 double ApertureStatistics::integrand_L1(double ell1X, double ell1Y, double ell2X, double ell2Y, double ell3X, double ell3Y, double thetaMax,
                                         double theta1, double theta2, double theta3, double theta4, double theta5, double theta6)
 {
-  double Gfactor, factor1, factor2;
-  double sumX=ell1X+ell2X+ell3X; //+ ell2X + ell3X);
-  double sumY=ell1Y+ell2Y+ell3Y; //+ ell2Y + ell3Y);
-
-  if (abs(sumX*thetaMax)<=1e-6)
-  {
-    factor1=1;
-  }
-  else
-  {
-   factor1=sin(sumX*thetaMax)/(sumX*thetaMax);
-  }
-    if (abs(sumY*thetaMax)<=1e-6)
-  {
-    factor2=1;
-  }
-  else
-  {
-   factor2= sin(sumY*thetaMax)/(sumY*thetaMax);
-  }
-  Gfactor=factor1*factor1*factor2*factor2;
-  fprintf(stdout, "%f, %f, %f, %f, %f, %f \n", sumX, sumY, sumX*thetaMax, sumY*thetaMax, sumX*sumY*thetaMax*thetaMax, Gfactor);
-
-
-  //G(ell1X + ell2X + ell3X, ell1Y + ell2Y + ell3Y, thetaMax);
+  double Gfactor=G(ell1X + ell2X + ell3X, ell1Y + ell2Y + ell3Y, thetaMax);
 
   double ell1 = sqrt(ell1X * ell1X + ell1Y * ell1Y);
   double ell2 = sqrt(ell2X * ell2X + ell2Y * ell2Y);
@@ -636,27 +599,27 @@ double ApertureStatistics::L2(double theta1, double theta2, double theta3, doubl
 
 double ApertureStatistics::Cov(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax)
 {
-  double term1 = L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
-  term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(0), thetas456.at(2), thetas456.at(1), thetaMax);
-  term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
-  term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(1), thetas456.at(2), thetas456.at(0), thetaMax);
-  term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(0), thetas456.at(1), thetaMax);
-  term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
+  // double term1 = L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
+  // term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(0), thetas456.at(2), thetas456.at(1), thetaMax);
+  // term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
+  // term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(1), thetas456.at(2), thetas456.at(0), thetaMax);
+  // term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(0), thetas456.at(1), thetaMax);
+  // term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
 
-  term1/=pow(2*M_PI, 6);
+  // term1/=pow(2*M_PI, 6);
 
-  // double term2 = L2(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
-  // term2 += L2(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
-  // term2 += L2(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
-  // term2 += L2(thetas123.at(0), thetas123.at(2), thetas123.at(1), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
-  // term2 += L2(thetas123.at(0), thetas123.at(2), thetas123.at(1), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
-  // term2 += L2(thetas123.at(0), thetas123.at(2), thetas123.at(1), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
-  // term2 += L2(thetas123.at(1), thetas123.at(2), thetas123.at(0), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
-  // term2 += L2(thetas123.at(1), thetas123.at(2), thetas123.at(0), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
-  // term2 += L2(thetas123.at(1), thetas123.at(2), thetas123.at(0), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
+  double term2 = L2(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
+  term2 += L2(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
+  term2 += L2(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
+  term2 += L2(thetas123.at(0), thetas123.at(2), thetas123.at(1), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
+  term2 += L2(thetas123.at(0), thetas123.at(2), thetas123.at(1), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
+  term2 += L2(thetas123.at(0), thetas123.at(2), thetas123.at(1), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
+  term2 += L2(thetas123.at(1), thetas123.at(2), thetas123.at(0), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
+  term2 += L2(thetas123.at(1), thetas123.at(2), thetas123.at(0), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
+  term2 += L2(thetas123.at(1), thetas123.at(2), thetas123.at(0), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
 
-  // term2/=pow(2*M_PI, 4);
+  term2/=pow(2*M_PI, 4);
 
-  return term1;
+  return term2;
   //return term1+term2;
 }

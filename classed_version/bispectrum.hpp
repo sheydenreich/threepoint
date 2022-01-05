@@ -15,7 +15,7 @@
 #define slics true //false
 #define test_analytical false
 
-#define CONSTANT_POWERSPECTRUM true
+#define CONSTANT_POWERSPECTRUM false
 #define ANALYTICAL_POWERSPECTRUM false
 #define ANALYTICAL_POWERSPECTRUM_V2 false
 

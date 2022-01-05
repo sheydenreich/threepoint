@@ -1047,14 +1047,22 @@ double BispectrumCalculator::GQ96_of_Pk(double a, double b, double ell)
 
 double BispectrumCalculator::Pell(double ell)
 {
+  double sigma=0.3;
+  double n = 4096 / (10 * M_PI /180);
+  n= n*n;
+  double P_shapenoise=0.5*sigma*sigma/n;
+  if(ell==0) return P_shapenoise;
+
   #if CONSTANT_POWERSPECTRUM
   double sigma=0.3;
   double n = 4096 / (10 * M_PI /180);
   n= n*n;
   //std::cerr<<"n:"<<n<<std::endl;
-  double result = 0.5*sigma*sigma/n;
+  double result = P_shapenoise;
   #else
-  double result = GQ96_of_Pk(0, z_max, ell);
+  double result = GQ96_of_Pk(0, z_max, ell)+P_shapenoise;
+  
+  if(!isfinite(result)) std::cerr<<result<<" "<<ell<<std::endl;
   #endif
   return result;
 }
