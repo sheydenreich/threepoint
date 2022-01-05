@@ -428,6 +428,7 @@ double ApertureStatistics::integrand_L2_B(double ellX, double ellY, double theta
 
 int ApertureStatistics::integrand_L1(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value)
 {
+  std::cerr<<npts<<std::endl;
   if (fdim != 1)
   {
     std::cerr << "ApertureStatistics::integrand_L1: Wrong number of function dimensions" << std::endl;
@@ -450,7 +451,7 @@ int ApertureStatistics::integrand_L1(unsigned ndim, size_t npts, const double *v
 
     value[i] = apertureStatistics->integrand_L1(ell1X, ell1Y, ell2X, ell2Y, ell3X, ell3Y, container->thetaMax,
                                                 container->thetas.at(0), container->thetas.at(1), container->thetas.at(2),
-                                                container->thetas.at(3), container->thetas.at(4), container->thetas.at(5));
+                                                container->thetas2.at(0), container->thetas2.at(1), container->thetas2.at(2));
   }
   return 0;
 }
@@ -513,11 +514,11 @@ double ApertureStatistics::L1(double theta1, double theta2, double theta3, doubl
   container.thetaMax = thetaMax;
   double result, error;
 
-  double vals_min[6] = {-lMax, -lMax, -lMax, -lMax, -lMax, -lMax};
+  double vals_min[6] = {lMin, lMin, lMin, lMin, lMin, lMin};
   double vals_max[6] = {lMax, lMax, lMax, lMax, lMax, lMax};
-  pcubature_v(1, integrand_L1, &container, 6, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
-
-  return result;
+  hcubature_v(1, integrand_L1, &container, 6, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
+  std::cerr<<result<<std::endl;
+  return 2*result;
 }
 
 double ApertureStatistics::L2(double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double thetaMax)
@@ -535,7 +536,7 @@ double ApertureStatistics::L2(double theta1, double theta2, double theta3, doubl
 
   double vals_min1[1] = {lMin};
   double vals_max1[1] = {lMax};
-  pcubature_v(1, integrand_L2_A, &container, 1, vals_min1, vals_max1, 0, 0, 1e-3, ERROR_L1, &result_A1, &error_A1);
+  hcubature_v(1, integrand_L2_A, &container, 1, vals_min1, vals_max1, 0, 0, 1e-3, ERROR_L1, &result_A1, &error_A1);
 
 // Integral over ell 3
   std::vector<double> thetas2 {theta5, theta6};
@@ -543,7 +544,7 @@ double ApertureStatistics::L2(double theta1, double theta2, double theta3, doubl
   
   double result_A2, error_A2;
 
-  pcubature_v(1, integrand_L2_A, &container, 1, vals_min1, vals_max1, 0, 0, 1e-3, ERROR_L1, &result_A2, &error_A2);
+  hcubature_v(1, integrand_L2_A, &container, 1, vals_min1, vals_max1, 0, 0, 1e-3, ERROR_L1, &result_A2, &error_A2);
 
 // Integral over ell 2
   std::vector<double> thetas3{theta3, theta4};
@@ -551,24 +552,25 @@ double ApertureStatistics::L2(double theta1, double theta2, double theta3, doubl
   
   double result_B, error_B;
 
-  double vals_min2[2] = {-lMax, -lMax};
-  double vals_max2[2] = {lMax};
-  pcubature_v(1, integrand_L2_B, &container, 2, vals_min2, vals_max2, 0, 0, 1e-3, ERROR_L1, &result_B, &error_B);
+  double vals_min2[2] = {lMin, lMin};
+  double vals_max2[2] = {lMax, lMax};
+  hcubature_v(1, integrand_L2_B, &container, 2, vals_min2, vals_max2, 0, 0, 1e-3, ERROR_L1, &result_B, &error_B);
 
-  double result=result_A1*result_A2*result_B;
+  double result=2*result_A1*result_A2*result_B;
+  //std::cerr<<result<<std::endl;
   return result;
 }
 
 double ApertureStatistics::Cov(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax)
 {
-  // double term1 = L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
-  // term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(0), thetas456.at(2), thetas456.at(1), thetaMax);
-  // term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
-  // term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(1), thetas456.at(2), thetas456.at(0), thetaMax);
-  // term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(0), thetas456.at(1), thetaMax);
-  // term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
+  double term1 = L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
+  term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(0), thetas456.at(2), thetas456.at(1), thetaMax);
+  term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
+  term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(1), thetas456.at(2), thetas456.at(0), thetaMax);
+  term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(0), thetas456.at(1), thetaMax);
+  term1 += L1(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
 
-  // term1/=pow(2*M_PI, 6)*thetaMax*thetaMax;
+  term1/=pow(2*M_PI, 6)*thetaMax*thetaMax;
 
   double term2 = L2(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
   term2 += L2(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
@@ -582,6 +584,5 @@ double ApertureStatistics::Cov(const std::vector<double>& thetas123, const std::
 
   term2/=pow(2*M_PI, 4)*thetaMax*thetaMax;
 
-return term2;
-  //return term1+term2;
+  return term1+term2;
 }

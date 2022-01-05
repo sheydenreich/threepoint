@@ -66,7 +66,6 @@ int main()
                         for (int n = m; n < N; n++)
                         {
                             double theta6 = convert_angle_to_rad(thetas.at(n), "arcmin");
-                                                        std::cerr<<theta1<<" "<<theta2<<" "<<theta3<<" "<<theta4<<" "<<theta5<<" "<<theta6<<std::endl;
                             std::vector<double> thetas_456 = {theta4, theta5, theta6};
                             double Cov_MapMapMap = apertureStatistics.Cov(thetas_123, thetas_456, thetaMax);
 
@@ -79,13 +78,13 @@ int main()
                             double progress = (completed_steps * 1.) / (N_total);
 
 
-                            // printf("\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step. Current thetas: (%.1f, %.1f, %.1f, %.1f, %.1f, %.1f)",
-                            //        static_cast<int>(progress * 100),
-                            //        elapsed.count() * 1e-9 / 3600,
-                            //        (N_total - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
-                            //        elapsed.count() * 1e-9 / completed_steps,
-                            //        convert_rad_to_angle(theta1), convert_rad_to_angle(theta2), convert_rad_to_angle(theta3),
-                            //        convert_rad_to_angle(theta4), convert_rad_to_angle(theta5), convert_rad_to_angle(theta6));
+                            printf("\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step. Current thetas: (%.1f, %.1f, %.1f, %.1f, %.1f, %.1f)",
+                                   static_cast<int>(progress * 100),
+                                   elapsed.count() * 1e-9 / 3600,
+                                   (N_total - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
+                                   elapsed.count() * 1e-9 / completed_steps,
+                                   convert_rad_to_angle(theta1), convert_rad_to_angle(theta2), convert_rad_to_angle(theta3),
+                                   convert_rad_to_angle(theta4), convert_rad_to_angle(theta5), convert_rad_to_angle(theta6));
                         }
                     }
                 }
