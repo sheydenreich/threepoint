@@ -22,7 +22,7 @@ int main()
 {
   // Set Up Cosmology
   struct cosmology cosmo;
-  int n_los = 1; //number of lines-of-sight considered for covariance
+  int n_los = 1; // number of lines-of-sight considered for covariance
   double survey_area;
   double thetaMax;
   if (slics)
@@ -56,11 +56,11 @@ int main()
 
 #if CONSTANT_POWERSPECTRUM
   std::cerr << "Uses constant powerspectrum" << std::endl;
-  double sigma = 0.3;                                                         //Shapenoise
-  double n = 46.60;                                                           //source galaxy density [arcmin^-2]
+  double sigma = 0.3;                                                         // Shapenoise
+  double n = 46.60;                                                           // source galaxy density [arcmin^-2]
   double fieldlength = 536;                                                   // length of field [arcmin]
   survey_area = fieldlength * fieldlength * pow(M_PI / 180. / 60., 2);        // Fieldsize [rad^2]
-  double P = 0.5 * sigma * sigma / n / (180 * 60 / M_PI) / (180 * 60 / M_PI); //Powerspectrum [rad^2]
+  double P = 0.5 * sigma * sigma / n / (180 * 60 / M_PI) / (180 * 60 / M_PI); // Powerspectrum [rad^2]
   std::cerr << "P=" << P << std::endl;
   std::cerr << "with shapenoise:" << sigma
             << " , fieldsize:" << survey_area << " rad^2"
@@ -79,21 +79,21 @@ int main()
   survey_area = fieldlength * fieldlength * pow(M_PI / 180. / 60., 2); // Fieldsize [rad^2]
 #endif
 
-  //Initialize Bispectrum
+  // Initialize Bispectrum
 
-  int n_z = 100;      //Number of redshift bins for grids
-  double z_max = 1.1; //maximal redshift
+  int n_z = 100;      // Number of redshift bins for grids
+  double z_max = 1.1; // maximal redshift
   if (slics)
     z_max = 3.;
 
-  bool fastCalc = false; //whether calculations should be sped up
+  bool fastCalc = false; // whether calculations should be sped up
   BispectrumCalculator bispectrum(&cosmo, n_z, z_max, fastCalc);
 
-  //Initialize Aperture Statistics
+  // Initialize Aperture Statistics
   ApertureStatistics apertureStatistics(&bispectrum);
 
   // Set up thetas for which ApertureStatistics are calculated
-  //std::vector<double> thetas{0.5, 1, 2, 4, 8, 16, 32}; //Thetas in arcmin
+  // std::vector<double> thetas{0.5, 1, 2, 4, 8, 16, 32}; //Thetas in arcmin
   std::vector<double> thetas{2, 4, 8, 16};
   int N = thetas.size();
 
@@ -102,7 +102,7 @@ int main()
   std::vector<double> Cov_MapMapMaps(pow(N, 3));
 #else
   std::vector<double> Cov_MapMapMaps(pow(N, 6));
-#endif //ONLY_DIAGONAL
+#endif // ONLY_DIAGONAL
 
   int completed_steps = 0;
   int Ntotal;
@@ -111,11 +111,11 @@ int main()
   else
     Ntotal = pow(N * (N + 1) * (N + 2) / 6, 2);
 
-  auto begin = std::chrono::high_resolution_clock::now(); //Begin time measurement
-  //Calculate <MapMapMap>(theta1, theta2, theta3)
+  auto begin = std::chrono::high_resolution_clock::now(); // Begin time measurement
+  // Calculate <MapMapMap>(theta1, theta2, theta3)
   for (int i = 0; i < N; i++)
   {
-    double theta1 = convert_angle_to_rad(thetas.at(i), "arcmin"); //Conversion to rad
+    double theta1 = convert_angle_to_rad(thetas.at(i), "arcmin"); // Conversion to rad
     for (int j = i; j < N; j++)
     {
       double theta2 = convert_angle_to_rad(thetas.at(j), "arcmin");
@@ -123,86 +123,85 @@ int main()
       {
         double theta3 = convert_angle_to_rad(thetas.at(k), "arcmin");
         std::vector<double> thetas_123 = {theta1, theta2, theta3};
-        if (ONLY_DIAGONAL)
-        {
-          std::vector<double> thetas_456 = {theta1, theta2, theta3};
+#if ONLY_DIAGONAL
+        std::vector<double> thetas_456 = {theta1, theta2, theta3};
 
-          double MapMapMap = apertureStatistics.MapMapMap_covariance_Gauss(thetas_123, thetas_456, survey_area); //Do calculation
+        double MapMapMap = apertureStatistics.MapMapMap_covariance_Gauss(thetas_123, thetas_456, survey_area); // Do calculation
 
 #if CONSTANT_POWERSPECTRUM
-          MapMapMap *= P * P * P;
+        MapMapMap *= P * P * P;
 #endif
-          // Do assigment (including permutations)
-          Cov_MapMapMaps.at(i * N * N + j * N + k) = MapMapMap;
-          Cov_MapMapMaps.at(i * N * N + k * N + j) = MapMapMap;
-          Cov_MapMapMaps.at(j * N * N + i * N + k) = MapMapMap;
-          Cov_MapMapMaps.at(j * N * N + k * N + i) = MapMapMap;
-          Cov_MapMapMaps.at(k * N * N + i * N + j) = MapMapMap;
-          Cov_MapMapMaps.at(k * N * N + j * N + i) = MapMapMap;
+        // Do assigment (including permutations)
+        Cov_MapMapMaps.at(i * N * N + j * N + k) = MapMapMap;
+        Cov_MapMapMaps.at(i * N * N + k * N + j) = MapMapMap;
+        Cov_MapMapMaps.at(j * N * N + i * N + k) = MapMapMap;
+        Cov_MapMapMaps.at(j * N * N + k * N + i) = MapMapMap;
+        Cov_MapMapMaps.at(k * N * N + i * N + j) = MapMapMap;
+        Cov_MapMapMaps.at(k * N * N + j * N + i) = MapMapMap;
 
-          auto end = std::chrono::high_resolution_clock::now();
-          auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
-          completed_steps++;
-          double progress = (completed_steps * 1.) / (Ntotal);
+        auto end = std::chrono::high_resolution_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
+        completed_steps++;
+        double progress = (completed_steps * 1.) / (Ntotal);
 
-          printf("\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step.",
-                 static_cast<int>(progress * 100),
-                 elapsed.count() * 1e-9 / 3600,
-                 (Ntotal - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
-                 elapsed.count() * 1e-9 / completed_steps);
-        }
-        else
+        printf("\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step.",
+               static_cast<int>(progress * 100),
+               elapsed.count() * 1e-9 / 3600,
+               (Ntotal - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
+               elapsed.count() * 1e-9 / completed_steps);
+#else
+
+        for (int ii = 0; ii < N; ii++)
         {
-          for (int ii = 0; ii < N; ii++)
+          double theta4 = convert_angle_to_rad(thetas.at(ii)); // Conversion to rad
+          for (int jj = ii; jj < N; jj++)
           {
-            double theta4 = convert_angle_to_rad(thetas.at(ii)); //Conversion to rad
-            for (int jj = ii; jj < N; jj++)
+            double theta5 = convert_angle_to_rad(thetas.at(jj));
+            for (int kk = jj; kk < N; kk++)
             {
-              double theta5 = convert_angle_to_rad(thetas.at(jj));
-              for (int kk = jj; kk < N; kk++)
-              {
 
-                double theta6 = convert_angle_to_rad(thetas.at(kk));
-                std::vector<double> thetas_456 = {theta4, theta5, theta6};
+              double theta6 = convert_angle_to_rad(thetas.at(kk));
+              std::vector<double> thetas_456 = {theta4, theta5, theta6};
 
-                double MapMapMap = apertureStatistics.MapMapMap_covariance_Gauss(thetas_123, thetas_456, survey_area); //Do calculation
+              double MapMapMap = apertureStatistics.MapMapMap_covariance_Gauss(thetas_123, thetas_456, survey_area); // Do calculation
+              std::cerr<<MapMapMap<<std::endl;
 #if CONSTANT_POWERSPECTRUM
-                MapMapMap *= P * P * P;
+              MapMapMap *= P * P * P;
 #endif
-                // Do assigment (including permutations)
-                int index_123[3] = {i, j, k};
-                int index_456[3] = {ii, jj, kk};
+              // Do assigment (including permutations)
+              int index_123[3] = {i, j, k};
+              int index_456[3] = {ii, jj, kk};
 
-                std::sort(index_123, index_123 + 3);
-                std::sort(index_456, index_456 + 3);
+              std::sort(index_123, index_123 + 3);
+              std::sort(index_456, index_456 + 3);
+              do
+              {
                 do
                 {
-                  do
-                  {
-                    Cov_MapMapMaps.at(index_123[0] * pow(N, 5) + index_123[1] * pow(N, 4) + index_123[2] * pow(N, 3) + index_456[0] * N * N + index_456[1] * N + index_456[2]) = MapMapMap;
-                  } while (std::next_permutation(index_123, index_123 + 3));
-                } while (std::next_permutation(index_456, index_456 + 3));
-                auto end = std::chrono::high_resolution_clock::now();
-                auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
-                completed_steps++;
-                double progress = (completed_steps * 1.) / (Ntotal);
+                  Cov_MapMapMaps.at(index_123[0] * pow(N, 5) + index_123[1] * pow(N, 4) + index_123[2] * pow(N, 3) + index_456[0] * N * N + index_456[1] * N + index_456[2]) = MapMapMap;
+                } while (std::next_permutation(index_123, index_123 + 3));
+              } while (std::next_permutation(index_456, index_456 + 3));
+              auto end = std::chrono::high_resolution_clock::now();
+              auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
+              completed_steps++;
+              double progress = (completed_steps * 1.) / (Ntotal);
 
-                printf("\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step. Current thetas: (%.1f, %.1f, %.1f, %.1f, %.1f, %.1f)",
-                       static_cast<int>(progress * 100),
-                       elapsed.count() * 1e-9 / 3600,
-                       (Ntotal - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
-                       elapsed.count() * 1e-9 / completed_steps,
-                       convert_rad_to_angle(theta1), convert_rad_to_angle(theta2), convert_rad_to_angle(theta3), 
-                       convert_rad_to_angle(theta4), convert_rad_to_angle(theta5), convert_rad_to_angle(theta6));
-              }
+              printf("\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step. Current thetas: (%.1f, %.1f, %.1f, %.1f, %.1f, %.1f)",
+                     static_cast<int>(progress * 100),
+                     elapsed.count() * 1e-9 / 3600,
+                     (Ntotal - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
+                     elapsed.count() * 1e-9 / completed_steps,
+                     convert_rad_to_angle(theta1), convert_rad_to_angle(theta2), convert_rad_to_angle(theta3),
+                     convert_rad_to_angle(theta4), convert_rad_to_angle(theta5), convert_rad_to_angle(theta6));
             }
           }
         }
+#endif
       };
     };
   };
 
-  //Output
+  // Output
   std::string outfn;
   std::ofstream out;
 
@@ -247,7 +246,7 @@ int main()
   std::cout << "Writing results to " << outfn << std::endl;
   out.open(outfn.c_str());
 
-  //Print out ==> Should not be parallelized!!!
+  // Print out ==> Should not be parallelized!!!
   if (ONLY_DIAGONAL)
   {
     for (int i = 0; i < N; i++)
