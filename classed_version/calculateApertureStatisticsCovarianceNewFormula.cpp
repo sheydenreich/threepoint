@@ -3,8 +3,9 @@
 #include <iostream>
 #include <chrono>
 
-#define CALCULATE_TERM1 false
+#define CALCULATE_TERM1 true
 #define CALCULATE_TERM2 false
+#define CALCULATE_INFINITE false
 
 int main()
 {
@@ -60,11 +61,14 @@ int main()
     std::cerr << "n:" << n << " [1/deg^2]" << std::endl;
     std::cerr << "Writing results to folder " << folder << std::endl;
 #if CALCULATE_TERM1
-    std::cerr<< "Calculates Term1, Term2 and infinite Field"<<std::endl;
+    std::cerr<< "Calculates Term1"<<std::endl;
 #elif CALCULATE_TERM2
-    std::cerr<<"Calculates Term2 and infinite Field"<<std::endl;
-#else  
-    std::cerr<<"Calculates only infinite field"<<std::endl;
+    std::cerr<<"Calculates Term2"<<std::endl;
+#elif CALCULATE_INFINITE  
+    std::cerr<<"Calculates infinite field"<<std::endl;
+#else
+    std::cerr<<"Not actually doing anything... Check calculateApertureStatisticsCovarianceNewFormula.cpp"<<std::endl;
+    return;
 #endif
 
 #if CONSTANT_POWERSPECTRUM
@@ -125,10 +129,10 @@ int main()
                             double term2 = apertureStatistics.L2_total(thetas_123, thetas_456, thetaMaxRad);
                             Cov_term2s.push_back(term2);
 #endif
-
+#if CALCULATE_INFINITE
                             double infiniteField=apertureStatistics.MapMapMap_covariance_Gauss(thetas_123, thetas_456, thetaMaxRad*thetaMaxRad);
                             Cov_infiniteFields.push_back(infiniteField);
-
+#endif
                             // Progress for the impatient user
                             auto end = std::chrono::high_resolution_clock::now();
                             auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
@@ -205,6 +209,7 @@ int main()
     }
 }
 #endif
+#if CALCULATE_INFINITE
 {
     char filename3[255];
     sprintf(filename3, "cov_%s_infiniteField_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat", 
@@ -230,5 +235,6 @@ int main()
         out << std::endl;
     }
 }
+#endif
     return 0;
 }

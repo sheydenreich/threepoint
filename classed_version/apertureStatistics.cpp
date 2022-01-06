@@ -413,14 +413,14 @@ double ApertureStatistics::G(double ellX, double ellY, double thetaMax)
   return j01 * j01 * j02 * j02;
 };
 
-double ApertureStatistics::integrand_L1(double ell1X, double ell1Y, double ell2X, double ell2Y, double ell3X, double ell3Y, double thetaMax,
+double ApertureStatistics::integrand_L1(double a, double b, double c, double d, double e, double f, double thetaMax,
                                         double theta1, double theta2, double theta3, double theta4, double theta5, double theta6)
 {
-  double Gfactor = G(ell1X + ell2X + ell3X, ell1Y + ell2Y + ell3Y, thetaMax);
+  double Gfactor = G(a, b, thetaMax);
 
-  double ell1 = sqrt(ell1X * ell1X + ell1Y * ell1Y);
-  double ell2 = sqrt(ell2X * ell2X + ell2Y * ell2Y);
-  double ell3 = sqrt(ell3X * ell3X + ell3Y * ell3Y);
+  double ell1 = sqrt((a-c-e)*(a-c-e)+(b-d-f)*(b-d-f));
+  double ell2 = sqrt(c*c+d*d);
+  double ell3 = sqrt(e*e+f*f);
 
   if (ell1 == 0 || ell2 == 0 || ell3 == 0)
     return 0;
@@ -545,15 +545,14 @@ double ApertureStatistics::L1(double theta1, double theta2, double theta3, doubl
   container.thetaMax = thetaMax;
   double result, error;
 
-  //  double vals_min[6] = {1e-1, 1e-1, 1e-1, 1e-1, 1e-1, 1e-1};
-  double vals_min[6] = {-1e2, -1e2, -1e2, -1e2, -1e2, -1e2};
-  double vals_max[6] = {1e2, 1e2, 1e2, 1e2, 1e2, 1e2};
-  int errcode = hcubature_v(1, integrand_L1, &container, 6, vals_min, vals_max, 0, 0, 0.2, ERROR_L1, &result, &error);
+  double vals_min[6] = {-1.1e3, -1.1e3, -1.1e3, -1.1e3, -1.1e3, -1.1e3};
+  double vals_max[6] = {1e3, 1e3, 1e3, 1e3, 1e3, 1e3};
+  int errcode = hcubature_v(1, integrand_L1, &container, 6, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
   if (errcode != 0)
   {
     std::cerr << "errcode in hcubature:" << errcode << std::endl;
   };
-  std::cerr << "res L1:" << result << std::endl;
+  std::cerr << "res L1:" << result << " " << error<<std::endl;
   return result;
 }
 
