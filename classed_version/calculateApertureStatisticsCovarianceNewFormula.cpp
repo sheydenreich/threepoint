@@ -4,6 +4,7 @@
 #include <chrono>
 
 #define CALCULATE_TERM1 false
+#define CALCULATE_TERM2 false
 
 int main()
 {
@@ -59,9 +60,11 @@ int main()
     std::cerr << "n:" << n << " [1/deg^2]" << std::endl;
     std::cerr << "Writing results to folder " << folder << std::endl;
 #if CALCULATE_TERM1
-    std::cerr<< "Calculates Term1 and Term2"<<std::endl;
-#else
-    std::cerr<<"Calculates only Term2"<<std::endl;
+    std::cerr<< "Calculates Term1, Term2 and infinite Field"<<std::endl;
+#elif CALCULATE_TERM2
+    std::cerr<<"Calculates Term2 and infinite Field"<<std::endl;
+#else  
+    std::cerr<<"Calculates only infinite field"<<std::endl;
 #endif
 
 #if CONSTANT_POWERSPECTRUM
@@ -89,7 +92,7 @@ int main()
     int N_ind = N * (N + 1) * (N + 2) / 6; // Number of independent theta-combinations
     int N_total = N_ind * N_ind;
 
-    std::vector<double> Cov_term1s, Cov_term2s;
+    std::vector<double> Cov_term1s, Cov_term2s, Cov_infiniteFields;
     int completed_steps = 0;
 
     auto begin = std::chrono::high_resolution_clock::now(); // Begin time measurement
@@ -118,9 +121,13 @@ int main()
                             double term1 = apertureStatistics.L1_total(thetas_123, thetas_456, thetaMaxRad);
                             Cov_term1s.push_back(term1);
 #endif
-
+#if CALCULATE_TERM2
                             double term2 = apertureStatistics.L2_total(thetas_123, thetas_456, thetaMaxRad);
                             Cov_term2s.push_back(term2);
+#endif
+
+                            double infiniteField=apertureStatistics.MapMapMap_covariance_Gauss(thetas_123, thetas_456, thetaMaxRad*thetaMaxRad);
+                            Cov_infiniteFields.push_back(infiniteField);
 
                             // Progress for the impatient user
                             auto end = std::chrono::high_resolution_clock::now();
@@ -144,12 +151,13 @@ int main()
 
     // Output
 #if CALCULATE_TERM1
+ {   
     char filename1[255];
     sprintf(filename1, "cov_%s_term1Numerical_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat", 
                     type.c_str(), sigma, n, thetaMax);
     std::string fn_term1 = folder + std::string(filename1);
     std::cerr << "Writing Term 1 to " << fn_term1 << std::endl;
-    
+
     std::ofstream out(fn_term1);
     if (!out.is_open())
     {
@@ -167,11 +175,11 @@ int main()
         }
         out << std::endl;
     }
-
-    out.close();
-    out.clear();
+ }
 
 #endif
+#if CALCULATE_TERM2
+{
     char filename2[255];
     sprintf(filename2, "cov_%s_term2Numerical_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat", 
                     type.c_str(), sigma, n, thetaMax);
@@ -195,6 +203,32 @@ int main()
         }
         out << std::endl;
     }
+}
+#endif
+{
+    char filename3[255];
+    sprintf(filename3, "cov_%s_infiniteField_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat", 
+                    type.c_str(), sigma, n, thetaMax);
+    std::string fn_infiniteField = folder + std::string(filename3);
+    std::cerr << "Writing infiniteField to " << fn_infiniteField << std::endl;
 
+    std::ofstream out(fn_infiniteField);
+    if (!out.is_open())
+    {
+        std::cerr << "Couldn't write to " << fn_infiniteField << std::endl;
+        std::cerr << "Writing instead to Term2.dat" << std::endl;
+        out.clear();
+        out.open("Term2.dat");
+    };
+
+    for (int i = 0; i < N_ind; i++)
+    {
+        for (int j = 0; j < N_ind; j++)
+        {
+            out << Cov_infiniteFields.at(i * N_ind + j) << " ";
+        }
+        out << std::endl;
+    }
+}
     return 0;
 }
