@@ -266,6 +266,10 @@ public:
 
   double L2(double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double thetaMax);
 
+  double L1_total(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax);
+
+  double L2_total(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax);
+
   double Cov(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax);
 };
 

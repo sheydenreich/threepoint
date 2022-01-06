@@ -15,7 +15,7 @@
 #define slics true //false
 #define test_analytical false
 
-#define CONSTANT_POWERSPECTRUM false
+#define CONSTANT_POWERSPECTRUM true
 #define ANALYTICAL_POWERSPECTRUM false
 #define ANALYTICAL_POWERSPECTRUM_V2 false
 
@@ -125,6 +125,8 @@ public:
 //  double h, sigma8, omb, omc, ns, w, om, ow; /**< Cosmology parameters*/
   double norm;                                                           //Normalization
 
+  double sigma = 0.3; //shapenoise
+  double n = 4096*4096 / 10 / 10 * M_PI * M_PI / 180 / 180; // galaxy number density in [1/rad²]
 private:
   double eps = 1.e-4; /**< Integration precision*/
   int n_redshift_bins; /**< Number of redshift bins*/
