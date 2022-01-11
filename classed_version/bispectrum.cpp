@@ -526,7 +526,7 @@ double BispectrumCalculator::integrand_bkappa(double z, ell_params p)
     if (!isfinite(result))
     {
       std::cerr << "bispec not finite:"
-                << " "
+                << result << " "
                 << g_value << " "
                 << z << " "
                 << ell1 << " "

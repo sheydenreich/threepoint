@@ -3,9 +3,11 @@
 #include <iostream>
 #include <chrono>
 
-#define CALCULATE_TERM1 true
+#define CALCULATE_TERM1 false
 #define CALCULATE_TERM2 false
 #define CALCULATE_INFINITE false
+#define CALCULATE_INFINITE_NG false
+#define CALCULATE_TERM4 true
 
 int main()
 {
@@ -23,8 +25,11 @@ int main()
         cosmo.w = -1.0;
         cosmo.om = cosmo.omb + cosmo.omc;
         cosmo.ow = 1 - cosmo.om;
-
+#if CIRCULAR_SURVEY
+        thetaMax = 5.04;
+#else
         thetaMax = 8.93;
+#endif
         z_max = 3;
     }
     else
@@ -38,8 +43,11 @@ int main()
         cosmo.w = -1.0;
         cosmo.om = cosmo.omc + cosmo.omb;
         cosmo.ow = 1. - cosmo.om;
-
+#if CIRCULAR_SURVEY
+        thetaMax = 2.6;
+#else
         thetaMax = 4;
+#endif
         z_max = 1.1;
     }
 
@@ -56,7 +64,12 @@ int main()
     type = "slics";
 #endif
 
-    std::cerr << "Fieldsize:" << thetaMax << "x" << thetaMax << " deg^2" << std::endl;
+#if CIRCULAR_SURVEY
+    std::cerr << "Assumes round survey with radius "<<thetaMax<<" deg"<<std::endl;
+#else
+    std::cerr << "Assumes square survey with size "<< thetaMax << "x" << thetaMax << " deg^2" << std::endl;
+#endif
+
     std::cerr << "Shape noise:" << sigma << std::endl;
     std::cerr << "n:" << n << " [1/deg^2]" << std::endl;
     std::cerr << "Writing results to folder " << folder << std::endl;
@@ -64,8 +77,12 @@ int main()
     std::cerr<< "Calculates Term1"<<std::endl;
 #elif CALCULATE_TERM2
     std::cerr<<"Calculates Term2"<<std::endl;
+#elif CALCULATE_TERM4
+    std::cerr<<"Calculates Term4"<<std::endl;
 #elif CALCULATE_INFINITE  
     std::cerr<<"Calculates infinite field"<<std::endl;
+#elif CALCULATE_INFINITE_NG
+    std::cerr<<"Calculates first Non-Gaussian Term for infinite field"<<std::endl;
 #else
     std::cerr<<"Not actually doing anything... Check calculateApertureStatisticsCovarianceNewFormula.cpp"<<std::endl;
     return;
@@ -96,7 +113,7 @@ int main()
     int N_ind = N * (N + 1) * (N + 2) / 6; // Number of independent theta-combinations
     int N_total = N_ind * N_ind;
 
-    std::vector<double> Cov_term1s, Cov_term2s, Cov_infiniteFields;
+    std::vector<double> Cov_term1s, Cov_term2s, Cov_term4s, Cov_infiniteFields, Cov_NG_infiniteFields;
     int completed_steps = 0;
 
     auto begin = std::chrono::high_resolution_clock::now(); // Begin time measurement
@@ -129,9 +146,17 @@ int main()
                             double term2 = apertureStatistics.L2_total(thetas_123, thetas_456, thetaMaxRad);
                             Cov_term2s.push_back(term2);
 #endif
+#if CALCULATE_TERM4
+                            double term4 = apertureStatistics.L4_total(thetas_123, thetas_456, thetaMaxRad);
+                            Cov_term4s.push_back(term4);
+#endif
 #if CALCULATE_INFINITE
                             double infiniteField=apertureStatistics.MapMapMap_covariance_Gauss(thetas_123, thetas_456, thetaMaxRad*thetaMaxRad);
                             Cov_infiniteFields.push_back(infiniteField);
+#endif
+#if CALCULATE_INFINITE_NG
+                            double infiniteField_NG=apertureStatistics.MapMapMap_covariance_NonGauss(thetas_123, thetas_456, thetaMaxRad*thetaMaxRad);
+                            Cov_NG_infiniteFields.push_back(infiniteField_NG);
 #endif
                             // Progress for the impatient user
                             auto end = std::chrono::high_resolution_clock::now();
@@ -157,8 +182,13 @@ int main()
 #if CALCULATE_TERM1
  {   
     char filename1[255];
+#if CIRCULAR_SURVEY
+    sprintf(filename1, "cov_%s_term1NumericalRound_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat", 
+                    type.c_str(), sigma, n, thetaMax);
+#else
     sprintf(filename1, "cov_%s_term1Numerical_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat", 
                     type.c_str(), sigma, n, thetaMax);
+#endif
     std::string fn_term1 = folder + std::string(filename1);
     std::cerr << "Writing Term 1 to " << fn_term1 << std::endl;
 
@@ -185,8 +215,13 @@ int main()
 #if CALCULATE_TERM2
 {
     char filename2[255];
+#if CIRCULAR_SURVEY
+    sprintf(filename2, "cov_%s_term2NumericalRound_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat", 
+                    type.c_str(), sigma, n, thetaMax);
+#else
     sprintf(filename2, "cov_%s_term2Numerical_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat", 
                     type.c_str(), sigma, n, thetaMax);
+#endif
     std::string fn_term2 = folder + std::string(filename2);
     std::cerr << "Writing Term 2 to " << fn_term2 << std::endl;
 
@@ -204,6 +239,38 @@ int main()
         for (int j = 0; j < N_ind; j++)
         {
             out << Cov_term2s.at(i * N_ind + j) << " ";
+        }
+        out << std::endl;
+    }
+}
+#endif
+#if CALCULATE_TERM4
+{
+    char filename4[255];
+#if CIRCULAR_SURVEY
+    sprintf(filename4, "cov_%s_term4NumericalRound_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat", 
+                    type.c_str(), sigma, n, thetaMax);
+#else
+    sprintf(filename2, "cov_%s_term4Numerical_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat", 
+                    type.c_str(), sigma, n, thetaMax);
+#endif
+    std::string fn_term4 = folder + std::string(filename4);
+    std::cerr << "Writing Term 4 to " << fn_term4 << std::endl;
+
+    std::ofstream out(fn_term4);
+    if (!out.is_open())
+    {
+        std::cerr << "Couldn't write to " << fn_term4 << std::endl;
+        std::cerr << "Writing instead to Term4.dat" << std::endl;
+        out.clear();
+        out.open("Term4.dat");
+    };
+
+    for (int i = 0; i < N_ind; i++)
+    {
+        for (int j = 0; j < N_ind; j++)
+        {
+            out << Cov_term4s.at(i * N_ind + j) << " ";
         }
         out << std::endl;
     }
@@ -231,6 +298,34 @@ int main()
         for (int j = 0; j < N_ind; j++)
         {
             out << Cov_infiniteFields.at(i * N_ind + j) << " ";
+        }
+        out << std::endl;
+    }
+}
+#endif
+
+#if CALCULATE_INFINITE_NG
+{
+    char filename3[255];
+    sprintf(filename3, "cov_%s_infiniteFieldNG_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat", 
+                    type.c_str(), sigma, n, thetaMax);
+    std::string fn_infiniteField_ng = folder + std::string(filename3);
+    std::cerr << "Writing infiniteField non Gaussian to " << fn_infiniteField_ng << std::endl;
+
+    std::ofstream out(fn_infiniteField_ng);
+    if (!out.is_open())
+    {
+        std::cerr << "Couldn't write to " << fn_infiniteField_ng << std::endl;
+        std::cerr << "Writing instead to Term2.dat" << std::endl;
+        out.clear();
+        out.open("Term2.dat");
+    };
+
+    for (int i = 0; i < N_ind; i++)
+    {
+        for (int j = 0; j < N_ind; j++)
+        {
+            out << Cov_NG_infiniteFields.at(i * N_ind + j) << " ";
         }
         out << std::endl;
     }

@@ -11,6 +11,8 @@
 
 #define DO_CYCLIC_PERMUTATIONS false
 
+#define CIRCULAR_SURVEY true
+
 /**
  * @brief Class computing <Map^3> from a bispectrum.
  * This class takes a matter bispectrum as input and computes the 3pt Aperture Statistics
@@ -122,6 +124,7 @@ public: // Once debugging is finished, these members should be private!
    */
   double integrand_Gaussian_Aperture_Covariance(const double &l1, const double &l2, const double &phi, const double &z,
                                                 std::vector<double> thetas_123, std::vector<double> thetas_456);
+
 
   /**
    * @brief MapMapMap integrand, integrated over phi
@@ -248,12 +251,23 @@ public:
    */
   double G(double ellX, double ellY, double thetaMax);
 
-  double integrand_L1(double ell1X, double ell1Y, double ell2X, double ell2Y, double ell3X, double ell3Y, double thetaMax,
+  double G_circular(double ell, double thetaMax);
+
+  double integrand_L1(double a, double b, double c, double d, double e, double f, double thetaMax,
                       double theta1, double theta2, double theta3, double theta4, double theta5, double theta6);
 
   double integrand_L2_A(double ell, double theta1, double theta2);
 
   double integrand_L2_B(double ellX, double ellY, double thetaMax, double theta1, double theta2);
+
+  double integrand_L1_circular(double a, double b, double c, double d, double e, double f, double thetaMax,
+                      double theta1, double theta2, double theta3, double theta4, double theta5, double theta6);
+
+
+  double integrand_L2_B_circular(double ell, double thetaMax, double theta1, double theta2);
+
+  double integrand_L4_circular(double v, double ell2, double ell4, double ell5, double alphaV, double alpha2, double alpha4,
+                              double alpha5, double thetaMax, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6);
 
   static int integrand_L1(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
 
@@ -261,16 +275,42 @@ public:
 
   static int integrand_L2_B(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
 
+  static int integrand_L4(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
+
+
 
   double L1(double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double thetaMax);
 
   double L2(double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double thetaMax);
 
+  double L4(double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double thetaMax);
+
   double L1_total(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax);
 
   double L2_total(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax);
 
+   double L4_total(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax);
+
   double Cov(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax);
+
+  double Cov_NG(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax);
+
+
+
+
+  double integrand_NonGaussian_Aperture_Covariance(const double& l1, const double& l2, const double& l5, const double& phi1, const double& phi2, const double& z,
+                                                const double& theta1, const double& theta2, const double& theta3, 
+                                                const double& theta4, const double& theta5, const double& theta6);
+
+
+
+  static int integrand_NonGaussian_Aperture_Covariance(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
+
+
+  double MapMapMap_covariance_NonGauss(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456, double survey_area);
+
+
+
 };
 
 /**
