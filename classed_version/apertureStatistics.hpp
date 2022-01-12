@@ -11,7 +11,7 @@
 
 #define DO_CYCLIC_PERMUTATIONS false
 
-#define CIRCULAR_SURVEY true
+#define CIRCULAR_SURVEY false
 
 /**
  * @brief Class computing <Map^3> from a bispectrum.

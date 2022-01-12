@@ -130,7 +130,11 @@ int ApertureStatistics::integrand_Gaussian_Aperture_Covariance(unsigned ndim, si
 
   if (npts > 1e8)
     std::cerr << "Npts: " << npts << " at thetas " << convert_rad_to_angle(thetas_123[0]) << ", " << convert_rad_to_angle(thetas_123[1]) << ", " << convert_rad_to_angle(thetas_123[2]) << ", " << convert_rad_to_angle(thetas_456[0]) << ", " << convert_rad_to_angle(thetas_456[1]) << ", " << convert_rad_to_angle(thetas_456[2]) << ", " << std::endl;
-
+  if(npts > 3e8)
+  {
+    std::cerr << "Ran out of memory"<<std::endl;
+    return 1;
+  };
 #if PARALLEL_INTEGRATION
 #pragma omp parallel for
 #endif
@@ -370,7 +374,7 @@ double ApertureStatistics::MapMapMap_covariance_Gauss(const std::vector<double> 
   double vals_min[3] = {lMin, lMin, phiMin};
   double vals_max[3] = {lMax, lMax, phiMax / 2.}; // use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
 
-  pcubature_v(1, integrand_Gaussian_Aperture_Covariance, &container, 3, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
+  hcubature_v(1, integrand_Gaussian_Aperture_Covariance, &container, 3, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
 
 #else
   double vals_min[4] = {lMin, lMin, phiMin, 0};
@@ -535,6 +539,7 @@ int ApertureStatistics::integrand_L1(unsigned ndim, size_t npts, const double *v
               << std::endl;
   };
 
+
 #pragma omp parallel for
   for (unsigned int i = 0; i < npts; i++)
   {
@@ -665,8 +670,8 @@ double ApertureStatistics::L1(double theta1, double theta2, double theta3, doubl
   if (errcode != 0)
   {
     std::cerr << "errcode in hcubature:" << errcode << std::endl;
+    return 0;
   };
-  std::cerr << "res L1:" << result << " " << error << std::endl;
   return result;
 }
 
@@ -732,7 +737,7 @@ double ApertureStatistics::L4(double theta1, double theta2, double theta3, doubl
   pcubature_v(1, integrand_L4, &container, 8, vals_min, vals_max, 0, 0, 0.2, ERROR_L1, &result, &error);
 #else
   std::cerr<<"L4 only coded for circular survey"<<std::endl;
-  exit(1),
+  exit(1);
 #endif
 
   return result;

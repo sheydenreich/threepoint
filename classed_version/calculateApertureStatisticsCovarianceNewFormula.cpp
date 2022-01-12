@@ -5,9 +5,9 @@
 
 #define CALCULATE_TERM1 false
 #define CALCULATE_TERM2 false
-#define CALCULATE_INFINITE false
+#define CALCULATE_INFINITE true
 #define CALCULATE_INFINITE_NG false
-#define CALCULATE_TERM4 true
+#define CALCULATE_TERM4 false
 
 int main()
 {
@@ -28,7 +28,7 @@ int main()
 #if CIRCULAR_SURVEY
         thetaMax = 5.04;
 #else
-        thetaMax = 8.93;
+        thetaMax = 18.93;//2.93; 8.93, 13.93, 18.93;
 #endif
         z_max = 3;
     }
@@ -75,21 +75,27 @@ int main()
     std::cerr << "Writing results to folder " << folder << std::endl;
 #if CALCULATE_TERM1
     std::cerr<< "Calculates Term1"<<std::endl;
-#elif CALCULATE_TERM2
+#endif
+#if CALCULATE_TERM2
     std::cerr<<"Calculates Term2"<<std::endl;
-#elif CALCULATE_TERM4
+#endif
+#if CALCULATE_TERM4
     std::cerr<<"Calculates Term4"<<std::endl;
-#elif CALCULATE_INFINITE  
+#endif
+#if CALCULATE_INFINITE  
     std::cerr<<"Calculates infinite field"<<std::endl;
-#elif CALCULATE_INFINITE_NG
+#endif
+#if CALCULATE_INFINITE_NG
     std::cerr<<"Calculates first Non-Gaussian Term for infinite field"<<std::endl;
-#else
+#endif
+#if !CALCULATE_TERM1 & !CALCULATE_TERM2 & !CALCULATE_TERM4 & !CALCULATE_INFINITE & !CALCULATE_INFINITE_NG
     std::cerr<<"Not actually doing anything... Check calculateApertureStatisticsCovarianceNewFormula.cpp"<<std::endl;
     return;
 #endif
 
 #if CONSTANT_POWERSPECTRUM
     std::cerr << "Warning: Using constant powerspectrum" << std::endl;
+    double P = 0.5*sigma*sigma/n/(180/M_PI)/(180/M_PI);
 #endif
 
     double thetaMaxRad = convert_angle_to_rad(thetaMax, "deg"); // Convert to radians
@@ -141,6 +147,7 @@ int main()
 #if CALCULATE_TERM1
                             double term1 = apertureStatistics.L1_total(thetas_123, thetas_456, thetaMaxRad);
                             Cov_term1s.push_back(term1);
+                            std::cerr<<theta1<<" "<<theta2<<" "<<theta3<<" "<<theta4<<" "<<theta5<<" "<<theta6<<" "<<term1<<std::endl;
 #endif
 #if CALCULATE_TERM2
                             double term2 = apertureStatistics.L2_total(thetas_123, thetas_456, thetaMaxRad);
@@ -152,6 +159,9 @@ int main()
 #endif
 #if CALCULATE_INFINITE
                             double infiniteField=apertureStatistics.MapMapMap_covariance_Gauss(thetas_123, thetas_456, thetaMaxRad*thetaMaxRad);
+#if CONSTANT_POWERSPECTRUM
+                            infiniteField*=P*P*P;
+#endif
                             Cov_infiniteFields.push_back(infiniteField);
 #endif
 #if CALCULATE_INFINITE_NG
@@ -205,6 +215,7 @@ int main()
     {
         for (int j = 0; j < N_ind; j++)
         {
+            std::cerr<<i<<" "<<j<<" "<<Cov_term2s.at(i*N_ind+j)<<std::endl;
             out << Cov_term1s.at(i * N_ind + j) << " ";
         }
         out << std::endl;
@@ -251,7 +262,7 @@ int main()
     sprintf(filename4, "cov_%s_term4NumericalRound_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat", 
                     type.c_str(), sigma, n, thetaMax);
 #else
-    sprintf(filename2, "cov_%s_term4Numerical_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat", 
+    sprintf(filename4, "cov_%s_term4Numerical_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat", 
                     type.c_str(), sigma, n, thetaMax);
 #endif
     std::string fn_term4 = folder + std::string(filename4);
