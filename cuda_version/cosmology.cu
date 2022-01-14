@@ -246,3 +246,89 @@ std::ostream& operator<<(std::ostream& out, const covarianceParameters& covPar)
   out<<"power spectrum: "<<covPar.power_spectrum_contribution<<std::endl;
   return out;
 }
+
+void read_gamma_config(const std::string& fn, configGamma& config)
+{
+
+  // Open file
+  std::ifstream input(fn.c_str());
+  if(input.fail())
+    {
+      std::cout<<"read_gamma_config: Could not open "<<fn<<std::endl;
+      return;
+    };
+  
+  
+  // Read in file
+  std::vector<std::string> parameterNames;
+  std::vector<double> parameterValues;
+  
+  if(input.is_open())
+    {
+      std::string line;
+      while(std::getline(input, line))
+      {
+        if(line[0]=='#' || line.empty()) continue;
+        std::string name;
+        double value;
+        std::istringstream iss(line);
+        iss>>name>>value;
+        parameterNames.push_back(name);
+        parameterValues.push_back(value);
+      }
+    }
+
+  for(unsigned int i=0; i<parameterNames.size(); i++)
+  {
+    if(parameterNames.at(i)=="rmin")
+    {
+      config.rmin=parameterValues.at(i);
+    }
+    else if(parameterNames.at(i)=="rmax")
+    {
+      config.rmax=parameterValues.at(i);
+    }
+    else if(parameterNames.at(i)=="umin")
+    {
+      config.umin=parameterValues.at(i);
+    }
+    else if(parameterNames.at(i)=="umax")
+    {
+      config.umax=parameterValues.at(i);
+    }
+    else if(parameterNames.at(i)=="vmin")
+    {
+      config.vmin=parameterValues.at(i);
+    }
+    else if(parameterNames.at(i)=="vmax")
+    {
+      config.vmax=parameterValues.at(i);
+    }
+    else if(parameterNames.at(i)=="rsteps")
+    {
+      config.rsteps=std::round(parameterValues.at(i));
+    }
+    else if(parameterNames.at(i)=="usteps")
+    {
+      config.usteps=std::round(parameterValues.at(i));
+    }
+    else if(parameterNames.at(i)=="vsteps")
+    {
+      config.vsteps=std::round(parameterValues.at(i));
+    }
+    else
+    {
+      std::cout<<"Cosmology::Parameter file is not in the right format"
+        <<std::endl;
+      return;
+    }
+  }
+}
+
+std::ostream& operator<<(std::ostream& out, const configGamma& config)
+{
+  out<<"Binning r in "<<config.rsteps << " bins from " << config.rmin << " to " << config.rmax <<std::endl;
+  out<<"Binning u in "<<config.usteps << " bins from " << config.umin << " to " << config.umax <<std::endl;
+  out<<"Binning v in "<<config.vsteps << " bins from " << config.vmin << " to " << config.vmax <<std::endl;
+  return out;
+}

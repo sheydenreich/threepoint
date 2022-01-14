@@ -57,4 +57,15 @@ void read_covariance_param(const std::string& fn, covarianceParameters& covPar);
 // Output
 std::ostream& operator<<(std::ostream& out, const covarianceParameters& covPar);
 
+struct configGamma
+{
+  int rsteps,usteps,vsteps;
+  double umin,umax,vmin,vmax,rmin,rmax;
+};
+
+void read_gamma_config(const std::string& fn, configGamma& config);
+
+std::ostream& operator<<(std::ostream& out, const configGamma& config);
+
+
 #endif // COSMOLOGY_CUH
