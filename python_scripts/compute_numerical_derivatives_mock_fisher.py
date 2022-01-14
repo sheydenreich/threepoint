@@ -1,23 +1,21 @@
-from utility import create_gaussian_random_field_array, create_gamma_field, extract_power_spectrum
+from utility_public import create_gaussian_random_field_array, create_gamma_field, extract_power_spectrum
 import numpy as np
-import sys
 from tqdm import tqdm
 import multiprocessing.managers
 from multiprocessing import Pool
 import os
-import sys
 import argparse
 
 parser = argparse.ArgumentParser(
     description='Script for computing third-order aperture mass correlations of random fields.')
 
 parser.add_argument(
-    '--npix', default=4096, metavar='INT', type=int,
+    '--npix', default=512, metavar='INT', type=int,
     help='Number of pixels in the aperture mass map. default: %(default)s'
 )
 
 parser.add_argument(
-    '--fieldsize', default=10, metavar='FLOAT', type=float,
+    '--fieldsize', default=5, metavar='FLOAT', type=float,
     help='Sidelength of the field in degrees. default: %(default)s'
 )
 
@@ -61,19 +59,19 @@ def power_spectrum_gaussian_random_field(ell_array,power_spectrum_array,npix,ran
 def power_spectrum_gaussian_random_field_kernel(kwargs):
     ell_array,power_spectrum_array,final_results_gamma,final_results_kappa,npix,random_seed,realisation = kwargs
     result_gamma,result_kappa,kvals = power_spectrum_gaussian_random_field(ell_array,power_spectrum_array,npix,random_seed)
-    final_results_gamma[:,realisation] = result_gamma
-    final_results_kappa[:,realisation] = result_kappa
+    final_results_gamma[realisation,:] = result_gamma
+    final_results_kappa[realisation,:] = result_kappa
     # if(realisation==args.realisations-1):
     #     print("Kvals: ")
     #     print(kvals)
     #     print("\n")
 
-def compute_aperture_mass_correlations_of_gaussian_random_fields(fname,npix,n_realisations,n_processes=64):
+def compute_power_spectra_gaussian_random_field(fname,npix,n_realisations,n_processes=64):
     m = MyManager()
     m.start()
-    final_results_gamma = m.np_zeros((10,n_realisations))
-    final_results_kappa = m.np_zeros((10,n_realisations))
-    data = np.loadtxt("/users/sven/Documents/code/results_SLICS/power_spectrum_{}.dat".format(fname))
+    final_results_gamma = m.np_zeros((n_realisations,10))
+    final_results_kappa = m.np_zeros((n_realisations,10))
+    data = np.loadtxt("/vol/euclid2/euclid2_raid2/sven/HOWLS/powerspectrum_{}.dat".format(fname))
     ell_array = data[:,0]
     power_spectrum_array = data[:,1]
     with Pool(processes=n_processes) as p:
@@ -87,20 +85,28 @@ def compute_aperture_mass_correlations_of_gaussian_random_fields(fname,npix,n_re
     return final_results_gamma,final_results_kappa
 
 if(__name__=='__main__'):
-    savepath = "/users/sven/Documents/code/results_SLICS/mocks_powerspectrum/"
+    savepath = "/vol/euclid2/euclid2_raid2/sven/HOWLS/power_spectra/gaussian_random_fields/"
     if not os.path.exists(savepath):
         os.makedirs(savepath)
+    cosmology_dict = {}
+    cosmology_dict["Om"] = np.array(['02','0300912','0325988','04'])
+    cosmology_dict["s8"] = np.array(['0707210','0808240','0875594','0976624'])
+    cosmology_dict["w_"] = np.array(['-1.16','-1.04','-0.96','-0.84'])
+    cosmology_dict["h"] = np.array(['05','06','07','08'])
 
-    for fname in ["fid","om","sig8","w0","h"]:
-        if(fname=="fid"):
-            realisations = 2048
-        else:
+    for cosmo in ["h","Om","s8","w_"]:
+        for i in range(4):
+            fname = "dustgrain_fine_"+cosmo+cosmology_dict[cosmo][i]
             realisations = args.realisations
-        res_gamma,res_kappa = compute_aperture_mass_correlations_of_gaussian_random_fields(fname,n_pix,realisations,n_processes=args.processes)
+            res_gamma,res_kappa = compute_power_spectra_gaussian_random_field(fname,n_pix,realisations,n_processes=args.processes)
+            np.savetxt(savepath+'powerspectrum_gamma_{}.dat'.format(fname.replace("_fine","")),res_gamma)
+            np.savetxt(savepath+'powerspectrum_kappa_{}.dat'.format(fname.replace("_fine","")),res_kappa)
 
-        np.save(savepath+'powerspectrum_gamma_{}'.format(fname),res_gamma)
-        np.save(savepath+'powerspectrum_kappa_{}'.format(fname),res_kappa)
-
+    realisations = 2048
+    fname = "SLICS_fine"
+    res_gamma,res_kappa = compute_power_spectra_gaussian_random_field(fname,n_pix,realisations,n_processes=args.processes)
+    np.savetxt(savepath+'powerspectrum_gamma_{}.dat'.format(fname.replace("_fine","")),res_gamma)
+    np.savetxt(savepath+'powerspectrum_kappa_{}.dat'.format(fname.replace("_fine","")),res_kappa)
 
 
     # res = compute_random_shear_power_spectra(4096,global_fieldsize_rad,1024,100)

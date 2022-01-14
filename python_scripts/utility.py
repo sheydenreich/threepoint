@@ -49,7 +49,7 @@ def create_gaussian_random_field(power_spectrum, n_pix=4096,fieldsize=4.*np.pi/1
     return gaussian_map.data
 
 def create_gaussian_random_field_array(ell_array, power_spectrum_array, n_pix=4096,fieldsize=4.*np.pi/180,random_seed=None):
-    """creates gaussian random field from given power spectrum, with mean 0 and variance sigma"""
+    """creates gaussian random field from given power spectrum array, with mean 0 and variance sigma"""
     gen = GaussianNoiseGenerator(shape=(n_pix,n_pix),side_angle=fieldsize*u.rad)
     if random_seed is None:
         random_seed = np.random.randint(0,2**32)
@@ -509,6 +509,62 @@ def extract_aperture_masses(Xs,Ys,shear_catalogue,npix,thetas,fieldsize,compute_
     shears,norm = ac.normalize_shear(Xs,Ys,shear_catalogue)
     result = extract_aperture_masses_of_field(shears,npix,thetas,fieldsize,norm=norm,ac=ac,compute_mcross=compute_mcross,
     save_map=save_map,same_fieldsize_for_all_theta=same_fieldsize_for_all_theta,use_polynomial_filter=use_polynomial_filter)
+    return result
+
+def extract_second_order_aperture_masses(Xs,Ys,shear_catalogue,npix,thetas,fieldsize,compute_mcross=False,save_map=None,same_fieldsize_for_all_theta=False,use_polynomial_filter=False):
+    ac = aperture_mass_computer(npix,1.,fieldsize,use_polynomial_filter=use_polynomial_filter)
+    shears,norm = ac.normalize_shear(Xs,Ys,shear_catalogue)
+    result = extract_second_order_aperture_masses_of_field(shears,npix,thetas,fieldsize,norm=norm,ac=ac,compute_mcross=compute_mcross,
+    save_map=save_map,same_fieldsize_for_all_theta=same_fieldsize_for_all_theta,use_polynomial_filter=use_polynomial_filter)
+    return result
+
+def extract_second_order_aperture_masses_of_field(shears,npix,thetas,fieldsize,norm=None,ac=None,compute_mcross=False,
+    save_map=None,same_fieldsize_for_all_theta=False,use_polynomial_filter=False):
+    n_thetas = len(thetas)
+    maxtheta = np.max(thetas)
+    if ac is None:
+        ac = aperture_mass_computer(npix,1.,fieldsize,use_polynomial_filter=use_polynomial_filter)
+
+ 
+    if(compute_mcross):
+        # result = np.zeros((n_thetas,n_thetas,n_thetas,8))
+        return
+    else:
+        result = np.zeros(n_thetas)
+
+    aperture_mass_fields = np.zeros((npix,npix,n_thetas))
+    if(compute_mcross):
+        cross_aperture_fields = np.zeros((npix,npix,n_thetas))
+
+    for x,theta in enumerate(thetas):
+        ac.change_theta_ap(theta)
+        if(compute_mcross):
+            map,mx = ac.Map_fft(shears,norm=norm,return_mcross=True,periodic_boundary=False)
+            cross_aperture_fields[:,:,x] = mx
+        else:
+            map = ac.Map_fft(shears,norm=norm,return_mcross=False,periodic_boundary=False)
+
+        aperture_mass_fields[:,:,x] = map
+
+    if(save_map is not None):
+        np.save(save_map,aperture_mass_fields)
+
+    for i in range(n_thetas):
+        field1 = aperture_mass_fields[:,:,i]
+
+        if not same_fieldsize_for_all_theta:
+            maxtheta = thetas[i]
+        
+        if(use_polynomial_filter):
+            factor_cutoff = 1. #polynomial filter is zero outside of theta_ap
+        else:
+            factor_cutoff = 4. #exponential filter has 99.8 percent of its power within 4*theta_ap
+
+        index_maxtheta = int(np.round(maxtheta/(fieldsize)*npix*factor_cutoff)) #cut off boundaries
+        
+        field1_cut = field1[index_maxtheta:(npix-index_maxtheta),index_maxtheta:(npix-index_maxtheta)]
+        result[i] = np.mean(field1_cut**2)
+
     return result
 
 

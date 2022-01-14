@@ -1,4 +1,4 @@
-from utility import aperture_mass_computer,extract_aperture_masses
+from utility import extract_second_order_aperture_masses
 import numpy as np
 import sys
 from tqdm import tqdm
@@ -40,7 +40,8 @@ def compute_aperture_masses_of_field(filepath,theta_ap_array,save_map=None,use_p
     # print("Flipping e2!")
     # shear_noise = -data['gamma1_noise']-1.0j*data['gamma2_noise']
 
-    result = extract_aperture_masses(X_pos,Y_pos,shear_noise,npix,theta_ap_array,fieldsize,compute_mcross=False,save_map=save_map,use_polynomial_filter=use_polynomial_filter)
+    result = extract_second_order_aperture_masses(X_pos,Y_pos,shear_noise,npix,theta_ap_array,fieldsize,compute_mcross=False,save_map=save_map,
+                                                  use_polynomial_filter=use_polynomial_filter)
 
     return result
 
@@ -51,7 +52,7 @@ def compute_all_aperture_masses(openpath,filenames,savepath,aperture_masses = [1
         result = [p.apply_async(compute_aperture_masses_of_field, args=(openpath+filenames[i],aperture_masses,None,use_polynomial_filter,)) for i in range(n_files)]
         data = [p.get() for p in result]
         datavec = np.array([data[i] for i in range(len(data))])
-        np.savetxt(savepath+'map_cubed',datavec)
+        np.savetxt(savepath+'map_squared',datavec)
 
 
 def cond_for_analysis(x):
