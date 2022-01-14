@@ -1,4 +1,4 @@
-from utility import aperture_mass_computer, create_gaussian_random_field, create_gamma_field, extract_power_spectrum
+from utility import aperture_mass_computer, create_gaussian_random_field, create_gamma_field, extract_power_spectrum, create_gaussian_random_field_array
 import numpy as np
 import sys
 from tqdm import tqdm
@@ -38,7 +38,12 @@ parser.add_argument(
 
 parser.add_argument(
     '--power_spectrum', default=0, metavar='INT', type=int,
-    help='Type of power spectrum used. \n 0:\t constant\n 1:\t (x/1e4)^2*exp(-(x/1e4)^2)\n 2:\t (x/1e4)*exp(-(x/1e4))\n default: %(default)s'
+    help='Type of power spectrum used. \n -1:\t power spectrum from input file \n 0:\t constant\n 1:\t (x/1e4)^2*exp(-(x/1e4)^2)\n 2:\t (x/1e4)*exp(-(x/1e4))\n default: %(default)s'
+)
+
+parser.add_argument(
+    '--power_spectrum_filename',
+    help='if power_spectrum=-1, filename for the power spectrum'
 )
 
 parser.add_argument(
@@ -66,7 +71,12 @@ n_pix = args.npix
 CONSTANT_POWERSPECTRUM = False
 ANALYTICAL_POWERSPECTRUM = False
 ANALYTICAL_POWERSPECTRUM_V2 = False
+INPUT_FILE_POWER_SPECTRUM = False
 
+if(args.power_spectrum<0):
+    print("Using power spectrum from input file: ",args.power_spectrum_filename)
+    INPUT_FILE_POWER_SPECTRUM = True
+    
 if(args.power_spectrum==0):
     print("Using constant powerspectrum")
     CONSTANT_POWERSPECTRUM = True
@@ -146,7 +156,12 @@ def compute_random_aperture_mass_correlations(npix,thetas,n_realisations,n_proce
 
 def aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,random_seed,compute_gamma,compute_kappa,galaxy_density=None,shapenoise = 0.3):
     if(galaxy_density is None):
-        kappa_field = create_gaussian_random_field(power_spectrum,n_pix=npix,fieldsize=global_fieldsize_rad,random_seed=random_seed)
+        if(INPUT_FILE_POWER_SPECTRUM):
+            ell = power_spectrum[:,0]
+            pkappa_of_ell = power_spectrum[:,1]
+            kappa_field = create_gaussian_random_field_array(ell,pkappa_of_ell,n_pix=npix,fieldsize=global_fieldsize_rad,random_seed=random_seed)
+        else:
+            kappa_field = create_gaussian_random_field(power_spectrum,n_pix=npix,fieldsize=global_fieldsize_rad,random_seed=random_seed)
         if(args.substract_mean):
             kappa_field = kappa_field - np.mean(kappa_field)
         if(np.any(np.isnan(kappa_field))):
@@ -312,6 +327,11 @@ if(__name__=='__main__'):
             return x/10000*np.exp(-x/10000)
         savepath = '/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum_v2/'
 
+    elif(INPUT_FILE_POWER_SPECTRUM):
+        power_spectrum = np.loadtxt(args.power_spectrum_filename)
+        filename = args.power_spectrum_filename.split("/")[-1]
+        savepath = '/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/input_powerspectrum/'+filename.split(".")[0]
+        
     res_gamma,res_kappa = compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,n_pix,[1,2,4,8,16],args.realisations,n_processes=args.processes,compute_kappa=args.compute_from_kappa)
     if not os.path.exists(savepath):
         os.makedirs(savepath)
