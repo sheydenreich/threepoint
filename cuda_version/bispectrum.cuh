@@ -285,6 +285,13 @@ __device__ double dev_E(double z);
    * Inverse of Expansion function, for flat Universe
    * @param z redshift
    */
-    double E_inv(double z);
+   
+   double E_inv(double z);
 
+   
+   __device__ double om_v_of_z(double z);
+   __device__ double om_m_of_z(double z);
+   __device__ double limber_integrand_prefactor(double z, double g_value);
+   __device__ double limber_integrand(double ell, double z);
+   __device__ double dev_p_kappa(double ell);
 #endif //BISPECTRUM_CUH

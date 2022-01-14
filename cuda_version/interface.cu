@@ -1,5 +1,5 @@
-#include "/home/laila/cosmosis/cosmosis/datablock/datablock.hh"
-#include "/home/laila/cosmosis/cosmosis/datablock/section_names.h"
+#include "/vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/datablock.hh"
+#include "/vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/section_names.h"
 #include "helpers.cuh"
 #include "bispectrum.cuh"
 #include "apertureStatistics.cuh"
@@ -11,7 +11,7 @@
     @author Laila Linke, llinke@astro.uni-bonn.de
 */
 
-#define VERBOSE true
+#define VERBOSE false
 
 extern "C"
 {
@@ -26,9 +26,12 @@ extern "C"
  public:
      double zMax;                             // Maximal redshift
      std::vector<double> nz;                  //n(z) values (zBins linear spaced bins, from 0 to zMax), is assigned from file
-     std::vector<std::vector<double>> thetas; // thetas, for which Map3 should be calculated, shape: (N, 3) [rad]
-     bool output;                             // if true: Write computed <Map^3> into a file in output_dir
-     std::string output_dir;                  // Outputdirectory, into which computed <Map^3> are written, if output==True
+     std::vector<double> thetas_Map2;         // thetas for which Map2 should be calculated, shape: N [rad]
+     std::vector<std::vector<double>> thetas_Map3; // thetas, for which Map3 should be calculated, shape: (N, 3) [rad]
+     double shapenoise_powerspectrum;         // shapenoise contribution of power spectrum (relevant for Map^2)
+     bool calculate_Map2,calculate_Map3;      // if true: calculate <Map^2/3> for specified thetas
+     bool output_Map2,output_Map3;            // if true: Write computed <Map^2/3> into a file in output_dir
+     std::string output_dir;                  // Outputdirectory, into which computed <Map^2/3> are written, if output==True
      data(){};                                // Empty constructor
  };
 
@@ -95,53 +98,92 @@ void* setup(cosmosis::DataBlock *options)
     COSMOSIS_SAFE_CALL(options->get_val(section, "theta_max", theta_max));   // Read in maximal aperture radius
     int theta_bins;                                                          // Number of different aperture radii
     COSMOSIS_SAFE_CALL(options->get_val(section, "theta_bins", theta_bins)); // Read in number of aperture radii
-#if VERBOSE
-    std::cerr << "Considering " << theta_bins << " aperture radii between "
-                  << theta_min << unit << " and " << theta_max << unit << std::endl;
-#endif                                                                    //VERBOSE
+    #if VERBOSE
+        std::cerr << "Considering " << theta_bins << " aperture radii between "
+                    << theta_min << unit << " and " << theta_max << unit << std::endl;
+    #endif                                                                    //VERBOSE
+
+    bool calculate_Map2,calculate_Map3;
+    COSMOSIS_SAFE_CALL(options->get_val(section, "calculate_Map2", calculate_Map2));
+    COSMOSIS_SAFE_CALL(options->get_val(section, "calculate_Map3", calculate_Map3));
+
     bool diag;                                                        // If true: only do calculation for equal aperture radii (theta1=theta2=theta3)
     COSMOSIS_SAFE_CALL(options->get_val(section, "diag_only", diag)); // Read in if calculation should be only for equal aperture radii
-
-#if VERBOSE
-    if (diag)
-    {
-        std::cerr << "Looking only at equal aperture radii" << std::endl;
-    }
-    else
-    {
-        std::cerr << "Looking at all independent combinations of aperture radii" << std::endl;
-    };
-#endif //VERBOSE
 
     theta_min = convert_angle_to_rad(theta_min, unit);                         //Convert minimal aperture radius to rad
     theta_max = convert_angle_to_rad(theta_max, unit);                         //Convert maximal aperture radius to rad
     double delta_theta = (log(theta_max) - log(theta_min)) / (theta_bins - 1); //Logarithmic step between aperture radii
-    // Set aperture radii
-    for (int i = 0; i < theta_bins; i++)
+
+    if(calculate_Map2)
     {
-        double theta1 = theta_min * exp(i * delta_theta);
-        if (diag) //If true: set theta2=theta3=theta1
+        #if VERBOSE
+            std::cerr << "Calculating Map2" << std::endl;
+        #endif //VERBOSE
+
+        double galaxy_density,shapenoise_single_galaxy,powerspectrum_contribution;
+        COSMOSIS_SAFE_CALL(options->get_val(section, "galaxy_shapenoise", shapenoise_single_galaxy));
+        COSMOSIS_SAFE_CALL(options->get_val(section, "galaxy_density", galaxy_density));
+        galaxy_density = galaxy_density / pow(convert_angle_to_rad(1., "arcmin"),2);
+        powerspectrum_contribution = shapenoise_single_galaxy*shapenoise_single_galaxy/2./galaxy_density;
+        config_data->shapenoise_powerspectrum = powerspectrum_contribution;
+
+        #if VERBOSE
+            std::cerr << "galaxy density: " << galaxy_density << "rad^-2" << std::endl;
+            std::cerr << "powerspectrum_contribution: " << config_data->shapenoise_powerspectrum << std::endl;
+        #endif //VERBOSE
+
+
+        // Set aperture radii
+        for (int i = 0; i < theta_bins; i++)
         {
-            std::vector<double> thetas = {theta1, theta1, theta1};
-            config_data->thetas.push_back(thetas);
+            double theta1 = theta_min * exp(i * delta_theta);
+            config_data->thetas_Map2.push_back(theta1);
         }
-        else //Otherwise: Assign all independen combinations
-        {
-            for (int j = i; j < theta_bins; j++)
+    };
+
+    if(calculate_Map3)
+    {
+
+        #if VERBOSE
+            std::cerr << "Calculating Map3" << std::endl;
+            if (diag)
             {
-                double theta2 = theta_min * exp(j * delta_theta);
-                for (int k = j; k < theta_bins; k++)
+                std::cerr << "Looking only at equal aperture radii" << std::endl;
+            }
+            else
+            {
+                std::cerr << "Looking at all independent combinations of aperture radii" << std::endl;
+            };
+        #endif //VERBOSE
+
+        // Set aperture radii
+        for (int i = 0; i < theta_bins; i++)
+        {
+            double theta1 = theta_min * exp(i * delta_theta);
+            if (diag) //If true: set theta2=theta3=theta1
+            {
+                std::vector<double> thetas = {theta1, theta1, theta1};
+                config_data->thetas_Map3.push_back(thetas);
+            }
+            else //Otherwise: Assign all independen combinations
+            {
+                for (int j = i; j < theta_bins; j++)
                 {
-                    double theta3 = theta_min * exp(k * delta_theta);
-                    std::vector<double> thetas = {theta1, theta2, theta3};
-                    config_data->thetas.push_back(thetas);
+                    double theta2 = theta_min * exp(j * delta_theta);
+                    for (int k = j; k < theta_bins; k++)
+                    {
+                        double theta3 = theta_min * exp(k * delta_theta);
+                        std::vector<double> thetas = {theta1, theta2, theta3};
+                        config_data->thetas_Map3.push_back(thetas);
+                    }
                 }
             }
         }
-    }
+    };
 
     // Set output of <Map^3>
-    COSMOSIS_SAFE_CALL(options->get_val(section, "output_Map3", config_data->output));    //Read in if <Map³> should be put out
+    COSMOSIS_SAFE_CALL(options->get_val(section, "output_Map2", config_data->output_Map2));    //Read in if <Map³> should be put out
+    COSMOSIS_SAFE_CALL(options->get_val(section, "output_Map3", config_data->output_Map3));    //Read in if <Map³> should be put out
     COSMOSIS_SAFE_CALL(options->get_val(section, "output_dir", config_data->output_dir)); //Read in directory into which <Map^3> should be put out
     
     // Copy constants to GPU
@@ -206,55 +248,102 @@ DATABLOCK_STATUS execute(cosmosis::DataBlock *block, void *config)
     // Set Cosmology and compute non-linear scales of bispectrum
     set_cosmology(cosmo, &config_data->nz, &Pk_lin, dk, kMin, kMax);
 
-    // Open output file, if wanted
-    std::ofstream out;       // Outputstream for the currently calculated <Map^3>
-    if (config_data->output) // Check if output should be written to file
+    // Calculation of Map2
+    if(config_data->calculate_Map2)
     {
-        std::string fn_out = config_data->output_dir + "/om_" + std::to_string(cosmo.om) + "_sig8_" + std::to_string(cosmo.sigma8) + "_h_" + std::to_string(cosmo.h) + "_w_" + std::to_string(cosmo.w) + ".dat"; // Outputfilename, contains current cosmology
-
-        out.open(fn_out);   // Open filestream
-        if (!out.is_open()) //Check if file could be opened, exits otherwise
+        // Open output file, if wanted
+        std::ofstream out;       // Outputstream for the currently calculated <Map^3>
+        if (config_data->output_Map2) // Check if output should be written to file
         {
-            std::cerr << "Could not open " << fn_out << std::endl;
-            exit(1);
+            std::string fn_out = config_data->output_dir + "/Map2_om_" + std::to_string(cosmo.om) + "_sig8_" + std::to_string(cosmo.sigma8) + "_h_" + std::to_string(cosmo.h) + "_w_" + std::to_string(cosmo.w) + ".dat"; // Outputfilename, contains current cosmology
+
+            out.open(fn_out);   // Open filestream
+            if (!out.is_open()) //Check if file could be opened, exits otherwise
+            {
+                std::cerr << "Could not open " << fn_out << std::endl;
+                exit(1);
+            };
+            out << "#theta[rad] Map^2" << std::endl; // First line in file
         };
-        out << "#theta1[rad] theta2[rad] theta3[rad] Map^3" << std::endl; // First line in file
+
+        // Calculate model aperture statistics
+        int N = config_data->thetas_Map2.size(); // Number of aperture radii combinations
+        std::vector<double> Map2s;          // Array containing calculated <Map^3>s
+    #if VERBOSE
+        std::cerr << "Started <MapMap> Calculation" << std::endl;
+    #endif //VERBOSE
+
+        for (int i = 0; i < N; i++)
+        {
+        #if VERBOSE
+            //Progress for the impatient user (Thetas in arcmin)
+            std::cerr << i + 1 << "/" << N << ": Theta:"
+                    << convert_rad_to_angle(config_data->thetas_Map2[i]) << " arcmin \r";
+            std::cerr.flush();
+        #endif                                                                          //VERBOSE
+            double Map2_now = Map2(config_data->thetas_Map2[i],config_data->shapenoise_powerspectrum); //Do calculation
+            Map2s.push_back(Map2_now);                                              // Store calculation in array
+            if (config_data->output_Map2)                                            // Write to file, if wanted
+            {
+                out << config_data->thetas_Map2[i] << " "
+                    << Map2_now << std::endl;
+            };
+        };
+
+        COSMOSIS_SAFE_CALL(block->put_val("threepoint", "Map2s", Map2s)); // Store the <Map^2>s in the DataBlock
     };
 
-    // Calculate model aperture statistics
-    int N = config_data->thetas.size(); // Number of aperture radii combinations
-    std::vector<double> Map3s;          // Array containing calculated <Map^3>s
-#if VERBOSE
-    std::cerr << "Started <MapMapMap> Calculation" << std::endl;
-#endif //VERBOSE
-
-    for (int i = 0; i < N; i++)
+    if(config_data->calculate_Map3)
     {
-#if VERBOSE
-        //Progress for the impatient user (Thetas in arcmin)
-        std::cerr << i + 1 << "/" << N << ": Thetas:"
-                  << convert_rad_to_angle(config_data->thetas[i][0]) << " arcmin "
-                  << convert_rad_to_angle(config_data->thetas[i][1]) << " arcmin "
-                  << convert_rad_to_angle(config_data->thetas[i][2]) << " arcmin \r";
-        std::cerr.flush();
-#endif                                                                          //VERBOSE
-        double Map3 = MapMapMap(config_data->thetas[i]); //Do calculation
-        Map3s.push_back(Map3);                                              // Store calculation in array
-        if (config_data->output)                                            // Write to file, if wanted
-        {
-            out << config_data->thetas[i][0] << " "
-                << config_data->thetas[i][1] << " "
-                << config_data->thetas[i][2] << " "
-                << Map3 << std::endl;
-        };
-    };
 
-    COSMOSIS_SAFE_CALL(block->put_val("threepoint", "Map3s", Map3s)); // Store the <Map^3>s in the DataBlock
+        // Open output file, if wanted
+        std::ofstream out;       // Outputstream for the currently calculated <Map^3>
+        if (config_data->output_Map3) // Check if output should be written to file
+        {
+            std::string fn_out = config_data->output_dir + "/Map3_om_" + std::to_string(cosmo.om) + "_sig8_" + std::to_string(cosmo.sigma8) + "_h_" + std::to_string(cosmo.h) + "_w_" + std::to_string(cosmo.w) + ".dat"; // Outputfilename, contains current cosmology
+
+            out.open(fn_out);   // Open filestream
+            if (!out.is_open()) //Check if file could be opened, exits otherwise
+            {
+                std::cerr << "Could not open " << fn_out << std::endl;
+                exit(1);
+            };
+            out << "#theta1[rad] theta2[rad] theta3[rad] Map^3" << std::endl; // First line in file
+        };
+
+        // Calculate model aperture statistics
+        int N = config_data->thetas_Map3.size(); // Number of aperture radii combinations
+        std::vector<double> Map3s;          // Array containing calculated <Map^3>s
+    #if VERBOSE
+        std::cerr << "Started <MapMapMap> Calculation" << std::endl;
+    #endif //VERBOSE
+
+        for (int i = 0; i < N; i++)
+        {
+    #if VERBOSE
+            //Progress for the impatient user (Thetas in arcmin)
+            std::cerr << i + 1 << "/" << N << ": Thetas:"
+                    << convert_rad_to_angle(config_data->thetas_Map3[i][0]) << " arcmin "
+                    << convert_rad_to_angle(config_data->thetas_Map3[i][1]) << " arcmin "
+                    << convert_rad_to_angle(config_data->thetas_Map3[i][2]) << " arcmin \r";
+            std::cerr.flush();
+    #endif                                                                          //VERBOSE
+            double Map3 = MapMapMap(config_data->thetas_Map3[i]); //Do calculation
+            Map3s.push_back(Map3);                                              // Store calculation in array
+            if (config_data->output_Map3)                                            // Write to file, if wanted
+            {
+                out << config_data->thetas_Map3[i][0] << " "
+                    << config_data->thetas_Map3[i][1] << " "
+                    << config_data->thetas_Map3[i][2] << " "
+                    << Map3 << std::endl;
+            };
+        };
+
+        COSMOSIS_SAFE_CALL(block->put_val("threepoint", "Map3s", Map3s)); // Store the <Map^3>s in the DataBlock
+    };
 
     DATABLOCK_STATUS status = DBS_SUCCESS; // Success :)
     return status;
-
-       
 }
 
 

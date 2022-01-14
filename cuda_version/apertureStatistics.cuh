@@ -60,13 +60,56 @@ int integrand_Map3(unsigned ndim, size_t npts, const double* vars, void* thisPtr
    */
 double MapMapMap(const std::vector<double>& thetas, const double& phiMin=0, const double& phiMax=6.283185307, const double& lMin=1);
   
+  /**
+   * @brief GPU integrandn for second order aperure statistics
+   * @param ell 
+   * @param z 
+   * @param theta aperture radius [rad]
+   * @param shapenoise_contribution whether to include shapenoise in Power Spectrum
+   */
+   __device__ double dev_integrand_Map2(const double& ell, const double& z, double theta, const double& shapenoise_contribution);
 
+   /**
+    * @brief CPU-interface for dev_integrand_Map2 with cubature
+    * 
+    * @param vars 
+    * @param ndim 
+    * @param npts 
+    * @param theta 
+    * @param value 
+    * @param shapenoise_contribution 
+    * @return __global__ 
+    */
+   __global__ void integrand_Map2(const double* vars, unsigned ndim, int npts, double theta, double* value, double shapenoise_contribution);
+ 
+   /**
+    * @brief Cubature-wrapper for integrand_Map2 function
+    * 
+    * @param ndim 
+    * @param npts 
+    * @param vars 
+    * @param thisPtr 
+    * @param fdim 
+    * @param value 
+    * @return int 
+    */
+   static int integrand_Map2(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
+ 
+   /**
+    * @brief Second-order aperture mass statistics, modeled from revised Halofit non-linear power spectrum with limber-integration
+    * @param theta aperture radius [rad]
+    * @param covPar paramfile with survey specifics (needed for shapenoise term)
+    * @param shapenoise bool for shapenoise on/off
+    * @return value of second order aperture statistics for aperture radius theta
+    */
+   double Map2(double theta, double shapenoise_powerspectrum);
 
 
 struct ApertureStatisticsContainer
 {
   /** Apertureradii [rad]*/
   std::vector<double> thetas;
+  double shapenoise_contribution;
 };
 
 

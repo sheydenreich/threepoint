@@ -355,31 +355,45 @@ __device__ void compute_coefficients(int idx, double didx, double *D1, double *r
   *n_eff = dev_n_eff_array[idx] * (1 - didx) + dev_n_eff_array[idx + 1] * didx;
 }
 
+__device__ double om_m_of_z(double z)
+{
+  double aa = 1./(1+z);
+  return dev_om/(dev_om + aa * (aa * aa * dev_ow + (1. - dev_om - dev_ow)));
+}
+
+__device__ double om_v_of_z(double z)
+{
+  double aa = 1./(1+z);
+  return dev_ow * aa * aa * aa / (dev_om + aa * (aa * aa * dev_ow + (1. - dev_om - dev_ow)));
+}
+
 __device__ double P_k_nonlinear(double k, double z)
 {
-  printf("Warning! This is the bugged version. Not fixed yet.");
+  if(dev_sigma8 < 1e-8) return 0;
+  // printf("Warning! This is the bugged version. Not fixed yet.");
   /* get the interpolation coefficients */
-  double didx = z / dev_z_max * (n_redshift_bins - 1);
+  double didx = z / dev_z_max * (dev_n_redshift_bins - 1);
   int idx = didx;
   didx = didx - idx;
-  if (idx == n_redshift_bins - 1)
+  if (idx == dev_n_redshift_bins - 1)
   {
-    idx = n_redshift_bins - 2;
+    idx = dev_n_redshift_bins - 2;
     didx = 1.;
   }
 
   double r_sigma, n_eff, D1;
   compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff);
+  // printf("D1: %.3f, rsigma: %.3f, neff: %.3f \n",D1,r_sigma,n_eff);
 
   double a, b, c, gam, alpha, beta, xnu, y, ysqr, ph, pq, f1, f2, f3;
   double f1a, f2a, f3a, f1b, f2b, f3b, frac;
   double plin, delta_nl;
-  double scalefactor, om_m, om_v;
+  double om_m, om_v;
   double nsqr, ncur;
 
-  f1 = pow(dev_om, -0.0307);
-  f2 = pow(dev_om, -0.0585);
-  f3 = pow(dev_om, 0.0743);
+  // f1 = pow(dev_om, -0.0307);
+  // f2 = pow(dev_om, -0.0585);
+  // f3 = pow(dev_om, 0.0743);
 
   nsqr = n_eff * n_eff;
   ncur = dev_ncur_array[idx] * (1 - didx) + dev_ncur_array[idx + 1] * didx; //interpolate ncur
@@ -393,10 +407,8 @@ __device__ double P_k_nonlinear(double k, double z)
     printf("Warning: omw as a function of redshift only implemented for flat universes yet!");
   }
 
-  scalefactor = 1. / (1. + z);
-
-  om_m = dev_om / (dev_om + dev_ow * pow(scalefactor, -3. * dev_w)); // Omega matter at z
-  om_v = 1. - om_m;                                                  //omega lambda at z. TODO: implement for non-flat Universes
+  om_m = om_m_of_z(z);
+  om_v = om_v_of_z(z);
 
   f1a = pow(om_m, (-0.0732));
   f2a = pow(om_m, (-0.1423));
@@ -408,7 +420,6 @@ __device__ double P_k_nonlinear(double k, double z)
   f1 = frac * f1b + (1 - frac) * f1a;
   f2 = frac * f2b + (1 - frac) * f2a;
   f3 = frac * f3b + (1 - frac) * f3a;
-
   a = 1.5222 + 2.8553 * n_eff + 2.3706 * nsqr + 0.9903 * n_eff * nsqr + 0.2250 * nsqr * nsqr - 0.6038 * ncur + 0.1749 * om_v * (1.0 + dev_w);
   a = pow(10.0, a);
   b = pow(10.0, -0.5642 + 0.5864 * n_eff + 0.5716 * nsqr - 1.5474 * ncur + 0.2279 * om_v * (1.0 + dev_w));
@@ -789,3 +800,38 @@ double E_inv(double z)
 {
   return 1. / E(z);
 }
+
+__device__ double limber_integrand_prefactor(double z, double g_value)
+{
+  return 9./4.*dev_H0_over_c*dev_H0_over_c*dev_H0_over_c*dev_om*dev_om*(1.+z)*(1.+z)*g_value*g_value/dev_E(z);
+}
+
+__device__ double limber_integrand(double ell, double z)
+{
+  if(z<1e-5) return 0;
+  double didx = z/dev_z_max*(dev_n_redshift_bins-1);
+  int idx = didx;
+  didx = didx - idx;
+  if(idx==dev_n_redshift_bins-1){
+      idx = dev_n_redshift_bins-2;
+      didx = 1.;
+  }
+  double g_value = g_interpolated(idx,didx);
+  double f_K_value = f_K_interpolated(idx,didx);
+  // printf("%.2f, %.2f, %.5e, %.5e \n",z,ell,limber_integrand_prefactor(z, g_value),P_k_nonlinear(ell/f_K_value, z));
+  return limber_integrand_prefactor(z, g_value)*P_k_nonlinear(ell/f_K_value, z);
+}
+
+
+__device__ double dev_p_kappa(double ell)
+{
+  double a = 0;
+  double b = dev_z_max;
+  double cx = (a + b) / 2;
+  double dx = (b - a) / 2;
+  double q = 0;
+  for (int i = 0; i < 48; i++)
+    q += dev_W96[i] * (limber_integrand(ell,cx - dx * dev_A96[i]) + limber_integrand(ell,cx + dx * dev_A96[i]));
+  return q * dx;
+}
+

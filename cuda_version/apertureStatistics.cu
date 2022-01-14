@@ -91,3 +91,94 @@ double MapMapMap(const std::vector<double>& thetas, const double& phiMin, const 
   
   return result/8/M_PI/M_PI/M_PI;//Divided by (2*pi)³
 }
+
+__device__ double dev_integrand_Map2(const double& ell, const double& z, double theta, const double& shapenoise_contribution)
+{
+  return ell*pow(uHat(ell*theta),2)*(limber_integrand(ell,z)+shapenoise_contribution/dev_z_max);
+}
+
+__global__ void integrand_Map2(const double* vars, unsigned ndim, int npts, double theta, double* value, double shapenoise_contribution)
+{
+  // index of thread
+  int thread_index=blockIdx.x*blockDim.x + threadIdx.x;
+
+  //Grid-Stride loop, so I get npts evaluations
+  for(int i=thread_index; i<npts; i+=blockDim.x*gridDim.x)
+    {
+      double ell=vars[i*ndim];
+      double z=vars[i*ndim+1];
+
+      value[i] = dev_integrand_Map2(ell,z,theta,shapenoise_contribution);
+    }
+}
+
+int integrand_Map2(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value)
+{
+  if(fdim != 1)
+    {
+      std::cerr<<"integrand: Wrong number of function dimensions"<<std::endl;
+      exit(1);
+    };
+    if(ndim != 2)
+    {
+      std::cerr<<"integrand: Wrong number of variable dimensions"<<std::endl;
+      exit(1);
+    };
+
+  // Read data for integration
+  ApertureStatisticsContainer* container = (ApertureStatisticsContainer*) thisPtr;
+
+  double theta = container-> thetas.at(0);
+  double shapenoise_powerspectrum = container -> shapenoise_contribution;
+
+  // Allocate memory on device for integrand values
+  double* dev_value;
+  CUDA_SAFE_CALL(cudaMalloc((void**)&dev_value, fdim*npts*sizeof(double)));
+
+  // Copy integration variables to device
+  double* dev_vars;
+  CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim*npts*sizeof(double))); //allocate memory
+  CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim*npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+
+  // Calculate values
+  integrand_Map2<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, theta, dev_value,shapenoise_powerspectrum);
+  // std::cerr << "test " << npts << std::endl;
+  CudaCheckError();
+  
+  cudaFree(dev_vars); //Free variables
+
+  
+  // Copy results to host
+  CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim*npts*sizeof(double), cudaMemcpyDeviceToHost));
+
+  // std::cerr << value[5] << std::endl;
+
+  cudaFree(dev_value); //Free values
+  
+  return 0; //Success :)  
+}
+
+double Map2(double theta, double shapenoise_powerspectrum)
+{
+  //Set maximal l value such, that theta*l <= 10
+  double lMax=10./theta;
+  double lMin = 1.;
+
+  std::vector<double> thetas;
+  thetas.push_back(theta);
+
+  ApertureStatisticsContainer container;
+  container.thetas=thetas;
+
+  container.shapenoise_contribution = shapenoise_powerspectrum;
+
+  double result,error;
+
+  double vals_min[2]={lMin, 0};
+  double vals_max[2]={lMax, z_max};
+
+  hcubature_v(1, integrand_Map2, &container, 2, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
+  
+  return result/2./M_PI;
+}
+
