@@ -254,6 +254,7 @@ __device__ double dev_E(double z);
    __device__ double om_m_of_z(double z);
    __global__ void global_get_P_k_nonlinear(double* k, double* z, double* values);
    __device__ double limber_integrand(double ell, double z);
+   __device__ double dev_p_kappa(double ell);
    __global__ void limber_integrand_wrapper(const double* vars, unsigned ndim, int npts, double ell, double* value);
    static int limber_integrand_wrapper(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
    double convergence_power_spectrum(double ell);

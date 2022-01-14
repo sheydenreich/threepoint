@@ -73,6 +73,20 @@ __device__ double bkappa(double ell1, double ell2, double ell3)
   return prefactor * GQ96_of_bdelta(0, dev_z_max, ell1, ell2, ell3);
 }
 
+__device__ double dev_p_kappa(double ell)
+{
+  double a = 0;
+  double b = dev_z_max;
+  double cx = (a + b) / 2;
+  double dx = (b - a) / 2;
+  double q = 0;
+  for (int i = 0; i < 48; i++)
+    q += dev_W96[i] * (limber_integrand(ell,cx - dx * dev_A96[i]) + limber_integrand(ell,cx + dx * dev_A96[i]));
+  return q * dx;
+
+}
+
+
 __device__ double GQ96_of_bdelta(double a, double b, double ell1, double ell2, double ell3)
 {
   double cx = (a + b) / 2;
@@ -231,6 +245,7 @@ __device__ double limber_integrand(double ell, double z)
   }
   double g_value = g_interpolated(idx,didx);
   double f_K_value = f_K_interpolated(idx,didx);
+  // printf("%.2f, %.2f, %.5e, %.5e \n",z,ell,limber_integrand_prefactor(z, g_value),P_k_nonlinear(ell/f_K_value, z));
   return limber_integrand_prefactor(z, g_value)*P_k_nonlinear(ell/f_K_value, z);
 }
 
@@ -239,6 +254,20 @@ __global__ void limber_integrand_wrapper(const double* vars, unsigned ndim, size
   // index of thread
   int thread_index=blockIdx.x*blockDim.x + threadIdx.x;
 
+  // if(thread_index==0)
+  // {
+  //   printf("# z, ell, prefactor, P_delta(ell,z) \n");
+  //   for(double z=0;z<6;z+=0.05)
+  //   limber_integrand(2.,z);
+  // }
+  // if(thread_index==0)
+  // {
+  //   printf("# z, ell, prefactor, P_delta(ell,z) \n");
+  //   for(double z=0;z<6;z+=0.05)
+  //   limber_integrand(1000.,z);
+  // }
+
+  // return;
   //Grid-Stride loop, so I get npts evaluations
   for(int i=thread_index; i<npts; i+=blockDim.x*gridDim.x)
     {
@@ -365,6 +394,7 @@ __global__ void global_get_P_k_nonlinear(double* k, double* z, double* values)
 
 __device__ double P_k_nonlinear(double k, double z)
 {
+  if(dev_sigma8 < 1e-8) return 0;
   // printf("Warning! This is the bugged version. Not fixed yet.");
   /* get the interpolation coefficients */
   double didx = z / dev_z_max * (dev_n_redshift_bins - 1);
@@ -415,7 +445,6 @@ __device__ double P_k_nonlinear(double k, double z)
   f1 = frac * f1b + (1 - frac) * f1a;
   f2 = frac * f2b + (1 - frac) * f2a;
   f3 = frac * f3b + (1 - frac) * f3a;
-
   a = 1.5222 + 2.8553 * n_eff + 2.3706 * nsqr + 0.9903 * n_eff * nsqr + 0.2250 * nsqr * nsqr - 0.6038 * ncur + 0.1749 * om_v * (1.0 + dev_w);
   a = pow(10.0, a);
   b = pow(10.0, -0.5642 + 0.5864 * n_eff + 0.5716 * nsqr - 1.5474 * ncur + 0.2279 * om_v * (1.0 + dev_w));
@@ -440,6 +469,7 @@ __device__ double P_k_nonlinear(double k, double z)
 
 __device__ double dev_linear_pk(double k)
 {
+  if(dev_sigma8 < 1e-8) return 0;
   double pk, delk, alnu, geff, qeff, L, C;
   k *= dev_h; // unit conversion from [h/Mpc] to [1/Mpc]
 
@@ -472,6 +502,7 @@ __device__ double dev_linear_pk(double k)
 
 double linear_pk(double k)
 {
+  if(sigma8 < 1e-8) return 0;
   double pk, delk, alnu, geff, qeff, L, C;
   k *= h; // unit conversion from [h/Mpc] to [1/Mpc]
 
@@ -543,6 +574,10 @@ void set_cosmology(cosmology cosmo, double dz_, bool nz_from_file, std::vector<d
     std::cerr << "set_cosmology: expected n(z) from file, but values not provided" << std::endl;
     exit(1);
   };
+
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96, W96, 48*sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96, A96, 48*sizeof(double)));
+
 
   //set cosmology
   h = cosmo.h;
@@ -618,6 +653,13 @@ void set_cosmology(cosmology cosmo, double dz_, bool nz_from_file, std::vector<d
     g_array[i] = g_array[i] * dz;
   }
   g_array[0] = 1.;
+
+  // std::cout << "# lensing efficiencies" << std::endl;
+  // for(int i=0; i<n_redshift_bins; i++)
+  // {
+  //   std::cout << i*dz << " " << g_array[i] << std::endl;
+  // }
+  // std::cout << "]" << std::endl;
 
   // Copy f_k and g to device (constant memory)
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_f_K_array, f_K_array, n_redshift_bins * sizeof(double)));
@@ -745,6 +787,8 @@ double lgr_func(int j, double la, double y[2])
 
 double sigmam(double r, int j) // r[Mpc/h]
 {
+  if(sigma8 < 1e-8) return 0;
+
   int n, i;
   double k1, k2, xx, xxp, xxpp, k, a, b, hh;
 
@@ -819,6 +863,7 @@ double window(double x, int i)
 
 double calc_r_sigma(double D1) // return r_sigma[Mpc/h] (=1/k_sigma)
 {
+  if(sigma8 < 1e-8) return 0;
 
   double k, k1, k2;
 
