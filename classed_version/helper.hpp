@@ -50,4 +50,10 @@ double convert_angle_to_rad(const double& value, const std::string& unit="arcmin
 */
 double convert_rad_to_angle(const double& value, const std::string& unit="arcmin");
 
+/**
+ * @brief Reads in aperture radii from file
+ * 
+ */
+void read_thetas(const std::string& fn, std::vector<double>& thetas);
+
 #endif //HELPER_HPP

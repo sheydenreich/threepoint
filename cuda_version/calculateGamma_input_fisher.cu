@@ -111,12 +111,10 @@ int main(int argc, char** argv)
 
   if(slics) cosmo.zmax = 3.;
   else cosmo.zmax = 1.1;
-  double dz = cosmo.zmax / ((double) n_redshift_bins);
 
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));
+copyConstants();
 
-  set_cosmology(cosmo, dz);
+  set_cosmology(cosmo);
 
   compute_weights_bessel();
 

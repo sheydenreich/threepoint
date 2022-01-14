@@ -1,6 +1,7 @@
 #include "gamma.cuh"
 #include "bispectrum.cuh"
 #include "cuda_helpers.cuh"
+#include "helpers.cuh"
 
 #include <iostream>
 #include <fstream>
@@ -64,14 +65,12 @@ int main(int argc, char** argv)
   
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);
-
-  double dz = cosmo.zmax/((double) n_redshift_bins); //redshift binsize
   
   std::vector<double> nz;
   if(nz_from_file)
     {
       // Read in n_z
-      read_n_of_z(nzfn, dz, n_redshift_bins, nz);
+      read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
     };
   
 
@@ -91,9 +90,7 @@ int main(int argc, char** argv)
   std::cerr<<"Writing to:"<<outfn<<std::endl;
   
   
-  
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));
+copyConstants();
 
 
     
@@ -156,8 +153,14 @@ int main(int argc, char** argv)
       std::cout<<"Doing calculations for cosmology "<<i+1<<" of "<<N_cosmo*7<<std::endl;
       auto begin=std::chrono::high_resolution_clock::now(); //Begin time measurement
       // Initialize Bispectrum
-      set_cosmology(cosmos[i], dz);
-     
+      if(nz_from_file)
+      {
+        set_cosmology(cosmos[i], &nz);
+      }
+      else
+      {
+        set_cosmology(cosmos[i]);
+      }
       
       //Needed for monitoring
       int Ntotal=N_r*N_u*N_v;//Total number of bins that need to be calculated

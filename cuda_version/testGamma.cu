@@ -44,13 +44,11 @@ int main()
 
   if(slics) z_max = 3.;
   else z_max = 1.1;
-  double dz = z_max / ((double) n_redshift_bins);
 
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96,&A96,48*sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96,&W96,48*sizeof(double)));
+  copyConstants();
 
   cosmo.zmax=z_max;
-  set_cosmology(cosmo, dz);
+  set_cosmology(cosmo);
 
   compute_weights_bessel();
 

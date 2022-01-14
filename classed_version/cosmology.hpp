@@ -1,9 +1,8 @@
-#ifndef COSMOLOGY_CUH
-#define COSMOLOGY_CUH
+#ifndef COSMOLOGY_HPP
+#define COSMOLOGY_HPP
 
 #include <string>
 #include <fstream>
-#include <vector>
 
 /**
  * Class containing cosmological parameters
@@ -33,8 +32,4 @@ public:
 std::ostream& operator<<(std::ostream& out, const cosmology& cosmo);
 
 
-
-
-
-
-#endif // COSMOLOGY_CUH
+#endif // COSMOLOGY_HPP

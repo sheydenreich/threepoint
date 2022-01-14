@@ -45,3 +45,8 @@ python_scripts/tests.ipynb
 # Cosmosis outputs
 cosmosis/outputs/
 cosmosis/__pycache__/
+
+# Results / Plots
+*.png
+*.dat
+*.npy

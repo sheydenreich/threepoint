@@ -1,6 +1,7 @@
 #include "apertureStatistics.cuh"
 #include "bispectrum.cuh"
 #include "cuda_helpers.cuh"
+#include "helpers.cuh"
 
 #include <chrono> //For time measurements
 #include <fstream>
@@ -55,13 +56,12 @@ Example:
 
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);
-  double dz = cosmo.zmax / ((double)n_redshift_bins); // redshift binsize
 
   // Read in n_z
   std::vector<double> nz;
   if (nz_from_file)
   {
-    read_n_of_z(nzfn, dz, n_redshift_bins, nz);
+    read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
   };
 
   // Check if output file can be opened
@@ -86,17 +86,16 @@ Example:
 
   // Initialize Bispectrum
 
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96, &A96, 48 * sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96, &W96, 48 * sizeof(double)));
+  copyConstants();
 
   if (nz_from_file)
   {
     std::cerr << "Using n(z) from " << nzfn << std::endl;
-    set_cosmology(cosmo, dz, nz_from_file, &nz);
+    set_cosmology(cosmo, &nz);
   }
   else
   {
-    set_cosmology(cosmo, dz);
+    set_cosmology(cosmo);
   };
 
     // Borders of integral
@@ -171,11 +170,11 @@ Example:
     // Initialize Bispectrum
     if (nz_from_file)
     {
-      set_cosmology(cosmo, dz, nz_from_file, &nz);
+      set_cosmology(cosmo, &nz);
     }
     else
     {
-      set_cosmology(cosmo, dz);
+      set_cosmology(cosmo);
     };
 
     // Needed for monitoring
@@ -190,8 +189,8 @@ Example:
     // Calculation only for theta1=theta2=theta3
     for (int j = 0; j < N; j++)
     {
-      double theta = thetas.at(j) * 3.1416 / 180. / 60; // Conversion to rad
-      double thetas_calc[3] = {theta, theta, theta};
+      double theta = convert_angle_to_rad(thetas.at(j)); // Conversion to rad
+      std::vector<double> thetas_calc = {theta, theta, theta};
       // Progress for the impatient user (Thetas in arcmin)
       step += 1;
       std::cout << step << "/" << Ntotal << ": Thetas:" << thetas.at(j) << " "
