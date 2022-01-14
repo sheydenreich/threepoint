@@ -4,7 +4,6 @@
 from cosmosis.datablock import names
 import numpy as np
 
-
 def setup(options):
     """Setup function for cosmosis. Reads in Covariance and measurements and inverts covariance (using numpy)
 
@@ -17,16 +16,36 @@ def setup(options):
     fn_data=options["threepoint_likelihood", "data"]
     fn_cov=options["threepoint_likelihood", "cov_mat"]
     fn_cov_inv=options["threepoint_likelihood", "cov_inv"]
+    likelihoods = options["threepoint_likelihood","likelihoods"]
+    calculate_Map2 = ("Map2" in likelihoods)
+    calculate_Map3 = ("Map3" in likelihoods)
+    N_sim = options["threepoint_likelihood", "N_sim"]
 
-    data=np.loadtxt(fn_data, comments='#')[:,3]
-    cov=np.loadtxt(fn_cov, comments='#')[:,-1]
+    if(N_sim>0):
+        print("Sample covariance matrix extracted from {} Simulations".format(N_sim))
+        print("Using Sellentin+Heavens likelihood")
+    else:
+        print("Analytic covariance matrix")
+        print("Using gaussian likelihood")
+
+    if(calculate_Map2):
+        print("Accounting for Map2 likelihood")
+
+    if(calculate_Map3):
+        print("Accounting for Map3 likelihood")
+
+    data=np.loadtxt(fn_data, comments='#')
+    cov=np.loadtxt(fn_cov, comments='#')
     N=len(data)
     cov=cov.reshape((N,N))
     cov_inv=np.linalg.inv(cov)
 
+    if not np.allclose(np.dot(cov,cov_inv),np.eye(cov.shape[0]),atol=1e-8):
+        raise ValueError("Error: Covariance Matrix not invertible")
+
     np.savetxt(fn_cov_inv, cov_inv)
 
-    return [data, cov_inv]
+    return [data, cov_inv, calculate_Map2, calculate_Map3, N_sim]
     
 
 
@@ -43,15 +62,27 @@ def execute(block, config):
         0: designates success (needed for cosmosis reasons)
     """
     
-    [map3_data, cov_inv]=config
+    [map3_data, cov_inv, calculate_Map2, calculate_Map3, N_sim]=config
     
+    model = np.zeros(0)
 
-    map3_model=block["threepoint", "Map3s"]
+    if(calculate_Map2):
+        # print(block["threepoint", "Map2s"])
+        model = np.concatenate((model,block["threepoint", "Map2s"]))
 
-    chi2=(map3_model-map3_data).dot(cov_inv).dot(map3_model-map3_data)
+    if(calculate_Map3):
+        # print(block["threepoint", "Map3s"])
+        model = np.concatenate((model,block["threepoint", "Map3s"]))
+
+    print(model)
+    delta = model - map3_data
+    chi2=np.einsum("i,ij,j",delta,cov_inv,delta)
     log_det=0#1.0/np.log(np.linalg.det(cov_inv))
 
-    likelihood=-0.5*(chi2+log_det)
+    if(N_sim>0):
+        likelihood = -0.5 * log_det - 0.5 * N_sim * np.log(1 + chi2 / (N_sim - 1.))
+    else:
+        likelihood=-0.5*(chi2+log_det)
 
     block [names.likelihoods, "threepoint_likelihood_LIKE"] = likelihood
 
