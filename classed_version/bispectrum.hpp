@@ -10,12 +10,14 @@
 #include <vector>
 #include <map>
 
+#include "cosmology.hpp"
+
 // use slics cosmology (false -> millennium cosmology)
 // TODO: Implenment redshift distribution for Euclid-like SLICS
 #define slics true //false
 #define test_analytical false
 
-#define CONSTANT_POWERSPECTRUM true
+#define CONSTANT_POWERSPECTRUM false
 #define ANALYTICAL_POWERSPECTRUM false
 #define ANALYTICAL_POWERSPECTRUM_V2 false
 
@@ -71,17 +73,7 @@ bool is_triangle(double ell1, double ell2, double ell3);
 /**
  *  @brief This structure contains parameters of a wCDM cosmology (should be in a utility.h)
  */
-struct cosmology
-{
-  double h;      /**< dimensionless Hubble constant*/
-  double sigma8; /**< Powerspectrum normalisation \f$\sigma_8\f$*/
-  double omb;    /**< dimensionless baryon density parameter \f$\Omega_b\f$*/
-  double omc;    /**< dimensionless density parameter of CDM*/
-  double ns;     /**< Power spectrum spectral index*/
-  double w;      /**< Eq. of state of Dark Energy*/
-  double om;     /**< dimensionless matter density parameter*/
-  double ow;     /**< dimensionless density parameter of Dark Energy*/
-};
+
 
 /**
  * @brief This structure contains the arguments of the projected bispectrum

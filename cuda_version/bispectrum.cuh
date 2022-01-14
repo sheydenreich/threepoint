@@ -207,14 +207,6 @@ __device__  void compute_coefficients(int idx, double didx, double *D1, double *
 
 
 
-
-//   /**
-//    * returns the unitless matter parameter for the currently set cosmology
-//    */
-// double get_om();
-
-
-
 /**
  * Comoving angular diameter distance  \f$f_k\f$ 
  * Uses Gaussian quadrature of E_inv

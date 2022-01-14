@@ -130,9 +130,9 @@ int ApertureStatistics::integrand_Gaussian_Aperture_Covariance(unsigned ndim, si
 
   if (npts > 1e8)
     std::cerr << "Npts: " << npts << " at thetas " << convert_rad_to_angle(thetas_123[0]) << ", " << convert_rad_to_angle(thetas_123[1]) << ", " << convert_rad_to_angle(thetas_123[2]) << ", " << convert_rad_to_angle(thetas_456[0]) << ", " << convert_rad_to_angle(thetas_456[1]) << ", " << convert_rad_to_angle(thetas_456[2]) << ", " << std::endl;
-  if(npts > 3e8)
+  if (npts > 3e8)
   {
-    std::cerr << "Ran out of memory"<<std::endl;
+    std::cerr << "Ran out of memory" << std::endl;
     return 1;
   };
 #if PARALLEL_INTEGRATION
@@ -150,9 +150,9 @@ int ApertureStatistics::integrand_Gaussian_Aperture_Covariance(unsigned ndim, si
 #endif
 
     value[i] = apertureStatistics->integrand_Gaussian_Aperture_Covariance(ell1, ell2, phi, z, thetas_123, thetas_456);
-    if(!isfinite(value[i]))
+    if (!isfinite(value[i]))
     {
-      std::cerr<<value[i]<<" "<<ell1<<" "<<ell2<<" "<<phi<<" "<<z<<std::endl;
+      std::cerr << value[i] << " " << ell1 << " " << ell2 << " " << phi << " " << z << std::endl;
     }
   }
   return 0; // Success :)
@@ -501,20 +501,18 @@ double ApertureStatistics::integrand_L2_B_circular(double ell, double thetaMax, 
 }
 
 double ApertureStatistics::integrand_L4_circular(double v, double ell2, double ell4, double ell5, double alphaV, double alpha2, double alpha4,
-                              double alpha5, double thetaMax, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6)
+                                                 double alpha5, double thetaMax, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6)
 {
-  double ell1=sqrt(v*v+ell4*ell4-2*v*ell4*cos(alpha4-alphaV));
-  double ell3=sqrt(ell1*ell1+ell2*ell2+2*ell1*ell2*cos(alpha2-alpha4+alphaV));
-  double ell6=sqrt(ell4*ell4+ell5*ell5+2*ell4*ell5*cos(alpha5-alpha4));
-
+  double ell1 = sqrt(v * v + ell4 * ell4 - 2 * v * ell4 * cos(alpha4 - alphaV));
+  double ell3 = sqrt(ell1 * ell1 + ell2 * ell2 + 2 * ell1 * ell2 * cos(alpha2 - alpha4 + alphaV));
+  double ell6 = sqrt(ell4 * ell4 + ell5 * ell5 + 2 * ell4 * ell5 * cos(alpha5 - alpha4));
 
   double Gfactor = G_circular(v, thetaMax);
 
-
   double result = Bispectrum_->bkappa(ell4, ell2, ell3);
   result *= Bispectrum_->bkappa(ell1, ell5, ell6);
-  result *= uHat(ell1 * theta1) * uHat(ell2 * theta2) * uHat(ell3*theta3)*uHat(ell4*theta4)*uHat(ell5*theta5)*uHat(ell6*theta6);
-  result *= v*ell2*ell4*ell5;
+  result *= uHat(ell1 * theta1) * uHat(ell2 * theta2) * uHat(ell3 * theta3) * uHat(ell4 * theta4) * uHat(ell5 * theta5) * uHat(ell6 * theta6);
+  result *= v * ell2 * ell4 * ell5;
   result *= Gfactor;
 
   return result;
@@ -532,13 +530,12 @@ int ApertureStatistics::integrand_L1(unsigned ndim, size_t npts, const double *v
   ApertureStatisticsContainer *container = (ApertureStatisticsContainer *)thisPtr;
 
   ApertureStatistics *apertureStatistics = container->aperturestatistics;
-
+  std::cerr << npts << std::endl;
   if (npts > 1e8)
   {
     std::cerr << "WARNING: Large Number of points:" << npts << " "
               << std::endl;
   };
-
 
 #pragma omp parallel for
   for (unsigned int i = 0; i < npts; i++)
@@ -613,9 +610,9 @@ int ApertureStatistics::integrand_L2_B(unsigned ndim, size_t npts, const double 
   return 0;
 }
 
-
 int ApertureStatistics::integrand_L4(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value)
 {
+#if CIRCULAR_SURVEY
   if (fdim != 1)
   {
     std::cerr << "ApertureStatistics::integrand_L1: Wrong number of function dimensions" << std::endl;
@@ -629,26 +626,26 @@ int ApertureStatistics::integrand_L4(unsigned ndim, size_t npts, const double *v
 #pragma omp parallel for
   for (unsigned int i = 0; i < npts; i++)
   {
-#if CIRCULAR_SURVEY
-    double v = vars[i * ndim];
-    double ell2 = vars[i*ndim+1];
-    double ell4 = vars[i*ndim+2];
-    double ell5 = vars[i*ndim+3];
-    double alphaV = vars[i*ndim+4];
-    double alpha2 = vars[i*ndim+5];
-    double alpha4 = vars[i*ndim+6];
-    double alpha5 = vars[i*ndim+7];
 
+    double v = vars[i * ndim];
+    double ell2 = vars[i * ndim + 1];
+    double ell4 = vars[i * ndim + 2];
+    double ell5 = vars[i * ndim + 3];
+    double alphaV = vars[i * ndim + 4];
+    double alpha2 = vars[i * ndim + 5];
+    double alpha4 = vars[i * ndim + 6];
+    double alpha5 = vars[i * ndim + 7];
 
     value[i] = apertureStatistics->integrand_L4_circular(v, ell2, ell4, ell5, alphaV, alpha2, alpha4, alpha5,
                                                          container->thetaMax, container->thetas.at(0), container->thetas.at(1),
                                                          container->thetas.at(2), container->thetas2.at(0), container->thetas2.at(1),
                                                          container->thetas2.at(2));
+  }
 #else
-  std::cerr<<"L4 only coded for circular survey!"<<std::endl;
+  std::cerr << "L4 only coded for circular survey!" << std::endl;
   exit(1);
 #endif
-  }
+
   return 0;
 }
 
@@ -666,7 +663,7 @@ double ApertureStatistics::L1(double theta1, double theta2, double theta3, doubl
 
   double vals_min[6] = {-1.1e4, -1.1e4, -1.1e4, -1.1e4, -1.1e4, -1.1e4};
   double vals_max[6] = {1e4, 1e4, 1e4, 1e4, 1e4, 1e4};
-  int errcode = hcubature_v(1, integrand_L1, &container, 6, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
+  int errcode = hcubature_v(1, integrand_L1, &container, 6, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
   if (errcode != 0)
   {
     std::cerr << "errcode in hcubature:" << errcode << std::endl;
@@ -710,13 +707,13 @@ double ApertureStatistics::L2(double theta1, double theta2, double theta3, doubl
 #else
   double vals_min2[2] = {-1e4, -1e4};
   double vals_max2[2] = {1e4, 1e4};
-  hcubature_v(1, integrand_L2_B, &container, 2, vals_min2, vals_max2, 0, 0, 1e-3, ERROR_L1, &result_B, &error_B);
+  hcubature_v(1, integrand_L2_B, &container, 2, vals_min2, vals_max2, 0, 0, 1e-2, ERROR_L1, &result_B, &error_B);
 #endif
 
   double result = result_A1 * result_A2 * result_B;
+  std::cerr << result << std::endl;
   return result;
 }
-
 
 double ApertureStatistics::L4(double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double thetaMax)
 {
@@ -736,7 +733,7 @@ double ApertureStatistics::L4(double theta1, double theta2, double theta3, doubl
   double vals_max[8] = {1e4, 1e4, 1e4, 1e4, phiMax, phiMax, phiMax, phiMax};
   pcubature_v(1, integrand_L4, &container, 8, vals_min, vals_max, 0, 0, 0.2, ERROR_L1, &result, &error);
 #else
-  std::cerr<<"L4 only coded for circular survey"<<std::endl;
+  std::cerr << "L4 only coded for circular survey" << std::endl;
   exit(1);
 #endif
 
@@ -773,20 +770,19 @@ double ApertureStatistics::L2_total(const std::vector<double> &thetas123, const 
   return term2;
 }
 
-
 double ApertureStatistics::L4_total(const std::vector<double> &thetas123, const std::vector<double> &thetas456, double thetaMax)
 {
   double term4 = L4(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
-  term4+=L4(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
-  term4+=L4(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(1), thetas456.at(1), thetaMax);
-  term4+=L4(thetas123.at(1), thetas123.at(0), thetas123.at(2), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
-  term4+=L4(thetas123.at(1), thetas123.at(0), thetas123.at(2), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
-  term4+=L4(thetas123.at(1), thetas123.at(0), thetas123.at(2), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
-  term4+=L4(thetas123.at(2), thetas123.at(0), thetas123.at(1), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
-  term4+=L4(thetas123.at(2), thetas123.at(0), thetas123.at(1), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
-  term4+=L4(thetas123.at(2), thetas123.at(0), thetas123.at(1), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
-  
-  term4 /= pow(2*M_PI, 8);
+  term4 += L4(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
+  term4 += L4(thetas123.at(0), thetas123.at(1), thetas123.at(2), thetas456.at(2), thetas456.at(1), thetas456.at(1), thetaMax);
+  term4 += L4(thetas123.at(1), thetas123.at(0), thetas123.at(2), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
+  term4 += L4(thetas123.at(1), thetas123.at(0), thetas123.at(2), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
+  term4 += L4(thetas123.at(1), thetas123.at(0), thetas123.at(2), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
+  term4 += L4(thetas123.at(2), thetas123.at(0), thetas123.at(1), thetas456.at(0), thetas456.at(1), thetas456.at(2), thetaMax);
+  term4 += L4(thetas123.at(2), thetas123.at(0), thetas123.at(1), thetas456.at(1), thetas456.at(0), thetas456.at(2), thetaMax);
+  term4 += L4(thetas123.at(2), thetas123.at(0), thetas123.at(1), thetas456.at(2), thetas456.at(1), thetas456.at(0), thetaMax);
+
+  term4 /= pow(2 * M_PI, 8);
   return term4;
 }
 
@@ -844,14 +840,13 @@ double ApertureStatistics::integrand_NonGaussian_Aperture_Covariance(const doubl
   result *= Bispectrum_->integrand_bkappa(z, ells_156);
   result *= l1 * l2 * l5;
 
-  if(!isfinite(result))
+  if (!isfinite(result))
   {
-    std::cerr<<result<<" "
-            <<l1 << " " << l2 << " " << l5 << " " << phi1 <<" " <<phi2<<std::endl;
+    std::cerr << result << " "
+              << l1 << " " << l2 << " " << l5 << " " << phi1 << " " << phi2 << std::endl;
   };
   return result;
 }
-
 
 int ApertureStatistics::integrand_NonGaussian_Aperture_Covariance(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value)
 {
@@ -861,8 +856,8 @@ int ApertureStatistics::integrand_NonGaussian_Aperture_Covariance(unsigned ndim,
     exit(1);
   };
 #if CONSTANT_POWERSPECTRUM || ANALYTICAL_POWERSPECTRUM || ANALYTICAL_POWERSPECTRUM_V2
-    std::cerr << "NonGaussian Covariance is zero for GRF" << std::endl;
-    exit(1); 
+  std::cerr << "NonGaussian Covariance is zero for GRF" << std::endl;
+  exit(1);
 #endif
 
   ApertureStatisticsContainer *container = (ApertureStatisticsContainer *)thisPtr;
@@ -871,9 +866,9 @@ int ApertureStatistics::integrand_NonGaussian_Aperture_Covariance(unsigned ndim,
   std::vector<double> thetas_123 = container->thetas;
   std::vector<double> thetas_456 = container->thetas2;
 
-  if(npts > 1e8)
+  if (npts > 1e8)
   {
-    std::cerr << "Ran out of memory"<<std::endl;
+    std::cerr << "Ran out of memory" << std::endl;
     return 1;
   };
 #if PARALLEL_INTEGRATION
@@ -883,20 +878,17 @@ int ApertureStatistics::integrand_NonGaussian_Aperture_Covariance(unsigned ndim,
   {
     double ell1 = vars[i * ndim];
     double ell2 = vars[i * ndim + 1];
-    double ell5 = vars[i*ndim +2];
-    double phi1 = vars[i*ndim +3];
+    double ell5 = vars[i * ndim + 2];
+    double phi1 = vars[i * ndim + 3];
     double phi2 = vars[i * ndim + 4];
     double z = vars[i * ndim + 5];
 
-    value[i] = apertureStatistics->integrand_NonGaussian_Aperture_Covariance(ell1, ell2, ell5, phi1,phi2,z, 
-                                                                              thetas_123.at(0), thetas_123.at(1), thetas_123.at(2),
-                                                                              thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
-
-    
+    value[i] = apertureStatistics->integrand_NonGaussian_Aperture_Covariance(ell1, ell2, ell5, phi1, phi2, z,
+                                                                             thetas_123.at(0), thetas_123.at(1), thetas_123.at(2),
+                                                                             thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
   }
   return 0; // Success :)
 }
-
 
 double ApertureStatistics::MapMapMap_covariance_NonGauss(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456, double survey_area)
 {
@@ -917,9 +909,9 @@ double ApertureStatistics::MapMapMap_covariance_NonGauss(const std::vector<doubl
 
 #if INTEGRATE4D // do limber integration via cubature
 #if CONSTANT_POWERSPECTRUM || ANALYTICAL_POWERSPECTRUM || ANALYTICAL_POWERSPECTRUM_V2
-    std::cerr << "NonGaussian Covariance is zero for GRF" << std::endl;
-    std::cerr << "No calculations performed" <<std::endl;
-    exit(1); 
+  std::cerr << "NonGaussian Covariance is zero for GRF" << std::endl;
+  std::cerr << "No calculations performed" << std::endl;
+  exit(1);
 #else
   double vals_min[6] = {lMin, lMin, lMin, phiMin, phiMin, 0};
   double vals_max[6] = {lMax, lMax, lMax, M_PI, M_PI, Bispectrum_->z_max}; // use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
@@ -935,9 +927,9 @@ double ApertureStatistics::MapMapMap_covariance_NonGauss(const std::vector<doubl
   std::cerr << "MapMapMap_covariance_NonGauss: GSL integration not implemented!" << std::endl;
   exit(-1);
 #endif
-  result= 4. * result / survey_area / pow(2*M_PI, 5);
+  result = 4. * result / survey_area / pow(2 * M_PI, 5);
   result *= 27. / 8. * pow(Bispectrum_->cosmo->om, 3) * pow(100. / 299792., 5); // account for prefactor of limber integration
   result *= 27. / 8. * pow(Bispectrum_->cosmo->om, 3) * pow(100. / 299792., 5); // account for prefactor of limber integration
-  std::cerr<<result<<std::endl;
+  std::cerr << result << std::endl;
   return result;
 }

@@ -37,14 +37,6 @@ private:
   gsl_integration_workspace *w_phi;
 
   /**
-   * @brief Filter function in Fourier space
-   * \f$ \hat{u}(\eta)=\frac{\eta^2}{2}\exp(-\frac{\eta^2}{2}) \f$
-   * @param eta Parameter of filter function (=l*theta)
-   * @return Value of filter function
-   */
-  double uHat(const double &eta);
-
-  /**
    * @brief Product of three Filter functions in Fourier space
    * \f$ \hat{u}(\ell_1\thetas[0])*\hat{u}(\ell_2\thetas[1])*\hat{u}(\ell_3\thetas[2]) \f$
    * @param l1 First ell-scale
@@ -88,6 +80,14 @@ public: // Once debugging is finished, these members should be private!
   double lMax = 1e4;        //!< Maximal ell (Overwritten by 10/min(theta) in inegration)
 
   /**
+   * @brief Filter function in Fourier space
+   * \f$ \hat{u}(\eta)=\frac{\eta^2}{2}\exp(-\frac{\eta^2}{2}) \f$
+   * @param eta Parameter of filter function (=l*theta)
+   * @return Value of filter function
+   */
+  double uHat(const double &eta);
+
+  /**
    * @brief Integrand of MapMapMap
    * @warning This is different from Eq 58 in Schneider, Kilbinger & Lombardi (2003) because the Bispectrum is defined differently!
    * \f$ \ell_1 \ell_2 b(\ell_1, \ell_2, \phi)[\hat{u}(\theta_1\ell_1)\hat{u}(\theta_2\ell_2)\hat{u}(\theta_3\ell_3)]\f$
@@ -124,7 +124,6 @@ public: // Once debugging is finished, these members should be private!
    */
   double integrand_Gaussian_Aperture_Covariance(const double &l1, const double &l2, const double &phi, const double &z,
                                                 std::vector<double> thetas_123, std::vector<double> thetas_456);
-
 
   /**
    * @brief MapMapMap integrand, integrated over phi
@@ -261,13 +260,12 @@ public:
   double integrand_L2_B(double ellX, double ellY, double thetaMax, double theta1, double theta2);
 
   double integrand_L1_circular(double a, double b, double c, double d, double e, double f, double thetaMax,
-                      double theta1, double theta2, double theta3, double theta4, double theta5, double theta6);
-
+                               double theta1, double theta2, double theta3, double theta4, double theta5, double theta6);
 
   double integrand_L2_B_circular(double ell, double thetaMax, double theta1, double theta2);
 
   double integrand_L4_circular(double v, double ell2, double ell4, double ell5, double alphaV, double alpha2, double alpha4,
-                              double alpha5, double thetaMax, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6);
+                               double alpha5, double thetaMax, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6);
 
   static int integrand_L1(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
 
@@ -277,40 +275,29 @@ public:
 
   static int integrand_L4(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
 
-
-
   double L1(double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double thetaMax);
 
   double L2(double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double thetaMax);
 
   double L4(double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double thetaMax);
 
-  double L1_total(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax);
+  double L1_total(const std::vector<double> &thetas123, const std::vector<double> &thetas456, double thetaMax);
 
-  double L2_total(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax);
+  double L2_total(const std::vector<double> &thetas123, const std::vector<double> &thetas456, double thetaMax);
 
-   double L4_total(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax);
+  double L4_total(const std::vector<double> &thetas123, const std::vector<double> &thetas456, double thetaMax);
 
-  double Cov(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax);
+  double Cov(const std::vector<double> &thetas123, const std::vector<double> &thetas456, double thetaMax);
 
-  double Cov_NG(const std::vector<double>& thetas123, const std::vector<double>& thetas456, double thetaMax);
+  double Cov_NG(const std::vector<double> &thetas123, const std::vector<double> &thetas456, double thetaMax);
 
-
-
-
-  double integrand_NonGaussian_Aperture_Covariance(const double& l1, const double& l2, const double& l5, const double& phi1, const double& phi2, const double& z,
-                                                const double& theta1, const double& theta2, const double& theta3, 
-                                                const double& theta4, const double& theta5, const double& theta6);
-
-
+  double integrand_NonGaussian_Aperture_Covariance(const double &l1, const double &l2, const double &l5, const double &phi1, const double &phi2, const double &z,
+                                                   const double &theta1, const double &theta2, const double &theta3,
+                                                   const double &theta4, const double &theta5, const double &theta6);
 
   static int integrand_NonGaussian_Aperture_Covariance(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
 
-
   double MapMapMap_covariance_NonGauss(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456, double survey_area);
-
-
-
 };
 
 /**

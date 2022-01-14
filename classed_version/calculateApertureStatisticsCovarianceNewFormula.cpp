@@ -3,9 +3,9 @@
 #include <iostream>
 #include <chrono>
 
-#define CALCULATE_TERM1 false
+#define CALCULATE_TERM1 true
 #define CALCULATE_TERM2 false
-#define CALCULATE_INFINITE true
+#define CALCULATE_INFINITE false
 #define CALCULATE_INFINITE_NG false
 #define CALCULATE_TERM4 false
 
@@ -28,7 +28,7 @@ int main()
 #if CIRCULAR_SURVEY
         thetaMax = 5.04;
 #else
-        thetaMax = 18.93;//2.93; 8.93, 13.93, 18.93;
+        thetaMax = 8.93;//2.93; 8.93, 13.93, 18.93;
 #endif
         z_max = 3;
     }
@@ -57,11 +57,13 @@ int main()
     double n = 4096 * 4096 / 10.0 / 10.0;
     std::string folder, type;
 #if CONSTANT_POWERSPECTRUM
-    folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields/";
+    folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_shapenoise/";
     type = "shapenoise";
 #else
-    folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/SLICS/";
-    type = "slics";
+    folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_cosmicShear/";
+    type = "cosmicShear";
+    //folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/SLICS/";
+    //type = "slics";
 #endif
 
 #if CIRCULAR_SURVEY
@@ -215,7 +217,6 @@ int main()
     {
         for (int j = 0; j < N_ind; j++)
         {
-            std::cerr<<i<<" "<<j<<" "<<Cov_term2s.at(i*N_ind+j)<<std::endl;
             out << Cov_term1s.at(i * N_ind + j) << " ";
         }
         out << std::endl;
