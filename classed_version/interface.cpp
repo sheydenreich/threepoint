@@ -1,6 +1,8 @@
 
-#include "/home/laila/cosmosis/cosmosis/datablock/datablock.hh"
-#include "/home/laila/cosmosis/cosmosis/datablock/section_names.h"
+//#include "/home/laila/cosmosis/cosmosis/datablock/datablock.hh"
+//#include "/home/laila/cosmosis/cosmosis/datablock/section_names.h"
+#include "/vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/datablock.hh"
+#include "/vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/section_names.h"
 #include "apertureStatistics.hpp"
 #include "helper.hpp"
 #include <vector>
