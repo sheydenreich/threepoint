@@ -164,12 +164,13 @@ def aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,r
         result_kappa = extract_aperture_masses(kappa_field,npix,thetas,compute_mcross=False,kappa_field=True)
     else:
         result_kappa = None
-
-    return result_gamma,result_kappa
+    measured_power_spectrum = extract_power_spectrum(shears,global_fieldsize_rad)
+    return result_gamma,result_kappa,measured_power_spectrum
 
 def aperture_mass_correlation_gaussian_random_field_kernel(kwargs):
     power_spectrum,final_results_gamma,final_results_kappa,npix,thetas,random_seed,realisation,compute_gamma,compute_kappa = kwargs
-    result_gamma,result_kappa = aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,random_seed,compute_gamma,compute_kappa)
+    result_gamma,result_kappa,measured_power_spectrum = aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,random_seed,compute_gamma,compute_kappa)
+    np.save("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/powerspectrum_{}",measured_power_spectrum)
     if(compute_gamma):
         final_results_gamma[:,realisation] = result_gamma
     if(compute_kappa):

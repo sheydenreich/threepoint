@@ -511,6 +511,16 @@ def extract_aperture_masses(Xs,Ys,shear_catalogue,npix,thetas,fieldsize,compute_
     save_map=save_map,same_fieldsize_for_all_theta=same_fieldsize_for_all_theta,use_polynomial_filter=use_polynomial_filter)
     return result
 
+def extract_both_aperture_masses(Xs,Ys,shear_catalogue,npix,thetas,fieldsize,compute_mcross=False,save_map=None,same_fieldsize_for_all_theta=False,use_polynomial_filter=False):
+    ac = aperture_mass_computer(npix,1.,fieldsize,use_polynomial_filter=use_polynomial_filter)
+    shears,norm = ac.normalize_shear(Xs,Ys,shear_catalogue)
+    result_3pt = extract_aperture_masses_of_field(shears,npix,thetas,fieldsize,norm=norm,ac=ac,compute_mcross=compute_mcross,
+    save_map=save_map,same_fieldsize_for_all_theta=same_fieldsize_for_all_theta,use_polynomial_filter=use_polynomial_filter)
+    result_2pt = extract_second_order_aperture_masses_of_field(shears,npix,thetas,fieldsize,norm=norm,ac=ac,compute_mcross=compute_mcross,
+    save_map=save_map,same_fieldsize_for_all_theta=same_fieldsize_for_all_theta,use_polynomial_filter=use_polynomial_filter)
+
+    return result_2pt,result_3pt
+
 def extract_second_order_aperture_masses(Xs,Ys,shear_catalogue,npix,thetas,fieldsize,compute_mcross=False,save_map=None,same_fieldsize_for_all_theta=False,use_polynomial_filter=False):
     ac = aperture_mass_computer(npix,1.,fieldsize,use_polynomial_filter=use_polynomial_filter)
     shears,norm = ac.normalize_shear(Xs,Ys,shear_catalogue)

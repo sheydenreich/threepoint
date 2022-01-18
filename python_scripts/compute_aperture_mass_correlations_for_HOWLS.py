@@ -1,4 +1,4 @@
-from utility import aperture_mass_computer,extract_aperture_masses
+from utility import aperture_mass_computer,extract_both_aperture_masses
 import numpy as np
 import sys
 from tqdm import tqdm
@@ -40,7 +40,9 @@ def compute_aperture_masses_of_field(filepath,theta_ap_array,save_map=None,use_p
     # print("Flipping e2!")
     # shear_noise = -data['gamma1_noise']-1.0j*data['gamma2_noise']
 
-    result = extract_aperture_masses(X_pos,Y_pos,shear_noise,npix,theta_ap_array,fieldsize,compute_mcross=False,save_map=save_map,use_polynomial_filter=use_polynomial_filter)
+    result = extract_both_aperture_masses(X_pos,Y_pos,shear_noise,npix,theta_ap_array,fieldsize,
+    compute_mcross=False,save_map=save_map,use_polynomial_filter=use_polynomial_filter,
+    same_fieldsize_for_all_theta=True)
 
     return result
 
@@ -49,19 +51,24 @@ def compute_all_aperture_masses(openpath,filenames,savepath,aperture_masses = [1
     with Pool(processes=n_processes) as p:
         # print('test')
         result = [p.apply_async(compute_aperture_masses_of_field, args=(openpath+filenames[i],aperture_masses,None,use_polynomial_filter,)) for i in range(n_files)]
-        data = [p.get() for p in result]
-        datavec = np.array([data[i] for i in range(len(data))])
-        np.savetxt(savepath+'map_cubed',datavec)
+        data_2pt = [p.get()[0] for p in result]
+        data_3pt = [p.get()[1] for p in result]
+
+        datavec_2pt = np.array([data_2pt[i] for i in range(len(data_2pt))])
+        datavec_3pt = np.array([data_3pt[i] for i in range(len(data_3pt))])
+
+        np.savetxt(savepath+'map_squared',datavec_2pt)
+        np.savetxt(savepath+'map_cubed',datavec_3pt)
 
 
-def cond_for_analysis(x):
-    cond1 = '.fits' in x
-    cond2 = 'cone1041' in x
-    cond3 = 'cone1042' in x
-    cond4 = 'cone1046' in x
-    cond5 = 'cone1069' in x
-    cond = cond1 and (cond2 or cond3 or cond4 or cond5)
-    return cond
+# def cond_for_analysis(x):
+#     cond1 = '.fits' in x
+#     cond2 = 'cone1041' in x
+#     cond3 = 'cone1042' in x
+#     cond4 = 'cone1046' in x
+#     cond5 = 'cone1069' in x
+#     cond = cond1 and (cond2 or cond3 or cond4 or cond5)
+#     return cond
 
 if(__name__=='__main__'):
     # print("Computing test aperture mass maps:")
@@ -72,13 +79,13 @@ if(__name__=='__main__'):
             filenames = np.sort([filename for filename in _filenames if ".fits" in filename])
             # if not 'SLICS' in dirpath:
             	# dir_end_path = dirpath.split('/')[-1]
-            savepath = dirpath.split('shear_catalogues')[0]+'map_squared_4096_pix'+dirpath.split('shear_catalogues')[1]
+            savepath = dirpath.split('shear_catalogues')[0]+'maps_2_to_16'+dirpath.split('shear_catalogues')[1]
             print('Reading shear catalogues from ',dirpath)
             print('Writing summary statistics to ',savepath)
             if not os.path.exists(savepath):
                 os.makedirs(savepath)
 
-            compute_all_aperture_masses(dirpath+'/',filenames,savepath+'/',n_processes=64)#,aperture_masses = [0.5,1,2,4,8,16,32])
+            compute_all_aperture_masses(dirpath+'/',filenames,savepath+'/',n_processes=64,aperture_masses = [2,4,8,16])
 
     # for (dirpath,_,_filenames) in os.walk(startpath+"shear_catalogues/"):
     #     if(len(_filenames)>2 and 'SLICS' in dirpath):
