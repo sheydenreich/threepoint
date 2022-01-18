@@ -11,7 +11,7 @@
     @author Laila Linke, llinke@astro.uni-bonn.de
 */
 
-#define VERBOSE false
+#define VERBOSE true
 
 extern "C"
 {
@@ -75,6 +75,10 @@ void* setup(cosmosis::DataBlock *options)
     // Initialize data
     data *config_data = new data;       //Object from type data which will contain information needed for execute
     std::string section = "threepoint"; //Section in pipeline corresponding to this module
+
+    bool quiet;
+    COSMOSIS_SAFE_CALL(options->get_val(std::string("pipeline"),"quiet",quiet));
+    set_verbose(!quiet);
     #if VERBOSE
             std::cerr << "Setting up threepoint" << std::endl;
     #endif // VERBOSE

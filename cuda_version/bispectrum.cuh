@@ -28,7 +28,7 @@ extern __constant__ double dev_eps; //< Integration accuracy
 extern const double eps;
 
 extern __constant__ int dev_n_redshift_bins; // Number of redshift bins
-const int n_redshift_bins = 256;
+const int n_redshift_bins = 50;
 extern __constant__ int dev_n_kbins;
 const int n_kbins = 256;
 
@@ -63,6 +63,12 @@ extern double dz, z_max;
 
 extern __constant__ double dev_dk,dev_k_min,dev_k_max; //k bin and maximal k
 extern double dk, k_min, k_max;
+
+/**
+* @brief sets verbose to set value, determines output to terminal
+*/
+void set_verbose(bool val);
+
 
 void copyConstants();
 

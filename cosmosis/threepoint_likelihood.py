@@ -74,7 +74,7 @@ def execute(block, config):
         # print(block["threepoint", "Map3s"])
         model = np.concatenate((model,block["threepoint", "Map3s"]))
 
-    print(model)
+    # print(model)
     delta = model - map3_data
     chi2=np.einsum("i,ij,j",delta,cov_inv,delta)
     log_det=0#1.0/np.log(np.linalg.det(cov_inv))

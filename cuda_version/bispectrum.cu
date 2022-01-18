@@ -29,6 +29,12 @@ __constant__ double dev_r_sigma_array[n_redshift_bins]; // Array for r(sigma)
 __constant__ double dev_n_eff_array[n_redshift_bins];   // Array for n_eff
 __constant__ double dev_ncur_array[n_redshift_bins];    // Array for C in Halofit
 
+bool verbose = true;
+
+void set_verbose(bool val)
+{
+  verbose = val;
+}
 
 double A96[48] = {/* abscissas for 96-point Gauss quadrature */
   0.016276744849603, 0.048812985136050, 0.081297495464426, 0.113695850110666,
@@ -91,14 +97,17 @@ void copyConstants()
 void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<double>* P_k, double dk, double kmin, double kmax)
 {
   bool nz_from_file=(nz!=NULL);
-  if(nz_from_file)
+  if(verbose)
   {
-    std::cerr<<"Using n(z) from file"<<std::endl;
-
-  }
-  else
-  {
-    std::cerr<<"Computing n(z) myself"<<std::endl;
+    if(nz_from_file)
+    {
+      std::cerr<<"Using n(z) from file"<<std::endl;
+  
+    }
+    else
+    {
+      std::cerr<<"Computing n(z) myself"<<std::endl;
+    };
   };
 
   //set cosmology
@@ -119,7 +128,8 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_Pk_given, &Pk_given, sizeof(bool)));
   if(Pk_given)
   {
-    std::cerr<<"Using precomputed linear power spectrum"<<std::endl;
+    if(verbose)
+      std::cerr<<"Using precomputed linear power spectrum"<<std::endl;
 
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_dk, &dk, sizeof(double)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_k_min, &kmin, sizeof(double)));
@@ -128,7 +138,8 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
   }
   else
   {
-    std::cerr<<"Computing linear power spectrum on the fly (using Eisenstein & Hu)"<<std::endl;
+    if(verbose)
+      std::cerr<<"Computing linear power spectrum on the fly (using Eisenstein & Hu)"<<std::endl;
   }
 
 
@@ -184,7 +195,8 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
     g_array[i] = g_array[i] * dz;
   }
   g_array[0] = 1.;
-  std::cerr<<"Finished calculating f_k and g"<<std::endl;
+  if(verbose)
+    std::cerr<<"Finished calculating f_k and g"<<std::endl;
 
   // Copy f_k and g to device (constant memory)
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_f_K_array, f_K_array, n_redshift_bins * sizeof(double)));
@@ -207,7 +219,8 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
     n_eff_array[i] = -3. + 2. * pow(D1_array[i] * sigmam(r_sigma_array[i], 2), 2); // n_eff in Eq.(B2)
     ncur_array[i] = d1 * d1 + 4. * sigmam(r_sigma_array[i], 3) * pow(D1_array[i], 2);
   }
-  std::cerr<<"Finished calculating non linear scales"<<std::endl;
+  if(verbose)
+    std::cerr<<"Finished calculating non linear scales"<<std::endl;
   // Copy non-linear scales to device
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_D1_array, D1_array, n_redshift_bins * sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_r_sigma_array, r_sigma_array, n_redshift_bins * sizeof(double)));
