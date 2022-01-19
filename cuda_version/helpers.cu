@@ -63,6 +63,10 @@ void read_n_of_z(const std::string &fn, const int &n_bins, const double &zMax, s
     if (norm == 0)
     {
         std::cerr << "sum of n(z) is zero! Check " << fn << "! Exiting." << std::endl;
+        for(int i=0; i<n_bins; i++)
+        {
+            std::cerr << "z: " << i*dz << ", n(z): " << nz[i] << std::endl;
+        }
         exit(1);
     };
     norm *= dz;

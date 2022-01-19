@@ -35,16 +35,23 @@ __global__ void integrand_Map3_kernel(const double* vars, unsigned ndim, int npt
 int integrand_Map3(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value)
 {
   if(fdim != 1)
-    {
-      std::cerr<<"integrand: Wrong number of function dimensions"<<std::endl;
-      exit(1);
-    };
+  {
+    std::cerr<<"integrand: Wrong number of function dimensions"<<std::endl;
+    exit(1);
+  };
   // Read data for integration
   ApertureStatisticsContainer* container = (ApertureStatisticsContainer*) thisPtr;
 
   double theta1 = container-> thetas.at(0);
   double theta2 = container-> thetas.at(1);
   double theta3 = container-> thetas.at(2);
+
+  if(npts>=1e+6)
+  {
+    std::cerr << "WARNING: Map3 integration points large: " << npts << std::endl;
+    std::cerr << "At thetas: " << theta1*60*180/M_PI << ", " << theta2*60*180/M_PI << ", "
+              << theta3*60*180/M_PI << std::endl;
+  };
 
   // Allocate memory on device for integrand values
   double* dev_value;
@@ -57,11 +64,11 @@ int integrand_Map3(unsigned ndim, size_t npts, const double* vars, void* thisPtr
 
   // Calculate values
   integrand_Map3_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, theta1, theta2, theta3, dev_value);
-
-  cudaFree(dev_vars); //Free variables
+  CudaCheckError();
   
   // Copy results to host
   CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim*npts*sizeof(double), cudaMemcpyDeviceToHost));
+  cudaFree(dev_vars); //Free variables
 
   cudaFree(dev_value); //Free values
   
@@ -131,6 +138,11 @@ int integrand_Map2(unsigned ndim, size_t npts, const double* vars, void* thisPtr
   double theta = container-> thetas.at(0);
   double shapenoise_powerspectrum = container -> shapenoise_contribution;
 
+  if(npts>=1e+6)
+  {
+    std::cerr << "WARNING: Map3 integration points large: " << npts << std::endl;
+    std::cerr << "At theta: " << theta*60*180/M_PI << std::endl;
+  };
   // Allocate memory on device for integrand values
   double* dev_value;
   CUDA_SAFE_CALL(cudaMalloc((void**)&dev_value, fdim*npts*sizeof(double)));
