@@ -21,6 +21,9 @@ def setup(options):
     calculate_Map3 = ("Map3" in likelihoods)
     N_sim = options["threepoint_likelihood", "N_sim"]
 
+    print("Using covariance matrix from "+fn_cov)
+    print("Using data vector from "+fn_data)
+
     if(N_sim>0):
         print("Sample covariance matrix extracted from {} Simulations".format(N_sim))
         print("Using Sellentin+Heavens likelihood")
