@@ -140,7 +140,6 @@ double ApertureStatisticsCovariance::T1(const double &theta1, const double &thet
     double thetaMin_456 = std::min({theta4, theta5, theta6});
     double thetaMin = std::max({thetaMin_123, thetaMin_456});
     double lMax = 10. / thetaMin;
-
     // Create container
     ApertureStatisticsCovarianceContainer container;
     container.apertureStatisticsCovariance = this;
@@ -151,18 +150,19 @@ double ApertureStatisticsCovariance::T1(const double &theta1, const double &thet
     double result, error;
     if (type == "infinite")
     {
-        double vals_min[3] = {1, 1, 0};
+        double vals_min[3] = {0,0 , 0};
         double vals_max[3] = {lMax, lMax, M_PI}; // use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
 
         hcubature_v(1, integrand_T1, &container, 3, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
 
         result *= 2 / thetaMax / thetaMax / 8 / M_PI / M_PI / M_PI;
     }
-    else if (type == "circular" || type == "square")
+    else if (type == "circle" || type == "square")
     {
-        double vals_min[6] = {-1.1e4, -1.1e4, -1.1e4, -1.1e4, -1.1e4, -1.1e4};
-        double vals_max[6] = {1e4, 1e4, 1e4, 1e4, 1e4, 1e4};
-        hcubature_v(1, integrand_T1, &container, 6, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+        double vMax=lMax;
+        double vals_min[6]={-vMax,-vMax, -lMax, -lMax, -lMax, -lMax};
+        double vals_max[6]={1.01*vMax, 1.01*vMax, 1.01*lMax, 1.01*lMax, 1.01*lMax, 1.01*lMax};
+        hcubature_v(1, integrand_T1, &container, 6, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
 
         result /= pow(2 * M_PI, 6);
     }
@@ -185,12 +185,14 @@ double ApertureStatisticsCovariance::T2(const double &theta1, const double &thet
     ApertureStatisticsCovarianceContainer container;
     container.apertureStatisticsCovariance = this;
     container.thetas_123 = thetas1;
+    double thetaMin=std::min({theta1, theta2});
+    double lMax = 10./thetaMin;
 
     double result_A1, error_A1;
 
-    double vals_min1[1] = {1e-1};
-    double vals_max1[1] = {1e4};
-    hcubature_v(1, integrand_T2_part1, &container, 1, vals_min1, vals_max1, 0, 0, 1e-3, ERROR_L1, &result_A1, &error_A1);
+    double vals_min1[1] = {0};
+    double vals_max1[1] = {lMax};
+    hcubature_v(1, integrand_T2_part1, &container, 1, vals_min1, vals_max1, 0, 0, 1e-4, ERROR_L1, &result_A1, &error_A1);
 
     // Integral over ell 3
     std::vector<double> thetas2{theta5, theta6};
@@ -198,7 +200,7 @@ double ApertureStatisticsCovariance::T2(const double &theta1, const double &thet
 
     double result_A2, error_A2;
 
-    hcubature_v(1, integrand_T2_part1, &container, 1, vals_min1, vals_max1, 0, 0, 1e-3, ERROR_L1, &result_A2, &error_A2);
+    hcubature_v(1, integrand_T2_part1, &container, 1, vals_min1, vals_max1, 0, 0, 1e-4, ERROR_L1, &result_A2, &error_A2);
 
     // Integral over ell 2
     std::vector<double> thetas3{theta3, theta4};
@@ -206,13 +208,13 @@ double ApertureStatisticsCovariance::T2(const double &theta1, const double &thet
     double result_B, error_B;
     if (type == "circle")
     {
-        hcubature_v(1, integrand_T2_part2, &container, 1, vals_min1, vals_max1, 0, 0, 1e-3, ERROR_L1, &result_B, &error_B);
+        hcubature_v(1, integrand_T2_part2, &container, 1, vals_min1, vals_max1, 0, 0, 1e-4, ERROR_L1, &result_B, &error_B);
     }
     else if (type == "square")
     {
-        double vals_min2[2] = {-1e4, -1e4};
-        double vals_max2[2] = {1e4, 1e4};
-        hcubature_v(1, integrand_T2_part2, &container, 2, vals_min2, vals_max2, 0, 0, 1e-2, ERROR_L1, &result_B, &error_B);
+        double vals_min2[2] = {-lMax, -lMax};
+        double vals_max2[2] = {lMax, lMax};
+        hcubature_v(1, integrand_T2_part2, &container, 2, vals_min2, vals_max2, 0, 0, 1e-4, ERROR_L1, &result_B, &error_B);
     }
     else
     {
@@ -240,7 +242,7 @@ double ApertureStatisticsCovariance::T4(const double &theta1, const double &thet
     double result, error;
     if (type == "infinite")
     {
-        double vals_min[5] = {1, 1, 1, 0, 0};
+        double vals_min[5] = {0, 0, 0, 0, 0};
         double vals_max[5] = {lMax, lMax, lMax, M_PI, M_PI}; // use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
 
         hcubature_v(1, integrand_T4, &container, 5, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
@@ -248,8 +250,8 @@ double ApertureStatisticsCovariance::T4(const double &theta1, const double &thet
     }
     else if (type == "circle")
     {
-        double vals_min[8] = {1e-1, 1e-1, 1e-1, 1e-1, 0, 0, 0, 0};
-        double vals_max[8] = {1e4, 1e4, 1e4, 1e4, 2 * M_PI, 2 * M_PI, 2 * M_PI, 2 * M_PI};
+        double vals_min[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+        double vals_max[8] = {lMax, lMax, lMax, lMax, 2 * M_PI, 2 * M_PI, 2 * M_PI, 2 * M_PI};
         pcubature_v(1, integrand_T4, &container, 8, vals_min, vals_max, 0, 0, 0.2, ERROR_L1, &result, &error);
     }
     else
@@ -473,11 +475,13 @@ double ApertureStatisticsCovariance::integrand_T1_square(const double &a, const 
                                                          const double &theta1, const double &theta2, const double &theta3, const double &theta4,
                                                          const double &theta5, const double &theta6)
 {
-    double Gfactor = G_square(a, b);
+    double Gfactor =G_square(a, b);
 
     double ell1 = sqrt((a - c - e) * (a - c - e) + (b - d - f) * (b - d - f));
     double ell2 = sqrt(c * c + d * d);
     double ell3 = sqrt(e * e + f * f);
+
+
 
     if (ell1 == 0 || ell2 == 0 || ell3 == 0)
         return 0;
@@ -525,7 +529,7 @@ double ApertureStatisticsCovariance::integrand_T2_part2_square(const double &ell
     double Gfactor = G_square(ellX, ellY);
     double ell = sqrt(ellX * ellX + ellY * ellY);
     double result = apertureStatistics->Bispectrum_->Pell(ell);
-    result *= ell * apertureStatistics->uHat(ell * theta1) * apertureStatistics->uHat(ell * theta2);
+    result *= apertureStatistics->uHat(ell * theta1) * apertureStatistics->uHat(ell * theta2);
     result *= Gfactor;
 
     return result;
@@ -582,12 +586,12 @@ double ApertureStatisticsCovariance::G_square(const double &ellX, const double &
     double tmp2 = 0.5 * ellY * thetaMax;
 
     double j01, j02;
-    if (abs(tmp1) <= 1e-6)
+    if (abs(tmp1) <= 1e-9)
         j01 = 1;
     else
         j01 = sin(tmp1) / tmp1;
 
-    if (abs(tmp2) <= 1e-6)
+    if (abs(tmp2) <= 1e-9)
         j02 = 1;
     else
         j02 = sin(tmp2) / tmp2;

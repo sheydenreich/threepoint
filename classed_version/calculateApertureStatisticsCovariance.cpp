@@ -84,6 +84,7 @@ Argument 12: Survey geometry, either circle, square, or infinite
   ApertureStatistics apertureStatistics(&bispectrum);
   ApertureStatisticsCovariance covariance(type, thetaMaxRad, &apertureStatistics);
 
+
   std::vector<double> thetas;
 
   try
@@ -158,13 +159,13 @@ Argument 12: Survey geometry, either circle, square, or infinite
               completed_steps++;
               double progress = (completed_steps * 1.) / (N_total);
 
-              fprintf(stderr, "\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step. Last thetas: (%.1f, %.1f, %.1f, %.1f, %.1f, %.1f)",
+              fprintf(stderr, "\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step. Last thetas: (%.2f, %.2f, %.2f, %.2f, %.2f, %.2f) [%s]",
                       static_cast<int>(progress * 100),
                       elapsed.count() * 1e-9 / 3600,
                       (N_total - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
                       elapsed.count() * 1e-9 / completed_steps,
                       convert_rad_to_angle(theta1, unit), convert_rad_to_angle(theta2, unit), convert_rad_to_angle(theta3, unit),
-                      convert_rad_to_angle(theta4, unit), convert_rad_to_angle(theta5, unit), convert_rad_to_angle(theta6, unit));
+                      convert_rad_to_angle(theta4, unit), convert_rad_to_angle(theta5, unit), convert_rad_to_angle(theta6, unit), unit.c_str());
             }
           }
         }
@@ -180,7 +181,7 @@ Argument 12: Survey geometry, either circle, square, or infinite
   {
     sprintf(filename, "cov_%s_term1Numerical_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat",
             type.c_str(), sigma, n, thetaMax);
-
+    std::cerr<<"Writing Term1 to "<<out_folder+filename<<std::endl;
     try
     {
       covariance.writeCov(Cov_term1s, N_ind, out_folder + filename);
@@ -197,6 +198,7 @@ Argument 12: Survey geometry, either circle, square, or infinite
   {
     sprintf(filename, "cov_%s_term2Numerical_sigma_%.1f_n_%.2f_thetaMax_%.2f.dat",
             type.c_str(), sigma, n, thetaMax);
+    std::cerr<<"Writing Term2 to "<<out_folder+filename<<std::endl;
 
     try
     {
