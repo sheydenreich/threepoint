@@ -7,7 +7,7 @@ from helpers_plot import initPlot, finalizePlot
 
 initPlot(titlesize=20)
 
-cov_type = "shapenoise" # Can be 'slics' or 'shapenoise' or 'cosmicShear' cov
+cov_type = "shapenoise" #"cosmicShear" #"shapenoise" # Can be 'slics' or 'shapenoise' or 'cosmicShear' cov
 sigma = 0.3
 
 if (cov_type == 'slics'):
@@ -33,7 +33,7 @@ N=len(thetas_ind)
 thetas_ticks=np.arange(0, N)
 
 
-sidelengths=np.array([5, 10, 15, 20])
+sidelengths=np.array([10]) #np.array([5, 10, 15])
 
 for theta in sidelengths:
     n = 4096.0*4096.0/theta/theta
@@ -52,14 +52,21 @@ for theta in sidelengths:
         cov_term1Numerical = np.loadtxt(folder+f'cov_square_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
 
         cov_term2Numerical = np.loadtxt(folder+f'cov_square_term2Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
+
+        cov_term1Numerical_gpu = np.loadtxt(folder+f'cov_square_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
+
+        cov_term2Numerical_gpu = np.loadtxt(folder+f'cov_square_term2Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
         cov_infiniteField = np.loadtxt(folder+f'cov_infinite_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
+        cov_infiniteField_gpu = np.loadtxt(folder+f'cov_infinite_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
+        
         cov_fft = np.loadtxt(folder+f'cov_shapenoise_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
         covUncertainty_fft=np.loadtxt(folder+f'covUncertainty_shapenoise_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
     elif (cov_type == 'cosmicShear'):
-        cov_term1Numerical = np.loadtxt(folder+f'cov_cosmicShear_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
-        cov_term2Numerical = np.loadtxt(folder+f'cov_cosmicShear_term2Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
-        cov_infiniteField = np.loadtxt(folder+f'cov_cosmicShear_infiniteField_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
-        cov_fft = np.loadtxt(folder+f'cov_cosmicShear_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')*0.775
+        cov_term1Numerical = np.loadtxt(folder+f'cov_square_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
+
+        cov_term2Numerical = np.loadtxt(folder+f'cov_square_term2Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
+        cov_infiniteField = np.loadtxt(folder+f'cov_infinite_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
+        cov_fft = np.loadtxt(folder+f'cov_cosmicShear_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
         covUncertainty_fft=np.loadtxt(folder+f'covUncertainty_cosmicShear_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
     else:
         print("Cov type not specified")
@@ -88,26 +95,29 @@ for theta in sidelengths:
         elif (cov_type == 'shapenoise'):
             ax.errorbar(np.arange(0, N),cov_fft[i], yerr=covUncertainty_fft[i], color='xkcd:black', label='from FFT')
             ax.plot(cov_infiniteField[i], color='C4', label='Original formula')
+            ax.plot(cov_infiniteField_gpu[i], color='xkcd:pink', label='Original formula (GPU)')
+            
             ax.plot(cov_term2Analytical[i]+cov_term1Analytical[i], color='C0', label='Term1 + Term2 (analytical)', ls='-')
             ax.plot(cov_term1Numerical[i]+cov_term2Numerical[i], color='C1', label='Term1 + Term2 (numerical)', ls='-')
             
             ax.plot(cov_term1Analytical[i], color='C0', label='Term1, analytical', ls='--')
             ax.plot(np.arange(0,N), cov_term1Numerical[i], color='C1', label='Term1, numerical integration', ls='--')
+            ax.plot(np.arange(0,N), cov_term1Numerical_gpu[i], color='xkcd:green', label='Term1, numerical integration', ls='--')
+            
             
             ax.plot(cov_term2Analytical[i], color='C0', label='Term2, analytical', ls=':')
             ax.plot(np.arange(0, N), cov_term2Numerical[i], color='C1', label='Term2, numerical integration', ls=':')
+            ax.plot(np.arange(0, N), cov_term2Numerical_gpu[i], color='C1', label='Term2, numerical integration', ls=':')
         elif (cov_type == 'cosmicShear'):
-            ax.errorbar(np.arange(0,N), cov_fft[i]/0.98, yerr=covUncertainty_fft[i]/0.98/4, color='xkcd:black', label='from FFT')
+            ax.errorbar(np.arange(0, N),cov_fft[i], yerr=covUncertainty_fft[i], color='xkcd:black', label='from FFT')
             ax.plot(cov_infiniteField[i], color='C4', label='Original formula')
-            
+            ax.plot(cov_infiniteField[i]+cov_term2Numerical[i], color='C0', label='Original formula + Term2')
             ax.plot(cov_term1Numerical[i]+cov_term2Numerical[i], color='C1', label='Term1 + Term2 (numerical)', ls='-')
-            #ax.plot(cov_term1Round[i]+cov_term2Round[i], color='C2', label='Term1 + Term2, round survey (numerical)', ls='-')
-
+            
             ax.plot(np.arange(0,N), cov_term1Numerical[i], color='C1', label='Term1, numerical integration', ls='--')
-            #ax.plot(np.arange(0,N),cov_term1Round[i], color='C2', label='Term1, round (numerical)', ls='--')
-
+            
             ax.plot(np.arange(0, N), cov_term2Numerical[i], color='C1', label='Term2, numerical integration', ls=':')
-            #ax.plot(cov_term2Round[i], color='C2', label='Term2, round (numerical)', ls=':')
+
         else:
             print('Cov type not specified')
         at=AnchoredText(r"$\vartheta_\textrm{max}=$"+f"{thetaMax:.2f} deg", loc='lower left')
