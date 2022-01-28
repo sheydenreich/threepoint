@@ -1,7 +1,8 @@
 #ifndef BISPECTRUM_CUH
 #define BISPECTRUM_CUH
 
-#define slics false
+#define slics true
+#define CONSTANT_POWERSPECTRUM false
 
 #include "cosmology.cuh"
 
@@ -23,6 +24,8 @@
 extern __constant__ double dev_h,dev_sigma8,dev_omb,dev_omc,dev_ns,dev_w,dev_om,dev_ow,dev_norm;
 extern cosmology cosmo;
 extern double norm_P;
+
+extern __constant__ double dev_sigma, dev_n;
 
 extern __constant__ double dev_eps; //< Integration accuracy
 extern const double eps;
@@ -278,5 +281,14 @@ __device__ double dev_E(double z);
    * @param z redshift
    */
     double E_inv(double z);
+
+__device__ double GQ96_of_Pk(double a, double b, double ell);
+
+
+__device__ double Pell(double ell);
+
+__device__ double limber_integrand_power_spectrum(double ell, double z);
+
+__device__ double limber_integrand_prefactor(double z, double g_value);
 
 #endif //BISPECTRUM_CUH

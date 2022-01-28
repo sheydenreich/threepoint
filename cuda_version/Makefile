@@ -1,5 +1,5 @@
 # define the Compiler to use
-NVCC = nvcc -std=c++11 -rdc=true -Xcompiler -fopenmp -O3
+NVCC = nvcc -std=c++11 -rdc=true -Xcompiler -fopenmp -O3 -Xptxas="-v" -arch='sm_75'
 
 # define the C++ compiler to use
 GCC = g++
@@ -23,7 +23,7 @@ SRCS_CU = $(wildcard *.cu)
 SRCS_CPP = $(wildcard *.cpp)
 
 # define the CUDA executables (ADD ALL HERE)
-EXECS_CU = calculateApertureStatistics_varyingCosmos.x calculateApertureStatistics.x calculateDerivativeApertureStatistics.x calculateGamma_input_fisher.x calculateGamma.x testGamma.x calculateGamma_varyingCosmos.x
+EXECS_CU = calculateApertureStatistics_varyingCosmos.x calculateApertureStatistics.x calculateDerivativeApertureStatistics.x calculateGamma_input_fisher.x calculateGamma.x testGamma.x calculateGamma_varyingCosmos.x calculateApertureStatisticsCovariance.x
 
 # define cpp object files
 OBJS_CPP = $(SRCS_CPP:.cpp=.o)

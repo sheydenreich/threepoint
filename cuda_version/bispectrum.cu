@@ -13,6 +13,9 @@ __constant__ double dev_h, dev_sigma8, dev_omb, dev_omc, dev_ns, dev_w, dev_om, 
 cosmology cosmo;
 double norm_P;
 
+__constant__ double dev_sigma;
+__constant__ double dev_n;
+
 __constant__ double dev_eps = 1.0e-4; //< Integration accuracy
 const double eps = 1.0e-4;
 
@@ -357,7 +360,6 @@ __device__ void compute_coefficients(int idx, double didx, double *D1, double *r
 
 __device__ double P_k_nonlinear(double k, double z)
 {
-  printf("Warning! This is the bugged version. Not fixed yet.");
   /* get the interpolation coefficients */
   double didx = z / dev_z_max * (n_redshift_bins - 1);
   int idx = didx;
@@ -377,9 +379,9 @@ __device__ double P_k_nonlinear(double k, double z)
   double scalefactor, om_m, om_v;
   double nsqr, ncur;
 
-  f1 = pow(dev_om, -0.0307);
-  f2 = pow(dev_om, -0.0585);
-  f3 = pow(dev_om, 0.0743);
+  // f1 = pow(dev_om, -0.0307);
+  // f2 = pow(dev_om, -0.0585);
+  // f3 = pow(dev_om, 0.0743);
 
   nsqr = n_eff * n_eff;
   ncur = dev_ncur_array[idx] * (1 - didx) + dev_ncur_array[idx + 1] * didx; //interpolate ncur
@@ -395,8 +397,9 @@ __device__ double P_k_nonlinear(double k, double z)
 
   scalefactor = 1. / (1. + z);
 
-  om_m = dev_om / (dev_om + dev_ow * pow(scalefactor, -3. * dev_w)); // Omega matter at z
-  om_v = 1. - om_m;                                                  //omega lambda at z. TODO: implement for non-flat Universes
+  om_m = dev_om / (dev_om + scalefactor * (scalefactor * scalefactor * dev_ow + (1 - dev_om - dev_ow)));
+
+  om_v=dev_ow * pow(scalefactor, 3) / (dev_om + scalefactor * (scalefactor * scalefactor * dev_ow + (1 - dev_om - dev_ow)));
 
   f1a = pow(om_m, (-0.0732));
   f2a = pow(om_m, (-0.1423));
@@ -788,4 +791,60 @@ __device__ double dev_E(double z)
 double E_inv(double z)
 {
   return 1. / E(z);
+}
+
+
+__device__ double GQ96_of_Pk(double a, double b, double ell)
+{/* 96-pt Gauss qaudrature integrates bdelta(x,ells) from x=a to b */
+  int i;
+  double cx, dx, q;
+  cx = (a + b) / 2;
+  dx = (b - a) / 2;
+  q = 0;
+  for (i = 0; i < 48; i++)
+    q += dev_W96[i] * (limber_integrand_power_spectrum(ell, cx - dx * dev_A96[i]) + limber_integrand_power_spectrum(ell, cx + dx * dev_A96[i]));
+  return (q * dx);
+
+}
+
+__device__ double Pell(double ell)
+{
+  double P_shapenoise=0.5*dev_sigma*dev_sigma/dev_n;
+  if(ell==0) return P_shapenoise;
+
+  #if CONSTANT_POWERSPECTRUM
+  double result = P_shapenoise;
+  //printf("%f, %f,  %.2e \n",dev_sigma, dev_n, P_shapenoise);
+  #else
+  double result = GQ96_of_Pk(0, dev_z_max, ell)+P_shapenoise;
+  #endif
+  return result;
+}
+
+
+__device__ double limber_integrand_power_spectrum(double ell, double z)
+{
+  if (z < 1e-5)
+    return 0;
+  double didx = z / dev_z_max * (dev_n_redshift_bins - 1);
+  int idx = didx;
+  didx = didx - idx;
+  if (idx == dev_n_redshift_bins - 1)
+  {
+    idx = dev_n_redshift_bins - 2;
+    didx = 1.;
+  }
+  double g_value = g_interpolated(idx, didx);
+
+  double f_K_value = f_K_interpolated(idx, didx);
+
+
+
+  double prefactor = limber_integrand_prefactor(z, g_value);
+  return prefactor * P_k_nonlinear(ell / f_K_value, z);
+}
+
+__device__ double limber_integrand_prefactor(double z, double g_value)
+{
+  return 9. / 4. * dev_H0_over_c * dev_H0_over_c * dev_H0_over_c * dev_om * dev_om * (1. + z) * (1. + z) * g_value * g_value / dev_E(z);
 }
