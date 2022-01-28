@@ -5,8 +5,8 @@ GCC = g++
 CFLAGS = -std=c++17 -fopenmp -W -Wall -Wpointer-arith -Wformat-nonliteral -Winit-self -g -fPIC
 
 # define library paths in addition to /usr/lib
-LFLAGS= -L /vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/ -Wl,-R /vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/ -L /usr/local/lib/
-#-L /home/laila/cosmosis/cosmosis/datablock/ -Wl,-R /home/laila/cosmosis/cosmosis/datablock/  -L /usr/local/lib/
+LFLAGS= -L /home/laila/cosmosis/cosmosis/datablock/ -Wl,-R /home/laila/cosmosis/cosmosis/datablock/  -L /usr/local/lib/ #-L /vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/ -Wl,-R /vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/ -L /usr/local/lib/
+#
 
 # define include
 INCLUDES= -I /usr/local/include/
