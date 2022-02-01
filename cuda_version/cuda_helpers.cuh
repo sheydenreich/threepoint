@@ -59,4 +59,5 @@ inline void __cudaCheckError( const char *file, const int line )
 
   //For GPU Parallelisation, match this to maximum of computing GPU
 #define THREADS 256 //Maximum Threads per Block
-#define BLOCKS 92 //Maximum blocks for all SMs in GPU
+#define BLOCKS 512 //Maximum blocks for all SMs in GPU
+// #define BLOCKS 96 //Maximum blocks for all SMs in GPU (for Euclid3)
