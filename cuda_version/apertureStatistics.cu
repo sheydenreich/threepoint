@@ -12,25 +12,45 @@ __device__ double uHat(double eta)
   return temp*exp(-temp);
 }
 
+#ifdef DO_4D_INTEGRATION
+  __global__ void integrand_Map3_kernel(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double* value)
+  {
+    // index of thread
+    int thread_index=blockIdx.x*blockDim.x + threadIdx.x;
+    double prefactor = 27. / 8. * pow(dev_om, 3) * pow(dev_H0_over_c, 5);
 
-__global__ void integrand_Map3_kernel(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double* value)
-{
-  // index of thread
-  int thread_index=blockIdx.x*blockDim.x + threadIdx.x;
+    //Grid-Stride loop, so I get npts evaluations
+    for(int i=thread_index; i<npts; i+=blockDim.x*gridDim.x)
+      {
+        double l1=vars[i*ndim];
+        double l2=vars[i*ndim+1];
+        double phi=vars[i*ndim+2];
+        double z=vars[i*ndim+3];
 
-  //Grid-Stride loop, so I get npts evaluations
-  for(int i=thread_index; i<npts; i+=blockDim.x*gridDim.x)
-    {
-      double l1=vars[i*ndim];
-      double l2=vars[i*ndim+1];
-      double phi=vars[i*ndim+2];
+        double l3=sqrt(l1*l1+l2*l2+2*l1*l2*cos(phi));
+        value[i]= l1*l2*prefactor*integrand_bkappa(z,l1, l2, l3)*uHat(l1*theta1)*uHat(l2*theta2)*uHat(l3*theta3); 
+  //      printf("%lf, %lf, %lf, %lf\n", l1, l2, l3, bkappa(l1, l2, l3));
+      }
+  }
+#else
+  __global__ void integrand_Map3_kernel(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double* value)
+  {
+    // index of thread
+    int thread_index=blockIdx.x*blockDim.x + threadIdx.x;
 
-      double l3=sqrt(l1*l1+l2*l2+2*l1*l2*cos(phi));
-      value[i]= l1*l2*bkappa(l1, l2, l3)*uHat(l1*theta1)*uHat(l2*theta2)*uHat(l3*theta3); 
-//      printf("%lf, %lf, %lf, %lf\n", l1, l2, l3, bkappa(l1, l2, l3));
-    }
-}
+    //Grid-Stride loop, so I get npts evaluations
+    for(int i=thread_index; i<npts; i+=blockDim.x*gridDim.x)
+      {
+        double l1=vars[i*ndim];
+        double l2=vars[i*ndim+1];
+        double phi=vars[i*ndim+2];
 
+        double l3=sqrt(l1*l1+l2*l2+2*l1*l2*cos(phi));
+        value[i]= l1*l2*bkappa(l1, l2, l3)*uHat(l1*theta1)*uHat(l2*theta2)*uHat(l3*theta3); 
+  //      printf("%lf, %lf, %lf, %lf\n", l1, l2, l3, bkappa(l1, l2, l3));
+      }
+  }
+#endif //DO_4D_INTEGRATION
 
 int integrand_Map3(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value)
 {
@@ -39,6 +59,19 @@ int integrand_Map3(unsigned ndim, size_t npts, const double* vars, void* thisPtr
     std::cerr<<"integrand: Wrong number of function dimensions"<<std::endl;
     exit(1);
   };
+  #ifdef DO_4D_INTEGRATION
+  if(ndim != 4)
+  {
+    std::cerr<<"integrand: Wrong number of integral dimensions"<<std::endl;
+    exit(1);
+  };
+  #else
+  if(ndim != 3)
+  {
+    std::cerr<<"integrand: Wrong number of integral dimensions"<<std::endl;
+    exit(1);
+  };
+  #endif // DO_4D_INTEGRATION
   // Read data for integration
   ApertureStatisticsContainer* container = (ApertureStatisticsContainer*) thisPtr;
 
@@ -46,7 +79,7 @@ int integrand_Map3(unsigned ndim, size_t npts, const double* vars, void* thisPtr
   double theta2 = container-> thetas.at(1);
   double theta3 = container-> thetas.at(2);
 
-  if(npts>=1e+6)
+  if(npts>=1e+8)
   {
     std::cerr << "WARNING: Map3 integration points large: " << npts << std::endl;
     std::cerr << "At thetas: " << theta1*60*180/M_PI << ", " << theta2*60*180/M_PI << ", "
@@ -89,12 +122,17 @@ double MapMapMap(const std::vector<double>& thetas, const double& phiMin, const 
   container.thetas=thetas;
   double result,error;
 
-  double vals_min[3]={lMin, lMin, phiMin};
-  double vals_max[3]={lMax, lMax, phiMax};
+  #ifdef DO_4D_INTEGRATION
+    double zMax = get_zMax();
+    double vals_min[4]={lMin, lMin, phiMin, 0};
+    double vals_max[4]={lMax, lMax, phiMax, zMax};
+    hcubature_v(1, integrand_Map3, &container, 4, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
 
- 
-  hcubature_v(1, integrand_Map3, &container, 3, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
-
+  #else
+    double vals_min[3]={lMin, lMin, phiMin};
+    double vals_max[3]={lMax, lMax, phiMax};
+    hcubature_v(1, integrand_Map3, &container, 3, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
+  #endif
   
   return result/8/M_PI/M_PI/M_PI;//Divided by (2*pi)³
 }
@@ -138,7 +176,7 @@ int integrand_Map2(unsigned ndim, size_t npts, const double* vars, void* thisPtr
   double theta = container-> thetas.at(0);
   double shapenoise_powerspectrum = container -> shapenoise_contribution;
 
-  if(npts>=1e+6)
+  if(npts>=1e+8)
   {
     std::cerr << "WARNING: Map3 integration points large: " << npts << std::endl;
     std::cerr << "At theta: " << theta*60*180/M_PI << std::endl;

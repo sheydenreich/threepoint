@@ -36,6 +36,11 @@ void set_verbose(bool val)
   verbose = val;
 }
 
+double get_zMax()
+{
+  return z_max;
+}
+
 double A96[48] = {/* abscissas for 96-point Gauss quadrature */
   0.016276744849603, 0.048812985136050, 0.081297495464426, 0.113695850110666,
   0.145973714654897, 0.178096882367619, 0.210031310460567, 0.241743156163840,

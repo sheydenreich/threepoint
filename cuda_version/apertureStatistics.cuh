@@ -3,6 +3,8 @@
 
 #include <vector>
 
+#define DO_4D_INTEGRATION
+
 /**
  * @file apertureStatistics.cuh
  * This file declares routines needed for the aperture statistics calculation with CUDA

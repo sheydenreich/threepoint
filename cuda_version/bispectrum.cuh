@@ -68,6 +68,12 @@ extern double dk, k_min, k_max;
 * @brief sets verbose to set value, determines output to terminal
 */
 void set_verbose(bool val);
+/**
+ * @brief Get the maximum integration redshift
+ * 
+ * @return double 
+ */
+double get_zMax();
 
 
 void copyConstants();
