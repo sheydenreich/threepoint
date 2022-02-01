@@ -20,7 +20,7 @@
 
 #include "bispectrum.cuh"
 
-#define PERFORM_SUM_REDUCTION
+// #define PERFORM_SUM_REDUCTION
 #define CONVERT_TO_CENTROID
 // #define DEBUG_OUTPUT
 

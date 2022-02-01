@@ -4,7 +4,6 @@
 
 
 
-
 __constant__ double dev_array_psi[prec_k];
 __constant__ double dev_array_product[prec_k];
 __constant__ double dev_array_psi_J2[prec_k];
@@ -13,6 +12,7 @@ __constant__ int dev_prec_k;
 
 void compute_weights_bessel()
 {
+  printf("Warning!, AtomicAdd disabled right now until CUDA is updated!");
   // Compute weights
   // Allocate memory for bessel integration on CPU
     double bessel_zeros[prec_k];
@@ -395,8 +395,8 @@ __global__ void compute_integrand_gamma0(double* dev_vars, double* dev_result_ar
       cuDoubleComplex result = full_integrand_gamma0(phi,psi,z,k,x1,x2,x3);
 
       
-      atomicAdd(&dev_result_array[i*2],cuCreal(result));
-      atomicAdd(&dev_result_array[i*2+1],cuCimag(result));
+      // atomicAdd(&dev_result_array[i*2],cuCreal(result));
+      // atomicAdd(&dev_result_array[i*2+1],cuCimag(result));
     }
 
     return;
@@ -419,8 +419,8 @@ __global__ void compute_integrand_gamma1(double* dev_vars, double* dev_result_ar
       cuDoubleComplex result = full_integrand_gamma1(phi,psi,z,k,x1,x2,x3);
 
       
-      atomicAdd(&dev_result_array[i*2],cuCreal(result));
-      atomicAdd(&dev_result_array[i*2+1],cuCimag(result));
+      // atomicAdd(&dev_result_array[i*2],cuCreal(result));
+      // atomicAdd(&dev_result_array[i*2+1],cuCimag(result));
     }
 
     return;

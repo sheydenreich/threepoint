@@ -84,6 +84,7 @@ def execute(block, config):
 
     if(N_sim>0):
         likelihood = -0.5 * log_det - 0.5 * N_sim * np.log(1 + chi2 / (N_sim - 1.))
+        # print("Likelihood: ",likelihood)
     else:
         likelihood=-0.5*(chi2+log_det)
 

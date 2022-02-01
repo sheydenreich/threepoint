@@ -11,7 +11,7 @@
     @author Laila Linke, llinke@astro.uni-bonn.de
 */
 
-#define VERBOSE true
+#define VERBOSE false
 
 extern "C"
 {
@@ -224,6 +224,9 @@ DATABLOCK_STATUS execute(cosmosis::DataBlock *block, void *config)
        cosmo.ow = 1 - cosmo.om;          // Omega_lambda, for flat universes, this is 1-Omega_m
        cosmo.zmax = config_data->zMax;
 
+       if(VERBOSE)
+        std::cerr << cosmo;
+
        // Load power spectrum from the datablock
        std::vector<double> k;
 
@@ -294,6 +297,11 @@ DATABLOCK_STATUS execute(cosmosis::DataBlock *block, void *config)
             };
         };
 
+    #if VERBOSE
+        std::cerr << "Done <MapMap> Calculation" << std::endl;
+    #endif //VERBOSE
+
+
         COSMOSIS_SAFE_CALL(block->put_val("threepoint", "Map2s", Map2s)); // Store the <Map^2>s in the DataBlock
     };
 
@@ -342,7 +350,9 @@ DATABLOCK_STATUS execute(cosmosis::DataBlock *block, void *config)
                     << Map3 << std::endl;
             };
         };
-
+        #if VERBOSE
+            std::cerr << "Done <MapMapMap> Calculation" << std::endl;
+        #endif //VERBOSE
         COSMOSIS_SAFE_CALL(block->put_val("threepoint", "Map3s", Map3s)); // Store the <Map^3>s in the DataBlock
     };
 
