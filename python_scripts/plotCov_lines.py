@@ -7,8 +7,8 @@ from helpers_plot import initPlot, finalizePlot
 
 initPlot(titlesize=20)
 
-cov_type = "shapenoise" #"cosmicShear" #"shapenoise" # Can be 'slics' or 'shapenoise' or 'cosmicShear' cov
-sigma = 0.3
+cov_type = "cosmicShear" #"cosmicShear" #"shapenoise" # Can be 'slics' or 'shapenoise' or 'cosmicShear' cov
+sigma = 0.0
 
 if (cov_type == 'slics'):
     folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/SLICS/"
@@ -68,6 +68,11 @@ for theta in sidelengths:
         cov_infiniteField = np.loadtxt(folder+f'cov_infinite_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
         cov_fft = np.loadtxt(folder+f'cov_cosmicShear_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
         covUncertainty_fft=np.loadtxt(folder+f'covUncertainty_cosmicShear_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
+
+        cov_term1Numerical_gpu = np.loadtxt(folder+f'cov_square_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
+
+        cov_term2Numerical_gpu = np.loadtxt(folder+f'cov_square_term2Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
+        cov_infiniteField_gpu = np.loadtxt(folder+f'cov_infinite_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
     else:
         print("Cov type not specified")
         exit
@@ -110,13 +115,17 @@ for theta in sidelengths:
             ax.plot(np.arange(0, N), cov_term2Numerical_gpu[i], color='C1', label='Term2, numerical integration', ls=':')
         elif (cov_type == 'cosmicShear'):
             ax.errorbar(np.arange(0, N),cov_fft[i], yerr=covUncertainty_fft[i], color='xkcd:black', label='from FFT')
-            ax.plot(cov_infiniteField[i], color='C4', label='Original formula')
-            ax.plot(cov_infiniteField[i]+cov_term2Numerical[i], color='C0', label='Original formula + Term2')
-            ax.plot(cov_term1Numerical[i]+cov_term2Numerical[i], color='C1', label='Term1 + Term2 (numerical)', ls='-')
+            #ax.plot(cov_infiniteField[i], color='C4', label='Original formula')
+            #ax.plot(cov_infiniteField[i]+cov_term2Numerical_gpu[i], color='C0', label='Original formula + Term2')
+            #ax.plot(cov_term1Numerical[i]+cov_term2Numerical[i], color='C1', label='Term1 + Term2 (numerical)', ls='-')
             
-            ax.plot(np.arange(0,N), cov_term1Numerical[i], color='C1', label='Term1, numerical integration', ls='--')
+            #ax.plot(np.arange(0,N), cov_term1Numerical[i], color='C1', label='Term1, numerical integration', ls='--')
             
-            ax.plot(np.arange(0, N), cov_term2Numerical[i], color='C1', label='Term2, numerical integration', ls=':')
+            #ax.plot(np.arange(0, N), cov_term2Numerical[i], color='C1', label='Term2, numerical integration', ls=':')
+            ax.plot(cov_infiniteField_gpu[i], color='xkcd:pink', label=r'$T_1^\infty$ (GPU)')
+            ax.plot(np.arange(0, N), cov_term2Numerical_gpu[i], color='xkcd:green', label=r'$T_2$, numerical integration (GPU)', ls=':')
+            ax.plot(np.arange(0,N), cov_term1Numerical_gpu[i], color='xkcd:green', label=r'$T_1$, numerical integration (GPU)', ls='--')
+            ax.plot(cov_term1Numerical_gpu[i]+cov_term2Numerical_gpu[i], color='xkcd:green', label=r'$T_1+T_2$ (numerical, GPU)', ls='-')
 
         else:
             print('Cov type not specified')

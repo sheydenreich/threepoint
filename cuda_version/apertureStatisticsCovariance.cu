@@ -192,13 +192,15 @@ double lMax = 10./thetaMin;
 
 double result_A1, error_A1;
 
-double vals_min1[1] = {1};
+double vals_min1[1] = {0};
 double vals_max1[1] = {lMax};
 hcubature_v(1, integrand_T2_part1, &container, 1, vals_min1, vals_max1, 0, 0, 1e-3, ERROR_L1, &result_A1, &error_A1);
 
 // Integral over ell 3
 std::vector<double> thetas2{theta5, theta6};
 container.thetas_123 = thetas2;
+thetaMin=std::min({theta5, theta6});
+lMax = 10./thetaMin;
 
 double result_A2, error_A2;
 
@@ -207,6 +209,8 @@ hcubature_v(1, integrand_T2_part1, &container, 1, vals_min1, vals_max1, 0, 0, 1e
 // Integral over ell 2
 std::vector<double> thetas3{theta3, theta4};
 container.thetas_123 = thetas3;
+thetaMin=std::min({theta3, theta4});
+lMax = 10./thetaMin;
 double result_B, error_B;
 if (type == 0)
 {
