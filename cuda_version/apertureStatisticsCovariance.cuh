@@ -14,6 +14,8 @@ extern int type; // defines survey geometry, can be 0, 1, or 2, corresponding to
 */
 extern __constant__ double dev_thetaMax;
 extern double thetaMax;
+extern __constant__ double dev_lMin;
+extern double lMin;
 
     /**
      * @brief Writes a covariance matrix (or one part of it) to a file

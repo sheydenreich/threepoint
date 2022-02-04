@@ -58,6 +58,9 @@ Argument 12: Survey geometry, either circle, square, or infinite
 
   thetaMax = convert_angle_to_rad(thetaMaxUnit, unit);
   double nRad = n / convert_angle_to_rad(1, unit) / convert_angle_to_rad(1, unit);
+  lMin = 0;//2*M_PI/thetaMax;
+
+
 
   cosmology cosmo(cosmo_paramfile);
 
@@ -111,6 +114,7 @@ Argument 12: Survey geometry, either circle, square, or infinite
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_thetaMax, &thetaMax, sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma, &sigma, sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n, &nRad, sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMin, &lMin, sizeof(double)));
 
   std::cerr<<"Finished copying constants"<<std::endl;
 

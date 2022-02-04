@@ -10,6 +10,8 @@
 #include <iostream>
 
 __constant__ double dev_thetaMax;
+__constant__ double dev_lMin;
+double lMin;
 double thetaMax;
 int type; //0: circle, 1: square, 2: infinite
 
@@ -80,12 +82,41 @@ double T1_total(const std::vector<double> &thetas_123, const std::vector<double>
         throw std::invalid_argument("T1_total: Wrong number of aperture radii");
     };
 
-    double result = T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
-    result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(2), thetas_456.at(1));
-    result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
-    result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(2), thetas_456.at(0));
-    result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(0), thetas_456.at(1));
-    result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+    double result;
+    if(thetas_456.at(0)==thetas_456.at(1))
+    {
+        if(thetas_456.at(0)==thetas_456.at(2))
+        {
+            result = 6*T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else
+        {
+            result = 2*T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 2* T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(2), thetas_456.at(1));
+            result += 2*T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(0), thetas_456.at(1));
+        }
+    }
+    else if (thetas_456.at(0)==thetas_456.at(2))
+    {
+        result = 2*T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        result += 2*T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(2), thetas_456.at(1));
+        result += 2*T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+    }
+    else if (thetas_456.at(1)==thetas_456.at(2))
+    {
+        result = 2*T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        result += 2*T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        result += 2*T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(2), thetas_456.at(0));
+    }
+    else
+    {
+        result = T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(2), thetas_456.at(1));
+        result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(2), thetas_456.at(0));
+        result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(0), thetas_456.at(1));
+        result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+    }
 
     return result;
 }
@@ -97,15 +128,124 @@ double T2_total(const std::vector<double> &thetas_123, const std::vector<double>
         throw std::invalid_argument("T2_total: Wrong number of aperture radii");
     };
 
-    double result = T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
-    result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
-    result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
-    result += T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
-    result += T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
-    result += T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
-    result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
-    result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
-    result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+    double result;
+    
+    if(thetas_123.at(0)==thetas_123.at(1) && thetas_123.at(0)==thetas_123.at(2))
+    {
+        if(thetas_456.at(0)==thetas_456.at(1) && thetas_456.at(0)==thetas_456.at(2))
+        {
+            result = 9*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else if(thetas_456.at(0)==thetas_456.at(1))
+        {
+            result = 6*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 3*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+        }
+        else if(thetas_456.at(0)==thetas_456.at(2))
+        {
+            result = 6*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 3*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        }
+        else if(thetas_456.at(1)==thetas_456.at(2))
+        {
+            result = 6*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 3*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else
+        {
+            result = 3*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 3*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 3*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+        }
+    }
+    else if(thetas_123.at(0)==thetas_123.at(1))
+    {
+        if(thetas_456.at(0)==thetas_456.at(1) && thetas_456.at(0)==thetas_456.at(2))
+        {
+            result = 6*T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(0), thetas_456.at(2), thetas_456.at(1));
+            result += 3*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else if(thetas_456.at(0)==thetas_456.at(1))
+        {
+            result = 2*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+            result += 4*T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 2*T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+        }
+        else if(thetas_456.at(0)==thetas_456.at(2))
+        {
+            result = 2*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 4*T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 2*T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        }
+        else if(thetas_456.at(1)==thetas_456.at(2))
+        {
+            result = 2*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 4*T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 2*T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else
+        {
+            result = T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+            result += 2*T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 2*T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 2*T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+        }
+    }
+    else if(thetas_123.at(1)==thetas_123.at(2))
+    {
+        if(thetas_456.at(0)==thetas_456.at(1) && thetas_456.at(0)==thetas_456.at(2))
+        {
+            result = 6*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 3*T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else if(thetas_456.at(0)==thetas_456.at(1))
+        {
+            result = 2*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+            result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 4*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 2*T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else if(thetas_456.at(0)==thetas_456.at(2))
+        {
+            result = 2*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 4*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 2*T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else if(thetas_456.at(1)==thetas_456.at(2))
+        {
+            result = 2*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 4*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 2*T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        }
+        else
+        {
+            result = 2*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 2*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 2*T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+            result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+        }
+    }
+    else
+    {
+        result = T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+        result += T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        result += T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        result += T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+        result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+    }
 
     result /= pow(2 * M_PI, 4);
 
@@ -151,10 +291,11 @@ container.thetas_456 = std::vector<double>{theta4, theta5, theta6};
 double result, error;
 if (type == 2)
 {
-double vals_min[3] = {0,0 , 0};
+
+double vals_min[3] = {lMin, lMin , 0};
 double vals_max[3] = {lMax, lMax, M_PI}; // use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
 
-hcubature_v(1, integrand_T1, &container, 3, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
+hcubature_v(1, integrand_T1, &container, 3, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
 
 result *= 2 / thetaMax / thetaMax / 8 / M_PI / M_PI / M_PI;
 }
@@ -162,7 +303,7 @@ else if (type == 0 || type == 1)
 {
 double vMax=lMax;
 double vals_min[6]={-vMax,-vMax, -lMax, -lMax, -lMax, -lMax};
-double vals_max[6]={1.01*vMax, 1.01*vMax, 1.01*lMax, 1.01*lMax, 1.01*lMax, 1.01*lMax};
+double vals_max[6]={1.02*vMax, 1.02*vMax, 1.02*lMax, 1.02*lMax, 1.02*lMax, 1.02*lMax};
 hcubature_v(1, integrand_T1, &container, 6, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
 
 result /= pow(2 * M_PI, 6);
@@ -192,7 +333,7 @@ double lMax = 10./thetaMin;
 
 double result_A1, error_A1;
 
-double vals_min1[1] = {0};
+double vals_min1[1] = {lMin};
 double vals_max1[1] = {lMax};
 hcubature_v(1, integrand_T2_part1, &container, 1, vals_min1, vals_max1, 0, 0, 1e-3, ERROR_L1, &result_A1, &error_A1);
 
@@ -247,7 +388,7 @@ container.thetas_456 = std::vector<double>{theta4, theta5, theta6};
 double result, error;
 if (type == 2)
 {
-double vals_min[5] = {0, 0, 0, 0, 0};
+double vals_min[5] = {lMin, lMin, lMin, 0, 0};
 double vals_max[5] = {lMax, lMax, lMax, M_PI, M_PI}; // use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
 
 hcubature_v(1, integrand_T4, &container, 5, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
@@ -255,7 +396,7 @@ result = 4. * result / thetaMax / thetaMax / pow(2 * M_PI, 5);
 }
 else if (type == 0)
 {
-double vals_min[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+double vals_min[8] = {lMin, lMin, lMin, lMin, 0, 0, 0, 0};
 double vals_max[8] = {lMax, lMax, lMax, lMax, 2 * M_PI, 2 * M_PI, 2 * M_PI, 2 * M_PI};
 pcubature_v(1, integrand_T4, &container, 8, vals_min, vals_max, 0, 0, 0.2, ERROR_L1, &result, &error);
 }
@@ -501,15 +642,19 @@ __global__ void integrand_T1_circle(const double* vars, unsigned ndim, int npts,
         double ell2 = sqrt(c * c + d * d);
         double ell3 = sqrt(e * e + f * f);
     
-        if (ell1 == 0 || ell2 == 0 || ell3 == 0)
-            value=0;
-    
+        if (ell1 <= dev_lMin || ell2 <= dev_lMin || ell3 <= dev_lMin)
+        {
+            value[i]=0;
+        }
+        else
+        {    
         double result = Pell(ell1) * Pell(ell2) * Pell(ell3);
         result *= uHat(ell1 * theta1) * uHat(ell2 * theta2) * uHat(ell3 * theta3);
         result *= uHat(ell1 * theta4) * uHat(ell2 * theta5) * uHat(ell3 * theta6);
         result *= Gfactor;
     
         value[i]=result;
+        };
     }
 }
 
@@ -534,15 +679,19 @@ __global__ void integrand_T1_square(const double* vars, unsigned ndim, int npts,
         double ell2 = sqrt(c * c + d * d);
         double ell3 = sqrt(e * e + f * f);
     
-        if (ell1 == 0 || ell2 == 0 || ell3 == 0)
-            value=0;
-    
+        if (ell1 <= 0 || ell2 <= 0 || ell3 <= 0)
+        {
+            value[i]=0;
+        }
+        else
+        {
         double result = Pell(ell1) * Pell(ell2) * Pell(ell3);
         result *= uHat(ell1 * theta1) * uHat(ell2 * theta2) * uHat(ell3 * theta3);
         result *= uHat(ell1 * theta4) * uHat(ell2 * theta5) * uHat(ell3 * theta6);
         result *= Gfactor;
     
         value[i]=result;
+        };
     }
 }
 
@@ -559,12 +708,19 @@ __global__ void integrand_T1_infinite(const double* vars, unsigned ndim, int npt
         double phi=vars[i*ndim+2];
 
         double l3 = sqrt(l1 * l1 + l2 * l2 + 2 * l1 * l2 * cos(phi));
-        double result = Pell(l1) * Pell(l2) * Pell(l3);
-        result *= uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3);
-        result *= uHat(l1 * theta4) * uHat(l2 * theta5) * uHat(l3 * theta6);
-        result *= l1 * l2;
-    
-        value[i]=result;
+
+        if (l1 <= dev_lMin || l2 <= dev_lMin || l3 <= dev_lMin)
+        {
+            value[i]=0;
+        }
+        else
+        {
+            double result = Pell(l1) * Pell(l2) * Pell(l3);
+            result *= uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3);
+            result *= uHat(l1 * theta4) * uHat(l2 * theta5) * uHat(l3 * theta6);
+            result *= l1 * l2;
+            value[i]=result;
+        };
     }
 }
 
@@ -576,10 +732,17 @@ __global__ void integrand_T2_part1(const double* vars, unsigned ndim, int npts, 
     for (int i=thread_index; i<npts; i+=blockDim.x*gridDim.x)
     {
         double ell=vars[i*ndim];
-        double result = ell * Pell(ell);
-        result *= uHat(ell * theta1) * uHat(ell * theta2);
-    
-        value[i]=result;
+
+        if(ell<dev_lMin)
+        {
+            value[i]=0;
+        }
+        else
+        {
+            double result = ell * Pell(ell);
+            result *= uHat(ell * theta1) * uHat(ell * theta2);
+            value[i]=result;
+        }
     }
 }
 
@@ -593,12 +756,18 @@ __global__ void integrand_T2_part2_circle(const double* vars, unsigned ndim, int
     {
         double ell=vars[i*ndim];
 
-        double Gfactor = G_circle(ell);
-        double result = Pell(ell);
-        result *= ell * uHat(ell * theta1) * uHat(ell * theta2);
-        result *= Gfactor;
-        
-        value[i]=result;
+        if(ell<dev_lMin)
+        {
+            value[i]=0;
+        }
+        else
+        {
+            double Gfactor = G_circle(ell);
+            double result = Pell(ell);
+            result *= ell * uHat(ell * theta1) * uHat(ell * theta2);
+            result *= Gfactor;
+            value[i]=result;
+        };
     }
 }
 
@@ -615,11 +784,18 @@ __global__ void integrand_T2_part2_square(const double* vars, unsigned ndim, int
 
         double Gfactor = G_square(ellX, ellY);
         double ell = sqrt(ellX * ellX + ellY * ellY);
-        double result = Pell(ell);
-        result *= uHat(ell * theta1) * uHat(ell * theta2);
-        result *= Gfactor;
-        
-        value[i]=result;
+
+        if(ell<dev_lMin)
+        {
+            value[i]=0;
+        }
+        else
+        {
+            double result = Pell(ell);
+            result *= uHat(ell * theta1) * uHat(ell * theta2);
+            result *= Gfactor;
+            value[i]=result;
+        };
     } 
 }
 
