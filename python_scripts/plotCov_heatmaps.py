@@ -6,20 +6,30 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 import matplotlib.colorbar as mcb
 from matplotlib.colors import LogNorm
 
+import argparse
+
+description="""Script for plotting C_meas, T_1^\infty, T_1, T_2, and T_1+T_2 for one theta_max as heatmaps
+"""
+
+parser = argparse.ArgumentParser(description=description)
+
+parser.add_argument('--cov_type', default='none', type=str, help='Type of covariance that is plotted, can be either slics, shapenoise or cosmicShear, default: %(default)s')
+
+parser.add_argument('--sigma', default=0.0, type=float, help='Shapenoise. default: %(default)s')
+
+parser.add_argument('--dir', type=str, help='Directory with files, and output directory, default: %(default)s', default='./')
+
+parser.add_argument('--sidelength', default=10, type=float, help='Sidelength of field (without cut) in deg, default: %(default)s')
+args=parser.parse_args()
 
 initPlot(titlesize=20)
 
-cov_type = "cosmicShear" #"shapenoise"  # Can be 'slics', 'shapenoise' or 'cosmicShear'
-sigma = 0.0
-sidelength = 10  # in Deg!
+cov_type = args.cov_type
+sigma = args.sigma
+folder= args.dir
+sidelength=args.sidelength
 
-if (cov_type == 'slics'):
-    folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/SLICS/"
-elif (cov_type == 'shapenoise'):
-    folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_shapenoise/"
-elif (cov_type == 'cosmicShear'):
-    folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_cosmicShear/"
-else:
+if (cov_type != 'slics' and cov_type != 'shapenoise' and cov_type != 'cosmicShear'):
     print("Cov type not specified")
     exit
 
@@ -36,7 +46,7 @@ N = len(thetas_ind)
 thetas_ticks = np.arange(0, N)
 
 # load data
-n = 4096.0*4096.0/sidelength/sidelength
+n=4096.0*4096.0/sidelength/sidelength
 thetaMax = sidelength-8*16/60
 if (cov_type == 'slics'):
     cov_term2Numerical = np.loadtxt(folder+f'cov_slics_term2Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
@@ -51,13 +61,11 @@ elif (cov_type == 'shapenoise'):
     cov_term2Numerical = np.loadtxt(folder+f'cov_square_term2Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
     cov_infiniteField = np.loadtxt(folder+f'cov_infinite_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
     cov_fft = np.loadtxt(folder+f'cov_shapenoise_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
-    covUncertainty_fft=np.loadtxt(folder+f'covUncertainty_shapenoise_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
 elif (cov_type == 'cosmicShear'):
     cov_term1Numerical = np.loadtxt(folder+f'cov_square_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
     cov_term2Numerical = np.loadtxt(folder+f'cov_square_term2Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
     cov_infiniteField = np.loadtxt(folder+f'cov_infinite_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
     cov_fft = np.loadtxt(folder+f'cov_cosmicShear_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
-    covUncertainty_fft=np.loadtxt(folder+f'covUncertainty_cosmicShear_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
 else:
     print("Cov type not specified")
     exit

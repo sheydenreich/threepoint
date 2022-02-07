@@ -5,19 +5,30 @@ from helpers_plot import initPlot
 from mpl_toolkits.axes_grid1 import ImageGrid
 import matplotlib.colorbar as mcb
 import matplotlib.cm as cm
+import argparse
+
+description="""Script for plotting the difference between the measured Covariance and the 
+Model-Covariance as a heatmap
+Outputs the fractional difference between C_meas and T_1^\infty, and the fractional difference between C_meas and T_1+T_2
+"""
+
+parser = argparse.ArgumentParser(description=description)
+
+parser.add_argument('--cov_type', default='none', type=str, help='Type of covariance that is plotted, can be either slics, shapenoise or cosmicShear, default: %(default)s')
+
+parser.add_argument('--sigma', default=0.0, type=float, help='Shapenoise. default: %(default)s')
+
+parser.add_argument('--dir', type=str, help='Directory with files, and output directory, default: %(default)s', default='./')
+
+args=parser.parse_args()
 
 initPlot(titlesize=20)
 
-cov_type = "cosmicShear"# "shapenoise" # Can be 'slics' or 'shapenoise' or 'cosmicShear' cov
-sigma = 0.0
+cov_type = args.cov_type
+sigma = args.sigma
+folder= args.dir
 
-if (cov_type == 'slics'):
-    folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/SLICS/"
-elif (cov_type == 'shapenoise'):
-    folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_shapenoise/"
-elif (cov_type == 'cosmicShear'):
-    folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_cosmicShear/"
-else:
+if (cov_type != 'slics' and cov_type != 'shapenoise' and cov_type != 'cosmicShear'):
     print("Cov type not specified")
     exit
 
@@ -34,7 +45,7 @@ N=len(thetas_ind)
 thetas_ticks=np.arange(0, N)
 
 
-sidelengths=np.array([10])
+sidelengths=np.array([10, 15])
 Nsides=len(sidelengths)
 fig= plt.figure(figsize=(10*Nsides+2, 20+2))
 cmap=cm.get_cmap('RdBu', 20)
@@ -93,9 +104,9 @@ for i, theta in enumerate(sidelengths):
 
 
 
-    im = grid[i*2].imshow(diff_infinite, vmin=-2, vmax=2, cmap=cmap)  
+    im = grid[i*2].imshow(diff_infinite, vmin=-1, vmax=1, cmap=cmap)  
 
-    im = grid[i*2+1].imshow(0.5*(diff_finite+diff_finite.T), vmin=-2, vmax=2, cmap=cmap)  
+    im = grid[i*2+1].imshow(0.5*(diff_finite+diff_finite.T), vmin=-1, vmax=1, cmap=cmap)  
     grid[i*2+1].text(19, 0, r"$\vartheta_\textrm{max}=$"+f"{thetaMax:.2f}°", verticalalignment='top', horizontalalignment='right',bbox=dict(facecolor='white', alpha=1))  
 
 grid[Nsides*2-1].text(19, 19, cov_type, verticalalignment='bottom', horizontalalignment='right',bbox=dict(facecolor='white', alpha=1))  

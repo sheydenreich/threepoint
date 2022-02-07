@@ -6,18 +6,29 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 import matplotlib.colorbar as mcb
 import matplotlib.cm as cm
 
+import argparse
+
+description="""Script for plotting the difference between T_1 and T_1^\infty as a heatmap
+Outputs the fractional difference between T_1 and T_1^\infty
+"""
+
+parser = argparse.ArgumentParser(description=description)
+
+parser.add_argument('--cov_type', default='none', type=str, help='Type of covariance that is plotted, can be either slics, shapenoise or cosmicShear, default: %(default)s')
+
+parser.add_argument('--sigma', default=0.0, type=float, help='Shapenoise. default: %(default)s')
+
+parser.add_argument('--dir', type=str, help='Directory with files, and output directory, default: %(default)s', default='./')
+
+args=parser.parse_args()
+
 initPlot(titlesize=20)
 
-cov_type = "cosmicShear"# "shapenoise" # Can be 'slics' or 'shapenoise' or 'cosmicShear' cov
-sigma = 0.0
+cov_type = args.cov_type
+sigma = args.sigma
+folder= args.dir
 
-if (cov_type == 'slics'):
-    folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/SLICS/"
-elif (cov_type == 'shapenoise'):
-    folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_shapenoise/"
-elif (cov_type == 'cosmicShear'):
-    folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_cosmicShear/"
-else:
+if (cov_type != 'slics' and cov_type != 'shapenoise' and cov_type != 'cosmicShear'):
     print("Cov type not specified")
     exit
 
@@ -33,7 +44,7 @@ for thetas in thetas_ind:
 N=len(thetas_ind)
 thetas_ticks=np.arange(0, N)
 
-sidelengths=np.array([10])
+sidelengths=np.array([10, 15])
 Nsides=len(sidelengths)
 fig= plt.figure(figsize=(5*Nsides+2,10))
 cmap=cm.get_cmap('RdBu', 20)
@@ -57,20 +68,11 @@ for i, theta in enumerate(sidelengths):
         cov_infiniteFieldNG = np.loadtxt(folder+f'cov_slics_infiniteFieldNG_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
 
     elif (cov_type == 'shapenoise'):
-        #cov_term1Analytical = np.loadtxt(folder+f'cov_shapenoise_term1Analytical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
-        #cov_term2Analytical = np.loadtxt(folder+f'cov_shapenoise_term2Analytical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
         cov_term1Numerical = np.loadtxt(folder+f'cov_square_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
-
-        #cov_term2Numerical = np.loadtxt(folder+f'cov_square_term2Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
         cov_infiniteField = np.loadtxt(folder+f'cov_infinite_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
-        print(folder+f'cov_square_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
-        print(folder+f'cov_infinite_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
     elif (cov_type == 'cosmicShear'):
         cov_term1Numerical = np.loadtxt(folder+f'cov_square_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
-        cov_term2Numerical = np.loadtxt(folder+f'cov_square_term2Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
         cov_infiniteField = np.loadtxt(folder+f'cov_infinite_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
-        cov_fft = np.loadtxt(folder+f'cov_cosmicShear_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
-        covUncertainty_fft=np.loadtxt(folder+f'covUncertainty_cosmicShear_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
     else:
         print("Cov type not specified")
         exit
