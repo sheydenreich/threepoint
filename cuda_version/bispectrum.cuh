@@ -2,7 +2,7 @@
 #define BISPECTRUM_CUH
 
 #define slics true
-#define CONSTANT_POWERSPECTRUM false
+//#define CONSTANT_POWERSPECTRUM false
 
 #include "cosmology.cuh"
 
@@ -19,6 +19,8 @@
 
 // Declarations of  constant variables
 // Extern keyword is needed, so that the actual definition can happen in bispectrum.cu!
+extern bool constant_powerspectrum;
+extern __constant__ bool dev_constant_powerspectrum;
 
 // Cosmological Parameters
 extern __constant__ double dev_h,dev_sigma8,dev_omb,dev_omc,dev_ns,dev_w,dev_om,dev_ow,dev_norm;

@@ -24,9 +24,10 @@ Argument 9: Calculate T1? (0 or 1)
 Argument 10: Calculate T2? (0 or 1)
 Argument 11: Calculate T4? (0 or 1)
 Argument 12: Survey geometry, either circle, square, or infinite
+Argument 13: Use shape noise only powerspectrum? (0 or 1)
 )";
 
-  if (argc != 13)
+  if (argc != 14)
   {
     std::cerr << message << std::endl;
     exit(-1);
@@ -44,15 +45,17 @@ Argument 12: Survey geometry, either circle, square, or infinite
   bool calculate_T2 = std::stoi(argv[10]);
   bool calculate_T4 = std::stoi(argv[11]);
   std::string type_str = argv[12];
+  constant_powerspectrum = std::stoi(argv[13]);
 
   std::cerr << "Using cosmology from " << cosmo_paramfile << std::endl;
   std::cerr << "Using thetas from " << thetasfn << std::endl;
   std::cerr << "Using n(z) from " << nzfn << std::endl;
   std::cerr << "Results are written to " << out_folder << std::endl;
 
-#if CONSTANT_POWERSPECTRUM
+  if(constant_powerspectrum)
+  {
   std::cerr << "WARNING: Uses constant powerspectrum" << std::endl;
-#endif
+  };
 
   // Initializations
 
@@ -115,6 +118,7 @@ Argument 12: Survey geometry, either circle, square, or infinite
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma, &sigma, sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n, &nRad, sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMin, &lMin, sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_constant_powerspectrum, &constant_powerspectrum, sizeof(bool)));
 
   std::cerr<<"Finished copying constants"<<std::endl;
 

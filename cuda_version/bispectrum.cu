@@ -8,6 +8,9 @@
 // These things stay the same for a kernel run
 // Warning: They are read-only for the GPU!
 
+bool constant_powerspectrum;
+__constant__ bool dev_constant_powerspectrum;
+
 // Cosmological Parameters
 __constant__ double dev_h, dev_sigma8, dev_omb, dev_omc, dev_ns, dev_w, dev_om, dev_ow, dev_norm;
 cosmology cosmo;
@@ -812,13 +815,15 @@ __device__ double Pell(double ell)
   double P_shapenoise=0.5*dev_sigma*dev_sigma/dev_n;
   if(ell==0) return P_shapenoise;
 
-  #if CONSTANT_POWERSPECTRUM
-  double result = P_shapenoise;
+  if(dev_constant_powerspectrum)
+  {
+  return P_shapenoise;
   //printf("%f, %f,  %.2e \n",dev_sigma, dev_n, P_shapenoise);
-  #else
-  double result = GQ96_of_Pk(0, dev_z_max, ell)+P_shapenoise;
-  #endif
-  return result;
+  }
+  else
+  {
+  return GQ96_of_Pk(0, dev_z_max, ell)+P_shapenoise;
+  }
 }
 
 
