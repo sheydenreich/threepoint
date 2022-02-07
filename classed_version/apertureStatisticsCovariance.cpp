@@ -13,6 +13,7 @@ ApertureStatisticsCovariance::ApertureStatisticsCovariance(const std::string &ty
     {
         throw std::invalid_argument("ApertureStatisticsCovariance: Unrecognized survey geometry type");
     };
+    lMin = 2 * M_PI / thetaMax;
 }
 
 void ApertureStatisticsCovariance::writeCov(const std::vector<double> &values, const int &N, const std::string &filename)
@@ -79,12 +80,41 @@ double ApertureStatisticsCovariance::T1_total(const std::vector<double> &thetas_
         throw std::invalid_argument("T1_total: Wrong number of aperture radii");
     };
 
-    double result = T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
-    result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(2), thetas_456.at(1));
-    result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
-    result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(2), thetas_456.at(0));
-    result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(0), thetas_456.at(1));
-    result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+    double result;
+    if (thetas_456.at(0) == thetas_456.at(1))
+    {
+        if (thetas_456.at(0) == thetas_456.at(2))
+        {
+            result = 6 * T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else
+        {
+            result = 2 * T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 2 * T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(2), thetas_456.at(1));
+            result += 2 * T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(0), thetas_456.at(1));
+        }
+    }
+    else if (thetas_456.at(0) == thetas_456.at(2))
+    {
+        result = 2 * T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        result += 2 * T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(2), thetas_456.at(1));
+        result += 2 * T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+    }
+    else if (thetas_456.at(1) == thetas_456.at(2))
+    {
+        result = 2 * T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        result += 2 * T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        result += 2 * T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(2), thetas_456.at(0));
+    }
+    else
+    {
+        result = T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(2), thetas_456.at(1));
+        result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(2), thetas_456.at(0));
+        result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(0), thetas_456.at(1));
+        result += T1(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+    }
 
     return result;
 }
@@ -96,15 +126,124 @@ double ApertureStatisticsCovariance::T2_total(const std::vector<double> &thetas_
         throw std::invalid_argument("T2_total: Wrong number of aperture radii");
     };
 
-    double result = T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
-    result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
-    result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
-    result += T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
-    result += T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
-    result += T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
-    result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
-    result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
-    result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+    double result;
+
+    if (thetas_123.at(0) == thetas_123.at(1) && thetas_123.at(0) == thetas_123.at(2))
+    {
+        if (thetas_456.at(0) == thetas_456.at(1) && thetas_456.at(0) == thetas_456.at(2))
+        {
+            result = 9 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else if (thetas_456.at(0) == thetas_456.at(1))
+        {
+            result = 6 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 3 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+        }
+        else if (thetas_456.at(0) == thetas_456.at(2))
+        {
+            result = 6 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 3 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        }
+        else if (thetas_456.at(1) == thetas_456.at(2))
+        {
+            result = 6 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 3 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else
+        {
+            result = 3 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 3 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 3 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+        }
+    }
+    else if (thetas_123.at(0) == thetas_123.at(1))
+    {
+        if (thetas_456.at(0) == thetas_456.at(1) && thetas_456.at(0) == thetas_456.at(2))
+        {
+            result = 6 * T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(0), thetas_456.at(2), thetas_456.at(1));
+            result += 3 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else if (thetas_456.at(0) == thetas_456.at(1))
+        {
+            result = 2 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+            result += 4 * T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 2 * T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+        }
+        else if (thetas_456.at(0) == thetas_456.at(2))
+        {
+            result = 2 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 4 * T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 2 * T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        }
+        else if (thetas_456.at(1) == thetas_456.at(2))
+        {
+            result = 2 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 4 * T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 2 * T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else
+        {
+            result = T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+            result += 2 * T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 2 * T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 2 * T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+        }
+    }
+    else if (thetas_123.at(1) == thetas_123.at(2))
+    {
+        if (thetas_456.at(0) == thetas_456.at(1) && thetas_456.at(0) == thetas_456.at(2))
+        {
+            result = 6 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 3 * T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else if (thetas_456.at(0) == thetas_456.at(1))
+        {
+            result = 2 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+            result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 4 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 2 * T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else if (thetas_456.at(0) == thetas_456.at(2))
+        {
+            result = 2 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 4 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 2 * T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        }
+        else if (thetas_456.at(1) == thetas_456.at(2))
+        {
+            result = 2 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 4 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 2 * T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        }
+        else
+        {
+            result = 2 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += 2 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += 2 * T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+            result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+            result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+            result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+        }
+    }
+    else
+    {
+        result = T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        result += T2(thetas_123.at(0), thetas_123.at(1), thetas_123.at(2), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+        result += T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        result += T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        result += T2(thetas_123.at(0), thetas_123.at(2), thetas_123.at(1), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+        result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(0), thetas_456.at(1), thetas_456.at(2));
+        result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(1), thetas_456.at(0), thetas_456.at(2));
+        result += T2(thetas_123.at(1), thetas_123.at(2), thetas_123.at(0), thetas_456.at(2), thetas_456.at(1), thetas_456.at(0));
+    }
 
     result /= pow(2 * M_PI, 4);
 
@@ -150,7 +289,7 @@ double ApertureStatisticsCovariance::T1(const double &theta1, const double &thet
     double result, error;
     if (type == "infinite")
     {
-        double vals_min[3] = {0,0 , 0};
+        double vals_min[3] = {lMin, lMin, 0};
         double vals_max[3] = {lMax, lMax, M_PI}; // use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
 
         hcubature_v(1, integrand_T1, &container, 3, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
@@ -159,9 +298,9 @@ double ApertureStatisticsCovariance::T1(const double &theta1, const double &thet
     }
     else if (type == "circle" || type == "square")
     {
-        double vMax=lMax;
-        double vals_min[6]={-vMax,-vMax, -lMax, -lMax, -lMax, -lMax};
-        double vals_max[6]={1.01*vMax, 1.01*vMax, 1.01*lMax, 1.01*lMax, 1.01*lMax, 1.01*lMax};
+        double vMax = lMax;
+        double vals_min[6] = {-vMax, -vMax, -lMax, -lMax, -lMax, -lMax};
+        double vals_max[6] = {1.01 * vMax, 1.01 * vMax, 1.01 * lMax, 1.01 * lMax, 1.01 * lMax, 1.01 * lMax};
         hcubature_v(1, integrand_T1, &container, 6, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
 
         result /= pow(2 * M_PI, 6);
@@ -185,19 +324,20 @@ double ApertureStatisticsCovariance::T2(const double &theta1, const double &thet
     ApertureStatisticsCovarianceContainer container;
     container.apertureStatisticsCovariance = this;
     container.thetas_123 = thetas1;
-    double thetaMin=std::min({theta1, theta2});
-    double lMax = 10./thetaMin;
+    double thetaMin = std::min({theta1, theta2});
+    double lMax = 10. / thetaMin;
 
     double result_A1, error_A1;
 
-    double vals_min1[1] = {0};
+    double vals_min1[1] = {lMin};
     double vals_max1[1] = {lMax};
     hcubature_v(1, integrand_T2_part1, &container, 1, vals_min1, vals_max1, 0, 0, 1e-4, ERROR_L1, &result_A1, &error_A1);
 
     // Integral over ell 3
     std::vector<double> thetas2{theta5, theta6};
     container.thetas_123 = thetas2;
-
+    thetaMin = std::min({theta5, theta6});
+    lMax = 10. / thetaMin;
     double result_A2, error_A2;
 
     hcubature_v(1, integrand_T2_part1, &container, 1, vals_min1, vals_max1, 0, 0, 1e-4, ERROR_L1, &result_A2, &error_A2);
@@ -205,6 +345,8 @@ double ApertureStatisticsCovariance::T2(const double &theta1, const double &thet
     // Integral over ell 2
     std::vector<double> thetas3{theta3, theta4};
     container.thetas_123 = thetas3;
+    thetaMin = std::min({theta3, theta4});
+    lMax = 10. / thetaMin;
     double result_B, error_B;
     if (type == "circle")
     {
@@ -242,7 +384,7 @@ double ApertureStatisticsCovariance::T4(const double &theta1, const double &thet
     double result, error;
     if (type == "infinite")
     {
-        double vals_min[5] = {0, 0, 0, 0, 0};
+        double vals_min[5] = {lMin, lMin, lMin, 0, 0};
         double vals_max[5] = {lMax, lMax, lMax, M_PI, M_PI}; // use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
 
         hcubature_v(1, integrand_T4, &container, 5, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
@@ -250,7 +392,7 @@ double ApertureStatisticsCovariance::T4(const double &theta1, const double &thet
     }
     else if (type == "circle")
     {
-        double vals_min[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+        double vals_min[8] = {lMin, lMin, lMin, lMin, 0, 0, 0, 0};
         double vals_max[8] = {lMax, lMax, lMax, lMax, 2 * M_PI, 2 * M_PI, 2 * M_PI, 2 * M_PI};
         pcubature_v(1, integrand_T4, &container, 8, vals_min, vals_max, 0, 0, 0.2, ERROR_L1, &result, &error);
     }
@@ -315,7 +457,7 @@ int ApertureStatisticsCovariance::integrand_T1(unsigned ndim, size_t npts, const
                                                                          container_->thetas_123.at(1), container_->thetas_123.at(2),
                                                                          container_->thetas_456.at(0), container_->thetas_456.at(1), container_->thetas_456.at(2));
         }
-        else //This should not happen
+        else // This should not happen
         {
             exit(-1);
         }
@@ -348,7 +490,7 @@ int ApertureStatisticsCovariance::integrand_T2_part1(unsigned ndim, size_t npts,
             double ell = vars[i * ndim];
             value[i] = apertureStatisticsCovariance->integrand_T2_part1(ell, container_->thetas_123.at(0), container_->thetas_123.at(1));
         }
-        else //This should not happen
+        else // This should not happen
         {
             exit(-1);
         }
@@ -387,7 +529,7 @@ int ApertureStatisticsCovariance::integrand_T2_part2(unsigned ndim, size_t npts,
             double ellY = vars[i * ndim + 1];
             value[i] = apertureStatisticsCovariance->integrand_T2_part2_square(ellX, ellY, container_->thetas_123.at(0), container_->thetas_123.at(1));
         }
-        else//This should not happen
+        else // This should not happen
         {
             exit(-1);
         }
@@ -440,7 +582,7 @@ int ApertureStatisticsCovariance::integrand_T4(unsigned ndim, size_t npts, const
                                                                            container_->thetas_123.at(0), container_->thetas_123.at(1), container_->thetas_123.at(2),
                                                                            container_->thetas_456.at(0), container_->thetas_456.at(1), container_->thetas_456.at(2));
         }
-        else //THis should not happen
+        else // THis should not happen
         {
             exit(-1);
         }
@@ -460,7 +602,7 @@ double ApertureStatisticsCovariance::integrand_T1_circle(const double &a, const 
     double ell2 = sqrt(c * c + d * d);
     double ell3 = sqrt(e * e + f * f);
 
-    if (ell1 == 0 || ell2 == 0 || ell3 == 0)
+    if (ell1 <= lMin || ell2 <= lMin || ell3 <= lMin)
         return 0;
 
     double result = apertureStatistics->Bispectrum_->Pell(ell1) * apertureStatistics->Bispectrum_->Pell(ell2) * apertureStatistics->Bispectrum_->Pell(ell3);
@@ -475,15 +617,13 @@ double ApertureStatisticsCovariance::integrand_T1_square(const double &a, const 
                                                          const double &theta1, const double &theta2, const double &theta3, const double &theta4,
                                                          const double &theta5, const double &theta6)
 {
-    double Gfactor =G_square(a, b);
+    double Gfactor = G_square(a, b);
 
     double ell1 = sqrt((a - c - e) * (a - c - e) + (b - d - f) * (b - d - f));
     double ell2 = sqrt(c * c + d * d);
     double ell3 = sqrt(e * e + f * f);
 
-
-
-    if (ell1 == 0 || ell2 == 0 || ell3 == 0)
+    if (ell1 <= lMin || ell2 <= lMin || ell3 <= lMin)
         return 0;
 
     double result = apertureStatistics->Bispectrum_->Pell(ell1) * apertureStatistics->Bispectrum_->Pell(ell2) * apertureStatistics->Bispectrum_->Pell(ell3);
@@ -499,6 +639,9 @@ double ApertureStatisticsCovariance::integrand_T1_infinite(const double &l1, con
                                                            const double &theta5, const double &theta6)
 {
     double l3 = sqrt(l1 * l1 + l2 * l2 + 2 * l1 * l2 * cos(phi));
+
+    if (l1 <= lMin || l2 <= lMin || l3 <= lMin)
+        return 0;
     double result = apertureStatistics->Bispectrum_->Pell(l1) * apertureStatistics->Bispectrum_->Pell(l2) * apertureStatistics->Bispectrum_->Pell(l3);
     result *= apertureStatistics->uHat(l1 * theta1) * apertureStatistics->uHat(l2 * theta2) * apertureStatistics->uHat(l3 * theta3);
     result *= apertureStatistics->uHat(l1 * theta4) * apertureStatistics->uHat(l2 * theta5) * apertureStatistics->uHat(l3 * theta6);
@@ -509,6 +652,8 @@ double ApertureStatisticsCovariance::integrand_T1_infinite(const double &l1, con
 
 double ApertureStatisticsCovariance::integrand_T2_part1(const double &ell, const double &theta1, const double &theta2)
 {
+    if (ell <= lMin)
+        return 0;
     double result = ell * apertureStatistics->Bispectrum_->Pell(ell);
     result *= apertureStatistics->uHat(ell * theta1) * apertureStatistics->uHat(ell * theta2);
     return result;
@@ -516,6 +661,8 @@ double ApertureStatisticsCovariance::integrand_T2_part1(const double &ell, const
 
 double ApertureStatisticsCovariance::integrand_T2_part2_circle(const double &ell, const double &theta1, const double &theta2)
 {
+    if (ell <= lMin)
+        return 0;
     double Gfactor = G_circle(ell);
     double result = apertureStatistics->Bispectrum_->Pell(ell);
     result *= ell * apertureStatistics->uHat(ell * theta1) * apertureStatistics->uHat(ell * theta2);
@@ -528,6 +675,8 @@ double ApertureStatisticsCovariance::integrand_T2_part2_square(const double &ell
 {
     double Gfactor = G_square(ellX, ellY);
     double ell = sqrt(ellX * ellX + ellY * ellY);
+    if (ell <= lMin)
+        return 0;
     double result = apertureStatistics->Bispectrum_->Pell(ell);
     result *= apertureStatistics->uHat(ell * theta1) * apertureStatistics->uHat(ell * theta2);
     result *= Gfactor;
@@ -586,12 +735,12 @@ double ApertureStatisticsCovariance::G_square(const double &ellX, const double &
     double tmp2 = 0.5 * ellY * thetaMax;
 
     double j01, j02;
-    if (abs(tmp1) <= 1e-9)
+    if (abs(tmp1) <= 1e-6)
         j01 = 1;
     else
         j01 = sin(tmp1) / tmp1;
 
-    if (abs(tmp2) <= 1e-9)
+    if (abs(tmp2) <= 1e-6)
         j02 = 1;
     else
         j02 = sin(tmp2) / tmp2;

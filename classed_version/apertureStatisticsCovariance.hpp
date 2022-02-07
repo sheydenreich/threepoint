@@ -19,6 +19,8 @@ public:
      */
     double thetaMax;
 
+    double lMin;
+
     ApertureStatistics *apertureStatistics; // Instance of apertureStatistics, needed to access uHat and bispectrum
 
     ApertureStatisticsCovariance(){}; // Empty Constructor

@@ -83,7 +83,7 @@ Argument 12: Survey geometry, either circle, square, or infinite
   bispectrum.n = nRad;
   ApertureStatistics apertureStatistics(&bispectrum);
   ApertureStatisticsCovariance covariance(type, thetaMaxRad, &apertureStatistics);
-
+  covariance.lMin=0;
 
   std::vector<double> thetas;
 
