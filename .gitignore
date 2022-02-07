@@ -50,5 +50,4 @@ cosmosis/__pycache__/
 *.png
 *.dat
 *.npy
-
-scripts/*
+*.ipynb
