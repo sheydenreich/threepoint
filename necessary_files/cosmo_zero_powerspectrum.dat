@@ -1,0 +1,8 @@
+# Cosmology for a power spectrum that is zero everywhere
+h 0.6731
+sigma_8 0.0
+Omega_b 0.0481
+n_s 0.9658
+w -1
+Omega_m 0.31345
+z_max 1

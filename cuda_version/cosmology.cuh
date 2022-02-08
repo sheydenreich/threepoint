@@ -35,6 +35,31 @@ std::ostream& operator<<(std::ostream& out, const cosmology& cosmo);
 
 
 
+class covarianceParameters
+{
+public:
+  double thetaMax; //[rad] this is the radius for a circular survey and the sidelength for a square survey
+  double shapenoise_sigma;
+  double galaxy_density; //rad^-2
+  bool shapenoiseOnly;
+
+  covarianceParameters(){}; // Empty constructor
+  covarianceParameters(const std::string& fn); //Constructor from filename (reads in)
+};
+
+
+// Output
+std::ostream& operator<<(std::ostream& out, const covarianceParameters& covPar);
+
+struct configGamma
+{
+  int rsteps,usteps,vsteps;
+  double umin,umax,vmin,vmax,rmin,rmax;
+};
+
+void read_gamma_config(const std::string& fn, configGamma& config);
+
+std::ostream& operator<<(std::ostream& out, const configGamma& config);
 
 
 #endif // COSMOLOGY_CUH

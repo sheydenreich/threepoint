@@ -6,7 +6,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 {
    if (code != cudaSuccess) 
    {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      fprintf(stderr,"GPUassert: %s in %s, line %d\n", cudaGetErrorString(code), file, line);
       if (abort) exit(code);
    }
 }
@@ -59,4 +59,5 @@ inline void __cudaCheckError( const char *file, const int line )
 
   //For GPU Parallelisation, match this to maximum of computing GPU
 #define THREADS 256 //Maximum Threads per Block
-#define BLOCKS 92 //Maximum blocks for all SMs in GPU
+// #define BLOCKS 92 //Maximum blocks for all SMs in GPU
+#define BLOCKS 92 //Maximum blocks for all SMs in GPU. use for euclid3

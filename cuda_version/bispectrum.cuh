@@ -28,6 +28,7 @@ extern cosmology cosmo;
 extern double norm_P;
 
 extern __constant__ double dev_sigma, dev_n;
+extern double sigma, n;
 
 extern __constant__ double dev_eps; //< Integration accuracy
 extern const double eps;
@@ -105,6 +106,17 @@ void set_cosmology(cosmology cosmo, std::vector<double>* nz=NULL, std::vector<do
 __device__ double bkappa(double ell1, double ell2, double ell3);
 
   /**
+   * 96 pt Gaussian Quadrature of integrand_bkappa along redshift
+   * Defined here, to avoid overhead, since otherwise the function needs to be casted to a static function every time before use
+   * @param a lower border of redshift integral
+   * @param b upper border of redshift integral
+   * @param ell1 lmode 1
+   * @param ell2 lmode 2
+   * @param ell3 lmode 3
+   */
+   __device__ double GQ96_of_bdelta(double a,double b, double ell1, double ell2, double ell3);
+
+  /**
    * Integrand of two-dimensional bispectrum in Limber equation
    * @param z redshift
    * @param ell1 lmode 1
@@ -113,7 +125,56 @@ __device__ double bkappa(double ell1, double ell2, double ell3);
    */
    __device__ double integrand_bkappa(double z, double ell1, double ell2, double ell3);
 
-/**
+
+  /**
+   * Gives the lens efficiency g at redshift corresponding to idx+didx.
+   * Uses interpolation of grid
+   * @param idx index of redshift bin (lower border), int(z/z_max*(nbins-1))
+   * @param didx distance between redshift and redshift bin, (z/z_max*(nbins-1))-idx
+   */
+   __device__ double g_interpolated(int idx, double didx);
+
+
+   /**
+   * Gives f_k at redshift corresponding to idx+didx.
+   * Uses interpolation of grid
+   * @param idx index of redshift bin (lower border), int(z/z_max*(nbins-1))
+   * @param didx distance between redshift and redshift bin, (z/z_max*(nbins-1))-idx
+   * @return f_K [h/Mpc]
+   */
+__device__ double f_K_interpolated(int idx, double didx);
+
+
+
+  /**
+   * Computes coefficients by interpolating on a grid. Grid was computed during initialization
+   * @param idx index of redshift bin (lower border), int(z/z_max*(nbins-1))
+   * @param didx distance between redshift and redshift bin, (z/z_max*(nbins-1))-idx
+   * @param D1 will store Growth factor at redshift corresponding to idx+didx
+   * @param r_sigma will store r_sigma at redshift corresponding to idx+didx
+   * @param n_eff will store n_eff at redshift corresponding to idx+didx
+   */
+   __device__  void compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff);
+
+   __device__ double om_m_of_z(double z);
+
+   __device__ double om_v_of_z(double z);
+
+   __device__ double limber_integrand(double ell, double z);
+
+   __global__ void limber_integrand_wrapper(const double* vars, unsigned ndim, size_t npts, double ell, double* value);
+
+   int limber_integrand_wrapper(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
+
+   double Pell(double ell);
+
+   __device__ double limber_integrand_triple_power_spectrum(double ell1, double ell2, double ell3, double z, double shapenoise_contribution);
+
+   double get_P_k_nonlinear(double* k, double* z, double* value, int npts);
+
+   __global__ void global_get_P_k_nonlinear(double* k, double* z, double* values);
+
+   /**
  * Non-linear power spectrum from the revised Halofit formula (Takahashi et al. 2012)
  * @param k scale mode [h/Mpc]
  * @param z redshift
@@ -162,63 +223,15 @@ __device__ double P_k_nonlinear(double k, double z);
     */
  __device__ double F2_tree(double k1, double k2, double k3);  // F2 kernel in tree level
  
-
-
-  /**
-   * 96 pt Gaussian Quadrature of integrand_bkappa along redshift
-   * Defined here, to avoid overhead, since otherwise the function needs to be casted to a static function every time before use
-   * @param a lower border of redshift integral
-   * @param b upper border of redshift integral
-   * @param ell1 lmode 1
-   * @param ell2 lmode 2
-   * @param ell3 lmode 3
-   */
-__device__ double GQ96_of_bdelta(double a,double b, double ell1, double ell2, double ell3);
-
-
-
-  /**
-   * Gives the lens efficiency g at redshift corresponding to idx+didx.
-   * Uses interpolation of grid
-   * @param idx index of redshift bin (lower border), int(z/z_max*(nbins-1))
-   * @param didx distance between redshift and redshift bin, (z/z_max*(nbins-1))-idx
-   */
-__device__ double g_interpolated(int idx, double didx);
-
-
-   /**
-   * Gives f_k at redshift corresponding to idx+didx.
-   * Uses interpolation of grid
-   * @param idx index of redshift bin (lower border), int(z/z_max*(nbins-1))
-   * @param didx distance between redshift and redshift bin, (z/z_max*(nbins-1))-idx
-   * @return f_K [h/Mpc]
-   */
-__device__ double f_K_interpolated(int idx, double didx);
-
-
-
-
-  /**
-   * Computes coefficients by interpolating on a grid. Grid was computed during initialization
-   * @param idx index of redshift bin (lower border), int(z/z_max*(nbins-1))
-   * @param didx distance between redshift and redshift bin, (z/z_max*(nbins-1))-idx
-   * @param D1 will store Growth factor at redshift corresponding to idx+didx
-   * @param r_sigma will store r_sigma at redshift corresponding to idx+didx
-   * @param n_eff will store n_eff at redshift corresponding to idx+didx
-   */
-__device__  void compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff);
-
-
-
-
-
-/**
+ /**
  * Comoving angular diameter distance  \f$f_k\f$ 
  * Uses Gaussian quadrature of E_inv
  * @param z redshift
  * @return  \f$f_k\f$  [h/Mpc]
  */
 double f_K_at_z(double z);
+
+
 
 /**
  * Source redshift distribution.
@@ -240,6 +253,14 @@ double lgr_func(int j, double x, double y[2]);
 
 double sigmam(double r, int j);
 
+  /**
+   * Windowfunction.
+   * Gives either Fourier transformed Top Hat, Gaussian or 1st Derivative of Gaussian Window function
+   * @param x dimensionless position in windowfunction
+   * @param i Switch between different functions, i=0: FT Top hat, i=1: Gaussian, i=2: 1st derivative of Gaussian
+   * @return Windowfunction at x [dimensionless]
+   */
+   double window(double x, int i);
 
 double calc_r_sigma(double D1);
 
@@ -253,14 +274,7 @@ double calc_r_sigma(double D1);
    */
 double GQ96_of_Einv(double a,double b);
 
-  /**
-   * Windowfunction.
-   * Gives either Fourier transformed Top Hat, Gaussian or 1st Derivative of Gaussian Window function
-   * @param x dimensionless position in windowfunction
-   * @param i Switch between different functions, i=0: FT Top hat, i=1: Gaussian, i=2: 1st derivative of Gaussian
-   * @return Windowfunction at x [dimensionless]
-   */
-double window(double x, int i);
+
 
 
 
@@ -284,13 +298,14 @@ __device__ double dev_E(double z);
    */
     double E_inv(double z);
 
-__device__ double GQ96_of_Pk(double a, double b, double ell);
+__device__ double dev_GQ96_of_Pk(double a, double b, double ell);
 
 
-__device__ double Pell(double ell);
+__device__ double dev_Pell(double ell);
 
-__device__ double limber_integrand_power_spectrum(double ell, double z);
+__device__ double dev_limber_integrand_power_spectrum(double ell, double z);
 
-__device__ double limber_integrand_prefactor(double z, double g_value);
+__device__ double dev_limber_integrand_prefactor(double z, double g_value);
+double limber_integrand_prefactor(double z, double g_value);
 
 #endif //BISPECTRUM_CUH

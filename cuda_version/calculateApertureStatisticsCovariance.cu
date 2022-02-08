@@ -13,21 +13,17 @@ int main(int argc, char *argv[])
   const char *message = R"( 
 calculateApertureStatisticsCovariance.x : Wrong number of command line parameters (Needed: 12)
 Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
-Argument 2: Filename with thetas [unit]
+Argument 2: Filename with thetas [arcmin]
 Argument 3: Filename with n(z)
 Argument 4: Outputfolder (needs to exist)
-Argument 5: Theta_Max [unit], this is the radius for a circular survey and the sidelength for a square survey
-Argument 6: sigma, shapenoise (for both components)
-Argument 7: n [unit^-2] Galaxy numberdensity
-Argument 8: unit, either arcmin, deg, or rad
-Argument 9: Calculate T1? (0 or 1)
-Argument 10: Calculate T2? (0 or 1)
-Argument 11: Calculate T4? (0 or 1)
-Argument 12: Survey geometry, either circle, square, or infinite
-Argument 13: Use shape noise only powerspectrum? (0 or 1)
+Argument 5: Filename for covariance parameters (ASCII, see necessary_files/cov_param for an example)
+Argument 6: Calculate T1? (0 or 1)
+Argument 7: Calculate T2? (0 or 1)
+Argument 8: Calculate T4? (0 or 1)
+Argument 9: Survey geometry, either circle, square, or infinite
 )";
 
-  if (argc != 14)
+  if (argc != 10)
   {
     std::cerr << message << std::endl;
     exit(-1);
@@ -37,33 +33,32 @@ Argument 13: Use shape noise only powerspectrum? (0 or 1)
   std::string thetasfn = argv[2];
   std::string nzfn = argv[3];
   std::string out_folder = argv[4];
-  double thetaMaxUnit = std::stod(argv[5]);
-  double sigma = std::stod(argv[6]);
-  double n = std::stod(argv[7]);
-  std::string unit = argv[8];
-  bool calculate_T1 = std::stoi(argv[9]);
-  bool calculate_T2 = std::stoi(argv[10]);
-  bool calculate_T4 = std::stoi(argv[11]);
-  std::string type_str = argv[12];
-  constant_powerspectrum = std::stoi(argv[13]);
+  std::string covariance_paramfile = argv[5];
+  bool calculate_T1 = std::stoi(argv[6]);
+  bool calculate_T2 = std::stoi(argv[7]);
+  bool calculate_T4 = std::stoi(argv[8]);
+  std::string type_str = argv[9];
 
   std::cerr << "Using cosmology from " << cosmo_paramfile << std::endl;
   std::cerr << "Using thetas from " << thetasfn << std::endl;
   std::cerr << "Using n(z) from " << nzfn << std::endl;
   std::cerr << "Results are written to " << out_folder << std::endl;
+  std::cerr << "Using covariance parameters from" <<covariance_paramfile<<std::endl;
+
+
+  // Initializations
+  covarianceParameters covPar(covariance_paramfile);
+  constant_powerspectrum=covPar.shapenoiseOnly;
 
   if(constant_powerspectrum)
   {
   std::cerr << "WARNING: Uses constant powerspectrum" << std::endl;
-  };
+  };  
 
-  // Initializations
-
-  thetaMax = convert_angle_to_rad(thetaMaxUnit, unit);
-  double nRad = n / convert_angle_to_rad(1, unit) / convert_angle_to_rad(1, unit);
+  thetaMax = covPar.thetaMax;
+  sigma = covPar.shapenoise_sigma;
+  n = covPar.galaxy_density;
   lMin = 0;//2*M_PI/thetaMax;
-
-
 
   cosmology cosmo(cosmo_paramfile);
 
@@ -116,7 +111,7 @@ Argument 13: Use shape noise only powerspectrum? (0 or 1)
   copyConstants();
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_thetaMax, &thetaMax, sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma, &sigma, sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n, &nRad, sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n, &n, sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMin, &lMin, sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_constant_powerspectrum, &constant_powerspectrum, sizeof(bool)));
 
@@ -140,23 +135,23 @@ Argument 13: Use shape noise only powerspectrum? (0 or 1)
   auto begin = std::chrono::high_resolution_clock::now(); // Begin time measurement
   for (int i = 0; i < N; i++)
   {
-    double theta1 = convert_angle_to_rad(thetas.at(i), unit); // Conversion to rad
+    double theta1 = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
     for (int j = i; j < N; j++)
     {
-      double theta2 = convert_angle_to_rad(thetas.at(j), unit);
+      double theta2 = convert_angle_to_rad(thetas.at(j));
       for (int k = j; k < N; k++)
       {
-        double theta3 = convert_angle_to_rad(thetas.at(k), unit);
+        double theta3 = convert_angle_to_rad(thetas.at(k));
         std::vector<double> thetas_123 = {theta1, theta2, theta3};
         for (int l = 0; l < N; l++)
         {
-          double theta4 = convert_angle_to_rad(thetas.at(l), unit); // Conversion to rad
+          double theta4 = convert_angle_to_rad(thetas.at(l)); // Conversion to rad
           for (int m = l; m < N; m++)
           {
-            double theta5 = convert_angle_to_rad(thetas.at(m), unit);
+            double theta5 = convert_angle_to_rad(thetas.at(m));
             for (int n = m; n < N; n++)
             {
-              double theta6 = convert_angle_to_rad(thetas.at(n), unit);
+              double theta6 = convert_angle_to_rad(thetas.at(n));
               std::vector<double> thetas_456 = {theta4, theta5, theta6};
 
               try
@@ -194,8 +189,8 @@ Argument 13: Use shape noise only powerspectrum? (0 or 1)
                       elapsed.count() * 1e-9 / 3600,
                       (N_total - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
                       elapsed.count() * 1e-9 / completed_steps,
-                      convert_rad_to_angle(theta1, unit), convert_rad_to_angle(theta2, unit), convert_rad_to_angle(theta3, unit),
-                      convert_rad_to_angle(theta4, unit), convert_rad_to_angle(theta5, unit), convert_rad_to_angle(theta6, unit), unit.c_str());
+                      convert_rad_to_angle(theta1), convert_rad_to_angle(theta2), convert_rad_to_angle(theta3),
+                      convert_rad_to_angle(theta4), convert_rad_to_angle(theta5), convert_rad_to_angle(theta6), "arcmin");
             }
           }
         }
@@ -206,11 +201,13 @@ Argument 13: Use shape noise only powerspectrum? (0 or 1)
   // Output
 
   char filename[255];
+  double n_deg = n / convert_rad_to_angle(1, "deg") / convert_rad_to_angle(1, "deg");
+  double thetaMax_deg = convert_rad_to_angle(thetaMax, "deg");
 
   if (calculate_T1)
   {
     sprintf(filename, "cov_%s_term1Numerical_sigma_%.1f_n_%.2f_thetaMax_%.2f_gpu.dat",
-            type_str.c_str(), sigma, n, thetaMaxUnit);
+            type_str.c_str(), sigma, n_deg, thetaMax_deg);
     std::cerr<<"Writing Term1 to "<<out_folder+filename<<std::endl;
     try
     {
@@ -227,7 +224,7 @@ Argument 13: Use shape noise only powerspectrum? (0 or 1)
   if (calculate_T2)
   {
     sprintf(filename, "cov_%s_term2Numerical_sigma_%.1f_n_%.2f_thetaMax_%.2f_gpu.dat",
-            type_str.c_str(), sigma, n, thetaMaxUnit);
+            type_str.c_str(), sigma, n_deg, thetaMax_deg);
     std::cerr<<"Writing Term2 to "<<out_folder+filename<<std::endl;
 
     try
@@ -245,7 +242,7 @@ Argument 13: Use shape noise only powerspectrum? (0 or 1)
   if (calculate_T4)
   {
     sprintf(filename, "cov_%s_term4Numerical_sigma_%.1f_n_%.2f_thetaMax_%.2f_gpu.dat",
-            type_str.c_str(), sigma, n, thetaMaxUnit);
+            type_str.c_str(), sigma, n_deg, thetaMax_deg);
 
     try
     {

@@ -1,103 +1,56 @@
 import numpy as np
 # from compute_aperture_mass import progressBar
-from tqdm import trange
+from tqdm import trange,tqdm
+from utility import extract_aperture_masses
+import numpy as np
+import sys
+import multiprocessing.managers
+from multiprocessing import Pool
+from astropy.io import fits
+import os
+from file_loader import get_slics
 
-# results = np.zeros((7,7,7,8,64))
-# theta_ap = [0.5,1,2,4,8,16,32]
-# counter = 0
-# for los in range(64):
-#         for i in range(7):
-#                 try:
-#                         field1,error1 = np.load("/vol/euclid7/euclid7_2/sven/maps_millennium/theta_"+str(theta_ap[i])+"_los_"+str(los)+".npy")
-#                 except Exception as inst:
-#                         print(inst)
-#                         break
-#                 for j in range(7):
-#                         try:
-#                                 field2,error2 = np.load("/vol/euclid7/euclid7_2/sven/maps_millennium/theta_"+str(theta_ap[j])+"_los_"+str(los)+".npy")
-#                         except Exception as inst:
-#                                 print(inst)
-#                                 break
-#                         for k in range(7):
-#                                 try:
-#                                         field3,error3 = np.load("/vol/euclid7/euclid7_2/sven/maps_millennium/theta_"+str(theta_ap[k])+"_los_"+str(los)+".npy") 
-#                                 except Exception as inst:
-#                                         print(inst)
-#                                         break
-                       
-#                                 progressBar("Reading fields",counter,64*7**3)
-#                                 maxtheta = theta_ap[np.max([i,j,k])]
-#                                 index_maxtheta = int(maxtheta/(4*60)*4096)*2 #take double the aperture radius and cut it off
-#                                 field1_cut = field1[index_maxtheta:(4096-index_maxtheta),index_maxtheta:(4096-index_maxtheta)]
-#                                 field2_cut = field2[index_maxtheta:4096-index_maxtheta,index_maxtheta:4096-index_maxtheta]
-#                                 field3_cut = field3[index_maxtheta:4096-index_maxtheta,index_maxtheta:4096-index_maxtheta]
-#                                 error1_cut = error1[index_maxtheta:4096-index_maxtheta,index_maxtheta:4096-index_maxtheta]
-#                                 error2_cut = error2[index_maxtheta:4096-index_maxtheta,index_maxtheta:4096-index_maxtheta]
-#                                 error3_cut = error3[index_maxtheta:4096-index_maxtheta,index_maxtheta:4096-index_maxtheta]
+class MyManager(multiprocessing.managers.BaseManager):
+    pass
+MyManager.register('np_zeros', np.zeros, multiprocessing.managers.ArrayProxy)
 
 
 
-#                                 results[i,j,k,0,los] = np.mean(field1_cut*field2_cut*field3_cut)
-#                                 results[i,j,k,1,los] = np.mean(field1_cut*field2_cut*error3_cut)
-#                                 results[i,j,k,2,los] = np.mean(field1_cut*error2_cut*field3_cut)
-#                                 results[i,j,k,3,los] = np.mean(error1_cut*field2_cut*field3_cut)
-#                                 results[i,j,k,4,los] = np.mean(error1_cut*error2_cut*field3_cut)
-#                                 results[i,j,k,5,los] = np.mean(error1_cut*field2_cut*error3_cut)
-#                                 results[i,j,k,6,los] = np.mean(field1_cut*error2_cut*error3_cut)
-#                                 results[i,j,k,7,los] = np.mean(error1_cut*error2_cut*error3_cut)
+def compute_aperture_masses_of_field(los,theta_ap_array,save_map=None,use_polynomial_filter=False):
+    savepath = "/vol/euclid2/euclid2_raid2/sven/map_cubed_slics_euclid/map_cubed_same_fieldsize/map_cubed_los_"+str(los)
+    if os.path.exists(savepath+".npy"):
+        print(savepath," already exists, moving on")
+        return np.load(savepath+".npy")
+    fieldsize = 10.*60
+    npix = 4096
+    try:
+        Xs,Ys,shears1,shears2 = get_slics(los)
+    except Exception as e:
+        print("Error in line of sight ",los,": ",e)
+        return None
+    shears = shears1 + 1.0j*shears2
+    result = extract_aperture_masses(Xs,Ys,shears,npix,theta_ap_array,fieldsize,
+    compute_mcross=False,save_map=save_map,use_polynomial_filter=use_polynomial_filter,
+    same_fieldsize_for_all_theta=True)
+    np.save(savepath,result)
+    return result
 
-#                                 counter += 1
+def compute_all_aperture_masses(all_los,savepath,aperture_masses = [1.17,2.34,4.69,9.37],n_processes = 64,use_polynomial_filter=False):
+    n_files = len(all_los)
+    with Pool(processes=n_processes) as p:
+        # print('test')
+        result = [p.apply_async(compute_aperture_masses_of_field, args=(all_los[i],aperture_masses,None,use_polynomial_filter,)) for i in range(n_files)]
+        data = [p.get() for p in result]
+        datavec = np.array([data[i] for i in range(len(data)) if data[i] is not None])
+        np.savetxt(savepath+'map_cubed',datavec)
 
-# results *= (4*60/4096)**6 #account for incorrect normalization of aperture mass fields
-# np.save("results/map_cubed_fft",results)
-combinations = [[500,4096]]#,[500,2048]]
-for [n_los,n_pix] in combinations:
-# n_los = 5
-# n_pix = 4096
-        results = np.zeros((7,7,7,8,n_los))
-        theta_ap = [0.5,1,2,4,8,16,32]
-        counter = 0
-        file_path = "/vol/euclid2/euclid2_raid2/sven/maps_slics_euclid_npix_4096_estimator_weighted_aperture/"
-        append = "_with_shapenoise"
-        print("Starting calculation with ",n_los," lines of sight on ",n_pix," pixels.")
-        for los in trange(n_los):
-                for i in range(7):
-                        try:
-                                field1,error1 = np.load(file_path+"theta_"+str(theta_ap[i])+"_los_"+str(los+74)+append+".npy")
-                        except Exception as inst:
-                                print(inst)
-                                break
-                        for j in range(i,7):
-                                field2,error2 = np.load(file_path+"theta_"+str(theta_ap[j])+"_los_"+str(los+74)+append+".npy")
-                                for k in range(j,7):
-                                        field3,error3 = np.load(file_path+"theta_"+str(theta_ap[k])+"_los_"+str(los+74)+append+".npy") 
-                                        # progressBar("Reading fields",counter,n_los*7*(7+1)*(7+2)/6)
-                                        maxtheta = theta_ap[np.max([i,j,k])]
-                                        index_maxtheta = int(maxtheta/(10*60)*n_pix)*2 #take double the aperture radius and cut it off
-                                        field1_cut = field1[index_maxtheta:(n_pix-index_maxtheta),index_maxtheta:(n_pix-index_maxtheta)]
-                                        field2_cut = field2[index_maxtheta:n_pix-index_maxtheta,index_maxtheta:n_pix-index_maxtheta]
-                                        field3_cut = field3[index_maxtheta:n_pix-index_maxtheta,index_maxtheta:n_pix-index_maxtheta]
-                                        error1_cut = error1[index_maxtheta:n_pix-index_maxtheta,index_maxtheta:n_pix-index_maxtheta]
-                                        error2_cut = error2[index_maxtheta:n_pix-index_maxtheta,index_maxtheta:n_pix-index_maxtheta]
-                                        error3_cut = error3[index_maxtheta:n_pix-index_maxtheta,index_maxtheta:n_pix-index_maxtheta]
+if(__name__=='__main__'):
+    all_los = range(74,1100)
+    n_pix = 4096
+    startpath = "/vol/euclid2/euclid2_raid2/sven/map_cubed_slics_euclid/"
+    savepath = startpath + 'map_cubed_same_fieldsize'
+    print('Writing summary statistics to ',savepath)
+    if not os.path.exists(savepath):
+            os.makedirs(savepath)
 
-
-
-                                        results[i,j,k,0,los] = np.mean(field1_cut*field2_cut*field3_cut)
-                                        results[i,j,k,1,los] = np.mean(field1_cut*field2_cut*error3_cut)
-                                        results[i,j,k,2,los] = np.mean(field1_cut*error2_cut*field3_cut)
-                                        results[i,j,k,3,los] = np.mean(error1_cut*field2_cut*field3_cut)
-                                        results[i,j,k,4,los] = np.mean(error1_cut*error2_cut*field3_cut)
-                                        results[i,j,k,5,los] = np.mean(error1_cut*field2_cut*error3_cut)
-                                        results[i,j,k,6,los] = np.mean(field1_cut*error2_cut*error3_cut)
-                                        results[i,j,k,7,los] = np.mean(error1_cut*error2_cut*error3_cut)
-
-                                        counter += 1
-
-        for i in range(7):
-                for j in range(7):
-                        for k in range(7):
-                                i_new,j_new,k_new = np.sort([i,j,k])
-                                results[i,j,k] = results[i_new,j_new,k_new]
-        # results *= (10*60/4096)**6 #account for incorrect normalization of aperture mass fields
-        np.save("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_SLICS/map_cubed_fft_slics_npix_"+str(n_pix)+"_weighted_aperture",results)
+    compute_all_aperture_masses(all_los,savepath+'/',n_processes=64)#,aperture_masses = [0.5,1,2,4,8,16,32])
