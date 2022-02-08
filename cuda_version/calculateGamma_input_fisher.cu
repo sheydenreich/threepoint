@@ -9,7 +9,7 @@
 #include <vector>
 #include <chrono>
 
-#define slics false
+
 
 
 int main(int argc, char** argv)

@@ -1,6 +1,7 @@
 #include "bispectrum.cuh"
 #include "cosmology.cuh"
 #include "cuda_helpers.cuh"
+#include "helpers.cuh"
 
 #include <fstream>
 #include <iostream>
@@ -62,7 +63,7 @@ Example:
   std::vector<double> nz;
   if (nz_from_file) {
 
-    read_n_of_z(nzfn, dz, n_redshift_bins, nz);
+    read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
   };
 
   // Check if output file can be opened
@@ -85,9 +86,9 @@ Example:
 
   if (nz_from_file) {
     std::cerr << "Using n(z) from " << nzfn << std::endl;
-    set_cosmology(cosmo, dz, nz_from_file, &nz);
+    set_cosmology(cosmo, &nz);
   } else {
-    set_cosmology(cosmo, dz);
+    set_cosmology(cosmo);
   };
 
   get_P_k_nonlinear(k, z, value, n_k);

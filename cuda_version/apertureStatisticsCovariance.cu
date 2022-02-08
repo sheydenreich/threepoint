@@ -648,7 +648,7 @@ __global__ void integrand_T1_circle(const double* vars, unsigned ndim, int npts,
         }
         else
         {    
-        double result = Pell(ell1) * Pell(ell2) * Pell(ell3);
+        double result = dev_Pell(ell1) * dev_Pell(ell2) * dev_Pell(ell3);
         result *= uHat(ell1 * theta1) * uHat(ell2 * theta2) * uHat(ell3 * theta3);
         result *= uHat(ell1 * theta4) * uHat(ell2 * theta5) * uHat(ell3 * theta6);
         result *= Gfactor;
@@ -685,7 +685,7 @@ __global__ void integrand_T1_square(const double* vars, unsigned ndim, int npts,
         }
         else
         {
-        double result = Pell(ell1) * Pell(ell2) * Pell(ell3);
+        double result = dev_Pell(ell1) * dev_Pell(ell2) * dev_Pell(ell3);
         result *= uHat(ell1 * theta1) * uHat(ell2 * theta2) * uHat(ell3 * theta3);
         result *= uHat(ell1 * theta4) * uHat(ell2 * theta5) * uHat(ell3 * theta6);
         result *= Gfactor;
@@ -715,7 +715,7 @@ __global__ void integrand_T1_infinite(const double* vars, unsigned ndim, int npt
         }
         else
         {
-            double result = Pell(l1) * Pell(l2) * Pell(l3);
+            double result = dev_Pell(l1) *dev_Pell(l2) * dev_Pell(l3);
             result *= uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3);
             result *= uHat(l1 * theta4) * uHat(l2 * theta5) * uHat(l3 * theta6);
             result *= l1 * l2;
@@ -739,7 +739,7 @@ __global__ void integrand_T2_part1(const double* vars, unsigned ndim, int npts, 
         }
         else
         {
-            double result = ell * Pell(ell);
+            double result = ell * dev_Pell(ell);
             result *= uHat(ell * theta1) * uHat(ell * theta2);
             value[i]=result;
         }
@@ -763,7 +763,7 @@ __global__ void integrand_T2_part2_circle(const double* vars, unsigned ndim, int
         else
         {
             double Gfactor = G_circle(ell);
-            double result = Pell(ell);
+            double result = dev_Pell(ell);
             result *= ell * uHat(ell * theta1) * uHat(ell * theta2);
             result *= Gfactor;
             value[i]=result;
@@ -791,7 +791,7 @@ __global__ void integrand_T2_part2_square(const double* vars, unsigned ndim, int
         }
         else
         {
-            double result = Pell(ell);
+            double result = dev_Pell(ell);
             result *= uHat(ell * theta1) * uHat(ell * theta2);
             result *= Gfactor;
             value[i]=result;
