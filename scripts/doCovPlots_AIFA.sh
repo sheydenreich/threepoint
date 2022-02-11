@@ -26,3 +26,5 @@
 DIR=/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/Map3_Covariances/SLICS/
 
 python3 ../python_scripts/plotCov_heatmaps.py --sidelength 10 --cov_type slics --sigma 0.26 --dir $DIR
+python3 ../python_scripts/plotCov_diffCmeasCmodelUncertainty.py --cov_type slics --sigma 0.26 --dir $DIR
+python3 ../python_scripts/plotCov_diffCmeasCmodel.py --cov_type slics --sigma 0.26 --dir $DIR
