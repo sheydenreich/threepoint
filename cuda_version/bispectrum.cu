@@ -338,7 +338,7 @@ __device__ double integrand_bkappa(double z, double ell1, double ell2, double el
   {
     //      printf("%lf, %lf, %lf \n", z, dev_z_max, dev_n_redshift_bins);
     //      printf("%lf, %lf \n", idx, didx);
-    printf("nan in bispec! %lf, %lf, %lf, %lf, %.3f, %lf, %lf, %lf \n", f_K_value, ell1, ell2, ell3, z, idx, didx, dev_n_redshift_bins);
+    printf("nan in bispec!");// %lf, %lf, %lf, %lf, %.3f, %lf, %lf, %lf \n", f_K_value, ell1, ell2, ell3, z, idx, didx, dev_n_redshift_bins);
     return 0;
   }
   return result;
