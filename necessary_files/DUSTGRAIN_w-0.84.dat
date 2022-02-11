@@ -1,8 +1,8 @@
 # Cosmology of DUSTGRAIN simulation
 h 0.65
-sigma_8 0.875594
+sigma_8 0.842
 Omega_b 0.045
 n_s 0.96
-w -1
+w -0.84
 Omega_m 0.313448
 z_max 3

@@ -5,10 +5,10 @@ from helpers_plot import initPlot
 from mpl_toolkits.axes_grid1 import ImageGrid
 import matplotlib.colorbar as mcb
 import matplotlib.cm as cm
-
 import argparse
+from matplotlib.colors import LogNorm
 
-description="""Script for plotting the ratio of T_2 to T_1+T_2
+description="""Script for plotting Cov*Area
 """
 
 parser = argparse.ArgumentParser(description=description)
@@ -43,18 +43,23 @@ for thetas in thetas_ind:
 N=len(thetas_ind)
 thetas_ticks=np.arange(0, N)
 
+
 sidelengths=np.array([5, 10, 15])
 Nsides=len(sidelengths)
-fig= plt.figure(figsize=(5*Nsides+2,10))
+fig= plt.figure(figsize=(10*Nsides+2, 20+2))
+cmap=cm.get_cmap('inferno', 12)
+grid=ImageGrid(fig, 111, nrows_ncols=(Nsides, 2), axes_pad=0.15, share_all=True, aspect=True, cbar_location="right", cbar_mode="single", cbar_size="3%", cbar_pad=0.15)
 
-cmap=cm.get_cmap('inferno', 10)
+# Set Xaxes labels
+grid[0].set_title(r"$C_{\hat{M}_\mathrm{ap}}^\mathrm{meas}\, \vartheta_\mathrm{max}^2$", pad=20)
+grid[1].set_title(r"$(T_1 + T_2)\, \vartheta_\mathrm{max}^2$", pad=20)
+grid[(Nsides-1)*2].set_xlabel(r'$(\theta_4, \theta_5, \theta_6)$')
+grid[(Nsides-1)*2].set_xticks(thetas_ticks)
+grid[(Nsides-1)*2].set_xticklabels(thetas_labels, rotation=90)
 
-grid=ImageGrid(fig, 111, nrows_ncols=(1, Nsides), axes_pad=0.15, share_all=True, aspect=True, cbar_location="right", cbar_mode="single", cbar_size="3%", cbar_pad=0.15)
-
-# Set yLabel
-grid[0].set_ylabel(r'$(\theta_1, \theta_2, \theta_3)$')
-grid[0].set_yticks(thetas_ticks)
-grid[0].set_yticklabels(thetas_labels)
+grid[(Nsides-1)*2+1].set_xlabel(r'$(\theta_4, \theta_5, \theta_6)$')
+grid[(Nsides-1)*2+1].set_xticks(thetas_ticks)
+grid[(Nsides-1)*2+1].set_xticklabels(thetas_labels, rotation=90)
 
 for i, theta in enumerate(sidelengths):
     n = 4096.0*4096.0/theta/theta
@@ -71,23 +76,37 @@ for i, theta in enumerate(sidelengths):
         cov_term1Numerical = np.loadtxt(folder+f'cov_square_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
 
         cov_term2Numerical = np.loadtxt(folder+f'cov_square_term2Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
+        cov_infiniteField = np.loadtxt(folder+f'cov_infinite_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
+        cov_fft = np.loadtxt(folder+f'cov_shapenoise_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
+        covUncertainty_fft=np.loadtxt(folder+f'covUncertainty_shapenoise_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
     elif (cov_type == 'cosmicShear'):
         cov_term1Numerical = np.loadtxt(folder+f'cov_square_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
         cov_term2Numerical = np.loadtxt(folder+f'cov_square_term2Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
+        cov_infiniteField = np.loadtxt(folder+f'cov_infinite_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
+        cov_fft = np.loadtxt(folder+f'cov_cosmicShear_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
+        covUncertainty_fft=np.loadtxt(folder+f'covUncertainty_cosmicShear_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
     else:
         print("Cov type not specified")
         exit
-    fraction_T2 = cov_term2Numerical/(cov_term1Numerical+cov_term2Numerical)
 
-    grid[i].set_xlabel(r'$(\theta_4, \theta_5, \theta_6)$')
-    grid[i].set_xticks(thetas_ticks)
-    grid[i].set_xticklabels(thetas_labels, rotation=90)
+    cov_term1Numerical=cov_infiniteField
 
-    grid[i].text(19, 0, r"$\vartheta_\textrm{max}=$"+f"{thetaMax:.2f}°", verticalalignment='top', horizontalalignment='right',bbox=dict(facecolor='white', alpha=1))  
-    im = grid[i].imshow(fraction_T2, vmin=0, vmax=1, cmap=cmap)  
+    # Add plots
 
-grid[Nsides-1].text(19, 19, cov_type, verticalalignment='bottom', horizontalalignment='right',bbox=dict(facecolor='white', alpha=1))  
-grid[0].cax.cla()
-cb = mcb.Colorbar(grid[0].cax, im)
-cb.set_label(r"$\frac{T_2}{T_1+T_2}$", fontsize=25)
-plt.savefig(folder+f"ratioT2CModel.png", facecolor="white", dpi=300)
+    # Set yLabel
+    grid[i*2].set_ylabel(r'$(\theta_1, \theta_2, \theta_3)$')
+    grid[i*2].set_yticks(thetas_ticks)
+    grid[i*2].set_yticklabels(thetas_labels)
+
+
+    thetaMaxRad=thetaMax*np.pi/60
+    im = grid[i*2].imshow(cov_fft*thetaMaxRad*thetaMaxRad,  norm=LogNorm(vmin=1e-23, vmax=1e-19), cmap=cmap)  
+
+    im = grid[i*2+1].imshow((cov_term1Numerical+cov_term2Numerical)*thetaMaxRad*thetaMaxRad,  norm=LogNorm(vmin=1e-23, vmax=1e-19), cmap=cmap)  
+    grid[i*2+1].text(19, 0, r"$\vartheta_\textrm{max}=$"+f"{thetaMax:.2f}°", verticalalignment='top', horizontalalignment='right',bbox=dict(facecolor='white', alpha=1))  
+
+grid[Nsides*2-1].text(19, 19, cov_type, verticalalignment='bottom', horizontalalignment='right',bbox=dict(facecolor='white', alpha=1))  
+grid[Nsides*2-1].cax.cla()
+mcb.Colorbar(grid[Nsides*2-1].cax, im)
+
+plt.savefig(folder+f"CovTimesArea.png", facecolor="white", dpi=300)

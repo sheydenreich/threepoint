@@ -44,7 +44,7 @@ N=len(thetas_ind)
 thetas_ticks=np.arange(0, N)
 
 
-sidelengths=np.array([10, 15]) #np.array([5, 10, 15])
+sidelengths=np.array([5, 10, 15]) #np.array([5, 10, 15])
 
 for theta in sidelengths:
     n = 4096.0*4096.0/theta/theta

@@ -58,7 +58,7 @@ Argument 9: Survey geometry, either circle, square, or infinite
   thetaMax = covPar.thetaMax;
   sigma = covPar.shapenoise_sigma;
   n = covPar.galaxy_density;
-  lMin = 0;//2*M_PI/thetaMax;
+  lMin = 2*M_PI/thetaMax;
 
   cosmology cosmo(cosmo_paramfile);
 

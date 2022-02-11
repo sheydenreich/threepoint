@@ -44,7 +44,7 @@ for thetas in thetas_ind:
 N=len(thetas_ind)
 thetas_ticks=np.arange(0, N)
 
-sidelengths=np.array([10, 15])
+sidelengths=np.array([5, 10, 15])
 Nsides=len(sidelengths)
 fig= plt.figure(figsize=(5*Nsides+2,10))
 cmap=cm.get_cmap('RdBu', 20)
@@ -89,6 +89,5 @@ for i, theta in enumerate(sidelengths):
 grid[Nsides-1].text(19, 19, cov_type, verticalalignment='bottom', horizontalalignment='right',bbox=dict(facecolor='white', alpha=1))  
 grid[0].cax.cla()
 cb = mcb.Colorbar(grid[0].cax, im)
-cb.set_label(r"$2 \frac{T_1-T_1^\infty}{T_1 + T_1^\infty}$", fontsize=25)
-plt.suptitle(r"$2 \frac{T_1-T_1^\infty}{T_1 + T_1^\infty}$")
+cb.set_label(r"$2\, \frac{T_1-T_1^\infty}{T_1 + T_1^\infty}$", fontsize=25)
 plt.savefig(folder+f"diffT1T1inf.png", facecolor="white", dpi=300)

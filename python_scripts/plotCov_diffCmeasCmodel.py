@@ -22,7 +22,7 @@ parser.add_argument('--dir', type=str, help='Directory with files, and output di
 
 args=parser.parse_args()
 
-initPlot(titlesize=20)
+initPlot(fontsize=30, titlesize=40, labelsize=28)
 
 cov_type = args.cov_type
 sigma = args.sigma
@@ -45,15 +45,15 @@ N=len(thetas_ind)
 thetas_ticks=np.arange(0, N)
 
 
-sidelengths=np.array([10, 15])
+sidelengths=np.array([5, 10, 15])
 Nsides=len(sidelengths)
 fig= plt.figure(figsize=(10*Nsides+2, 20+2))
-cmap=cm.get_cmap('RdBu', 20)
+cmap=cm.get_cmap('RdBu', 32)
 grid=ImageGrid(fig, 111, nrows_ncols=(Nsides, 2), axes_pad=0.15, share_all=True, aspect=True, cbar_location="right", cbar_mode="single", cbar_size="3%", cbar_pad=0.15)
 
 # Set Xaxes labels
-grid[0].set_title(r"$2\,\frac{\langle\hat{M}^3\hat{M}^3 \rangle_\mathrm{meas}-T^\infty_1}{\langle\hat{M}^3\hat{M}^3 \rangle_\mathrm{meas} + T_1^\infty}$", pad=20)
-grid[1].set_title(r"$2\,\frac{\langle\hat{M}^3\hat{M}^3 \rangle_\mathrm{meas}-(T_1+T_2)}{\langle\hat{M}^3\hat{M}^3 \rangle_\mathrm{meas} + T_1+T_2}$", pad=20)
+grid[0].set_title(r"$2\,\frac{C_{\hat{M}_\mathrm{ap}^3}^\mathrm{meas}-C_{\hat{M}_\mathrm{ap}^3}^{\infty}}{C_{\hat{M}_\mathrm{ap}^3}^\mathrm{meas} + C_{\hat{M}_\mathrm{ap}^3}^{\infty}}$", pad=40)
+grid[1].set_title(r"$2\,\frac{C_{\hat{M}_\mathrm{ap}^3}^\mathrm{meas}-C_{\hat{M}_\mathrm{ap}^3}}{C_{\hat{M}_\mathrm{ap}^3}^\mathrm{meas} + C_{\hat{M}_\mathrm{ap}^3}}$", pad=40)
 grid[(Nsides-1)*2].set_xlabel(r'$(\theta_4, \theta_5, \theta_6)$')
 grid[(Nsides-1)*2].set_xticks(thetas_ticks)
 grid[(Nsides-1)*2].set_xticklabels(thetas_labels, rotation=90)
@@ -90,6 +90,7 @@ for i, theta in enumerate(sidelengths):
         print("Cov type not specified")
         exit
 
+    cov_term1Numerical=cov_infiniteField
     diff_infinite=2*(cov_fft-cov_infiniteField)/(cov_fft+cov_infiniteField)
     diff_finite=2*(cov_fft-(cov_term1Numerical+cov_term2Numerical))/(cov_fft+cov_term1Numerical+cov_term2Numerical)
 

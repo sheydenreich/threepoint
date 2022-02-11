@@ -709,7 +709,7 @@ __global__ void integrand_T1_infinite(const double* vars, unsigned ndim, int npt
 
         double l3 = sqrt(l1 * l1 + l2 * l2 + 2 * l1 * l2 * cos(phi));
 
-        if (l1 <= dev_lMin || l2 <= dev_lMin || l3 <= dev_lMin)
+        if (l1 <= dev_lMin || l2 <= dev_lMin)
         {
             value[i]=0;
         }
