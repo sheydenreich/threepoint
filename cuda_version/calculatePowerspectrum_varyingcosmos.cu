@@ -1,7 +1,7 @@
 #include "bispectrum.cuh"
 #include "cosmology.cuh"
 #include "cuda_helpers.cuh"
-
+#include "helpers.cuh"
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -59,13 +59,12 @@ Example:
 
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);
-  double dz = cosmo.zmax / ((double)n_redshift_bins - 1); // redshift binsize
 
   // Read in n_z
   std::vector<double> nz;
   if (nz_from_file) {
 
-    read_n_of_z(nzfn, dz, n_redshift_bins, nz);
+    read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
   };
 
   // Check if output file can be opened
@@ -126,9 +125,9 @@ Example:
   {
     if (nz_from_file) {
       std::cerr << "Using n(z) from " << nzfn << std::endl;
-      set_cosmology(cosmos[i], dz, nz_from_file, &nz);
+      set_cosmology(cosmos[i], &nz);
     } else {
-      set_cosmology(cosmos[i], dz);
+      set_cosmology(cosmos[i]);
     };
     std::cerr << "Working on " << cosmo_names.at(i) << std::endl;
   
@@ -148,7 +147,7 @@ Example:
       double ell = ells[i];
         printf("\b\b\b\b\b\b\b\b\b\b\b\b [%.3e]",ell);
         // Output
-        out << ell << " " << convergence_power_spectrum(ell) << " " << std::endl;
+        out << ell << " " << Pell(ell) << " " << std::endl;
     }
     out.close();
 

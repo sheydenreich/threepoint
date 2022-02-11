@@ -109,7 +109,6 @@ class aperture_mass_computer:
     def Ufunc(self,theta):
         """
         The U filter function for the aperture mass calculation from Schneider et al. (2002)
-
         input: theta: aperture radius in arcmin
         """
         xsq_half = (theta/self.theta_ap)**2/2
@@ -119,7 +118,6 @@ class aperture_mass_computer:
     def Qfunc(self,theta):
         """
         The Q filter function for the aperture mass calculation from Schneider et al. (2002)
-
         input: theta: aperture radius in arcmin
         output: Q [arcmin^-2]
         """
@@ -230,11 +228,8 @@ class aperture_mass_computer:
             periodic_boundary: bool (default:False) 
                                if true: computes FFT with astropy's convolve_fft without zero-padding, 
                                if false: computes FFT with scipy's fftconvolve which uses zero padding 
-
         output:
             result: resulting aperture mass map and, if return_mcross, the cross aperture map
-
-
         this uses Map(theta) = - int d^2 theta' gamma(theta) Q(|theta'-theta|)conj(theta'-theta)^2/abs(theta'-theta)^2
         """  
  
@@ -306,14 +301,12 @@ class aperture_mass_computer:
     def normalize_shear(self,Xs,Ys,shears,CIC=True,normalize=False,nan_treatment=None,fill_value=0,debug=False):
         """
         distributes a galaxy catalogue on a pixel grid
-
         input:
             Xs: x-positions (arcmin)
             Ys: y-positions (arcmin)
             shears: measured shear_1 + 1.0j * measured shear_2
             CIC: perform a cloud-in-cell interpolation
             debug: output different stages of the CIC interpolation
-
         output:
             zahler_arr: npix^2 grid of sum of galaxy ellipticities
         """

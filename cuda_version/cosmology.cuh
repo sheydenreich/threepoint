@@ -35,24 +35,18 @@ std::ostream& operator<<(std::ostream& out, const cosmology& cosmo);
 
 
 
-
-// Read in of n(z) (Assumes linear binning in file!)
-void read_n_of_z(const std::string& fn, const double& dz, const int& n_bins, std::vector<double>& nz);
-
-
-// Read in of thetas (in arcmin!)
-void read_thetas(const std::string& fn, std::vector<double>& thetas);
-
-struct covarianceParameters
+class covarianceParameters
 {
-  double survey_area; //survey area [rad^2]
+public:
+  double thetaMax; //[rad] this is the radius for a circular survey and the sidelength for a square survey
   double shapenoise_sigma;
   double galaxy_density; //rad^-2
-  double power_spectrum_contribution;
+  bool shapenoiseOnly;
+
+  covarianceParameters(){}; // Empty constructor
+  covarianceParameters(const std::string& fn); //Constructor from filename (reads in)
 };
 
-// Read in of covariance parameters
-void read_covariance_param(const std::string& fn, covarianceParameters& covPar);
 
 // Output
 std::ostream& operator<<(std::ostream& out, const covarianceParameters& covPar);
