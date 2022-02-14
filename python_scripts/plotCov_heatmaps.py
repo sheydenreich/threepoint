@@ -1,3 +1,4 @@
+from distutils.log import Log
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -57,7 +58,8 @@ if (cov_type == 'slics'):
     cov_infiniteField = np.loadtxt(folder+f'cov_infinite_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
     # cov_term4Numerical = np.loadtxt(folder+f'cov_infinite_term4Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
     cov_fft = np.loadtxt(folder+f'cov_slics_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
-
+    cov_fft2 = np.loadtxt('/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_cosmicShearShapenoise/cov_cosmicShearShapenoise_fft_sigma_0.26_n_108000.00_thetaMax_7.87.dat')
+    cov_fft3 = np.loadtxt('/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/MS/cov_MS_fft_sigma_0.26_n_1048576.00_thetaMax_1.87.dat')
 elif (cov_type == 'shapenoise'):
     cov_term1Numerical = np.loadtxt(folder+f'cov_square_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
     cov_term2Numerical = np.loadtxt(folder+f'cov_square_term2Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
@@ -77,7 +79,7 @@ cov_term1Numerical=cov_infiniteField
 # Do Plot
 fig= plt.figure(figsize=(25, 10))
 
-grid=ImageGrid(fig, 111, nrows_ncols=(1, 5), axes_pad=0.15, share_all=True, cbar_location="right", cbar_mode="single", cbar_size="7%", cbar_pad=0.15)
+grid=ImageGrid(fig, 111, nrows_ncols=(1, 6), axes_pad=0.15, share_all=True, cbar_location="right", cbar_mode="single", cbar_size="7%", cbar_pad=0.15)
 
 grid[0].set_ylabel(r'$(\theta_1, \theta_2, \theta_3)$')
 grid[0].set_yticks(thetas_ticks)
@@ -103,25 +105,30 @@ grid[4].set_xlabel(r'$(\theta_4, \theta_5, \theta_6)$')
 grid[4].set_xticks(thetas_ticks)
 grid[4].set_xticklabels(thetas_labels, rotation=90)
 
-grid[0].set_title(r"$C_{\hat{M}_\mathrm{ap}^3}^\mathrm{meas}/64$")
-im = grid[0].imshow(cov_fft/64, norm=LogNorm(vmin=1e-24, vmax=1e-18))  
+grid[0].set_title(r"$C_{\hat{M}_\mathrm{ap}^3}^\mathrm{meas}$")
+im = grid[0].imshow(cov_fft, norm=LogNorm(vmin=1e-24, vmax=1e-17))  
 
 grid[1].set_title(r"$C_{\hat{M}_\mathrm{ap}^3} = T_1+T_2$")     
-im = grid[1].imshow(cov_term1Numerical+cov_term2Numerical, norm=LogNorm(vmin=1e-24, vmax=1e-18)) 
+im = grid[1].imshow(cov_term1Numerical+cov_term2Numerical, norm=LogNorm(vmin=1e-24, vmax=1e-17)) 
 
 grid[2].set_title(r"$C_{\hat{M}_\mathrm{ap}^3}^\infty = T^\infty_1$")     
-im = grid[2].imshow(cov_infiniteField, norm=LogNorm(vmin=1e-24, vmax=1e-18))  
+im = grid[2].imshow(cov_infiniteField, norm=LogNorm(vmin=1e-24, vmax=1e-17))  
 
-grid[3].set_title(r"$T_1$")  
-#im = grid[3].imshow(cov_term1Numerical, norm=LogNorm(vmin=1e-25, vmax=1e-19))    
+#grid[3].set_title(r"$T_1$")  
+#im = grid[3].imshow(cov_term1Numerical, norm=LogNorm(vmin=1e-25, vmax=1e-19))  
+grid[3].set_title(r"$C_\mathrm{GRF}$")
+im=grid[3].imshow(cov_fft2, norm=LogNorm(vmin=1e-24, vmax=1e-17))  
 grid[4].set_title(r"$T_2$")  
-im = grid[4].imshow(cov_term2Numerical, norm=LogNorm(vmin=1e-24, vmax=1e-18)) 
+im = grid[4].imshow(cov_term2Numerical, norm=LogNorm(vmin=1e-24, vmax=1e-17)) 
 
 
 grid[4].text(19, 0, r"$\vartheta_\textrm{max}=$"+f"{thetaMax:.2f}°", verticalalignment='top', horizontalalignment='right',bbox=dict(facecolor='white', alpha=1))  
 grid[4].text(19, 19, cov_type, verticalalignment='bottom', horizontalalignment='right',bbox=dict(facecolor='white', alpha=1))  
 grid[4].cax.cla()
 mcb.Colorbar(grid[4].cax, im)
+
+grid[5].set_title(r'$C_{\hat{M}_\mathrm{ap}^3}^\mathrm{meas}-C_\mathrm{GRF}$')
+im=grid[5].imshow(cov_fft-cov_fft2, norm=LogNorm(vmin=1e-24, vmax=1e-17))
 
 plt.savefig(folder+f"all_covs_thetaMax_{thetaMax:.2f}.png", facecolor="white", dpi=300)
 #plt.show()
