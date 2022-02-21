@@ -47,15 +47,15 @@ N=len(thetas_ind)
 thetas_ticks=np.arange(0, N)
 
 
-sidelengths=np.array([5, 10, 15])
+sidelengths=np.array([10])
 Nsides=len(sidelengths)
 fig= plt.figure(figsize=(10*Nsides+2, 20+2))
 cmap=cm.get_cmap('RdBu', 20)
 grid=ImageGrid(fig, 111, nrows_ncols=(Nsides, 2), axes_pad=0.15, share_all=True, aspect=True, cbar_location="right", cbar_mode="single", cbar_size="3%", cbar_pad=0.15)
 
 # Set Xaxes labels
-grid[0].set_title(r"$\frac{C_{\hat{M}_\mathrm{ap}^3}^\mathrm{meas}-C_{\hat{M}_\mathrm{ap}^3}^{\infty}}{\sigma_\mathrm{meas}}$", pad=30)
-grid[1].set_title(r"$\frac{C_{\hat{M}_\mathrm{ap}^3}^\mathrm{meas}-C_{\hat{M}_\mathrm{ap}^3}}{\sigma_\mathrm{meas}}$", pad=30)
+grid[0].set_title(r"$\frac{C_{\hat{M}_\mathrm{ap}^3}^\mathrm{meas}/32-C_{\hat{M}_\mathrm{ap}^3}^{\infty}}{\sigma_\mathrm{meas}/32}$", pad=30)
+grid[1].set_title(r"$\frac{C_{\hat{M}_\mathrm{ap}^3}^\mathrm{meas}/32-C_{\hat{M}_\mathrm{ap}^3}}{\sigma_\mathrm{meas}/32}$", pad=30)
 grid[(Nsides-1)*2].set_xlabel(r'$(\theta_4, \theta_5, \theta_6)$')
 grid[(Nsides-1)*2].set_xticks(thetas_ticks)
 grid[(Nsides-1)*2].set_xticklabels(thetas_labels, rotation=90)
@@ -70,15 +70,13 @@ for i, theta in enumerate(sidelengths):
 
     # Load data
     if (cov_type == 'slics'):
-        sigma=0.26
         n=108000.00
-        thetaMax=7.87
         # cov_term1Numerical = np.loadtxt(folder+f'cov_square_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
         cov_term2Numerical = np.loadtxt(folder+f'cov_square_term2Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
         cov_infiniteField = np.loadtxt(folder+f'cov_infinite_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
         # cov_term4Numerical = np.loadtxt(folder+f'cov_infinite_term4Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
-        cov_fft = np.loadtxt(folder+f'cov_slics_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
-        covUncertainty_fft=np.loadtxt(folder+f'covUncertainty_slics_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
+        cov_fft = np.loadtxt(folder+f'cov_SLICS_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
+        covUncertainty_fft=np.loadtxt(folder+f'covUncertainty_SLICS_fft_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat')
     
     elif (cov_type == 'shapenoise'):
         cov_term1Numerical = np.loadtxt(folder+f'cov_square_term1Numerical_sigma_{sigma}_n_{n:.2f}_thetaMax_{thetaMax:.2f}_gpu.dat')
@@ -98,8 +96,11 @@ for i, theta in enumerate(sidelengths):
         exit
 
     cov_term1Numerical=cov_infiniteField
-    diff_infinite=(cov_fft/64-cov_infiniteField)/(covUncertainty_fft)*2
-    diff_finite=(cov_fft/64-(cov_term1Numerical+cov_term2Numerical))/(covUncertainty_fft)*2
+    cov_fft/=32
+    covUncertainty_fft/=32
+
+    diff_infinite=(cov_fft-cov_infiniteField)/(covUncertainty_fft)
+    diff_finite=(cov_fft-(cov_term1Numerical+cov_term2Numerical))/(covUncertainty_fft)
 
     # Add plots
 
@@ -110,9 +111,9 @@ for i, theta in enumerate(sidelengths):
 
 
 
-    im = grid[i*2].imshow(diff_infinite, vmin=-10, vmax=10, cmap=cmap)  
+    im = grid[i*2].imshow(diff_infinite, vmin=-4, vmax=4, cmap=cmap)  
 
-    im = grid[i*2+1].imshow(0.5*(diff_finite+diff_finite.T), vmin=-10, vmax=10, cmap=cmap)  
+    im = grid[i*2+1].imshow(0.5*(diff_finite+diff_finite.T), vmin=-4, vmax=4, cmap=cmap)  
     grid[i*2+1].text(19, 0, r"$\vartheta_\textrm{max}=$"+f"{thetaMax:.2f}°", verticalalignment='top', horizontalalignment='right',bbox=dict(facecolor='white', alpha=1))  
 
 grid[Nsides*2-1].text(19, 19, cov_type, verticalalignment='bottom', horizontalalignment='right',bbox=dict(facecolor='white', alpha=1))  
