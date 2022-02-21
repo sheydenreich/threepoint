@@ -7,11 +7,11 @@ theta=10
 thetaMax=theta-8*16/60
 n=30*60*60#4096.0**2/theta**2
 Nlos=4096 #926 #4096
-type="cosmicShearShapenoise" #"slics" #"cosmicShear"
+type="slicslike" #"slics" #"cosmicShear"
 
 folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_"+type+"/" #"/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/Map3_Covariances/SLICS/" #"/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_"+type+"/"
-filename_in = f"map_cubed_from_gamma_npix_4096_fieldsize_{theta}_{Nlos}.npy"
-filename_out = f"cov_{type}_fft_sigma_0.26_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat"
+filename_in = f"map_cubed_from_gamma_npix_4096_fieldsize_{theta}.npy"
+filename_out = f"cov_{type}_fft_sigma_0.37_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat"
 filename_out_uncertainty = f"covUncertainty_{type}_fft_sigma_0.26_n_{n:.2f}_thetaMax_{thetaMax:.2f}.dat"
 
 # folder = "/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_cosmicShear/"

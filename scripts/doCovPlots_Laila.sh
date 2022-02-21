@@ -29,6 +29,9 @@
 
 DIR=/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/SLICS/
 
-python3 ../python_scripts/plotCov_heatmaps.py --sidelength 10 --cov_type slics --sigma 0.26 --dir $DIR
-python3 ../python_scripts/plotCov_diffCmeasCmodelUncertainty.py --cov_type slics --sigma 0.26 --dir $DIR
-python3 ../python_scripts/plotCov_diffCmeasCmodel.py --cov_type slics --sigma 0.26 --dir $DIR
+# python3 ../python_scripts/plotCorr_heatmaps.py --sidelength 10 --cov_type slics --sigma 0.26 --dir $DIR
+# python3 ../python_scripts/plotCov_heatmaps.py --sidelength 10 --cov_type slics --sigma 0.26 --dir $DIR
+# python3 ../python_scripts/plotCov_diffCmeasCmodelUncertainty.py --cov_type slics --sigma 0.26 --dir $DIR
+python3 ../python_scripts/plotCov_diffCmeasCmodel.py --cov_type slics --sigma 0.37 --dir $DIR
+python3 ../python_scripts/plotCov_heatmaps.py --sidelength 10 --cov_type slics --sigma 0.37 --dir $DIR
+python3 ../python_scripts/plotCov_diffCmeasCmodelUncertainty.py --cov_type slics --sigma 0.37 --dir $DIR
