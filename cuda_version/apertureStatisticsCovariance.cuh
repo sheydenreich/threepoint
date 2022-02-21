@@ -17,6 +17,18 @@ extern double thetaMax;
 extern __constant__ double dev_lMin;
 extern double lMin;
 
+const double logMmin=9;
+const double logMmax=17;
+const int n_mbins=128;
+extern __constant__ double devLogMmin, devLogMmax;
+extern int __constant__ dev_n_mbins;
+
+extern __constant__ double dev_sigmaW;
+extern double sigmaW, VW, chiMax;
+
+extern __constant__ double dev_sigma2_array[n_mbins]; 
+extern __constant__ double dev_dSigma2dm_array[n_mbins]; 
+
     /**
      * @brief Writes a covariance matrix (or one part of it) to a file
      *
@@ -333,5 +345,125 @@ struct ApertureStatisticsCovarianceContainer
         // Second aperture radii [rad]
         std::vector<double> thetas_456;
 };
+
+
+void initCovariance();
+
+
+
+
+/// THE FOLLOWING THINGS ARE NEEDED FOR THE SUPERSAMPLE COVARIANCE
+
+   /**
+     * @brief Calculate the super sample covariance for one aperture radii combination.
+     *
+     * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
+     * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
+     */
+     double Cov_SSC(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
+
+
+     /**
+      * @brief Redshift integrand of Cov_SSC
+      * 
+      */
+     double integrand_Cov_SSC(const double& z, const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
+
+
+     double f(const double& z, const std::vector<double> &thetas_123, const double& chi);
+
+     int integrand_f(unsigned ndim, size_t npts, const double* vars, void* container, unsigned fdim, double* value);
+
+     __global__ void integrand_f(const double* vars, unsigned ndim, int npts, double* value,  double theta1, double theta2, double theta3, double z, double chi);
+
+
+   __device__ double halobias(const double& m, const double& z);
+
+   __device__ double dev_rhobar(const double& z);
+
+   double rhobar(const double& z);
+
+   __device__ double hmf(const double& m, const double& z);
+
+
+
+  /**
+   * Approximation to Si(x) and Ci(x) Functions
+   * Same as GSL implementation, because they are not implemented in CUDA
+   * @param x x value
+   * @param si will contain Si(x)
+   * @param ci will contain Ci(x)
+   */
+   __host__ __device__  void SiCi(double x, double& si, double& ci);
+
+   __device__ double r_200(const double&m, const double&z);
+
+double r_200_host(const double&m, const double&z);
+
+ __device__ double u_NFW(const double& k, const double& m, const double& z);
+
+ __host__ double u_NFW_host(const double& k, const double& m, const double& z);
+
+   __host__ __device__ double concentration(const double& m, const double& z);
+
+   __device__ double delta_c(const double& z);
+
+
+   double sigma2(const double& m);
+   int integrand_sigma2(unsigned ndim, size_t npts, const double* k, void* thisPtr, unsigned fdim, double* value);
+
+   void setSigma2();
+
+   double dSigma2dm(const double& m);
+   int integrand_dSigma2dm(unsigned ndim, size_t npts, const double* k, void* thisPtr, unsigned fdim, double* value);
+   
+   void setdSigma2dm();
+
+   __device__ double get_sigma2(const double& m, const double& z);
+   __device__ double get_dSigma2dm(const double& m, const double& z);
+
+
+   
+
+   void setSurveyVolume();
+
+   void setSigmaW();
+
+   double WindowSurvey(const double& k1, const double& k2, const double& k3);
+
+
+   int integrand_SigmaW(unsigned ndim, size_t npts, const double* k, void* thisPtr, unsigned fdim, double* value);
+   
+
+struct ApertureStatisticsSSCContainer
+{
+           // aperture radii [rad]
+           std::vector<double> thetas_123;
+
+           double z; //redshift
+           double chi; //Comoving distance
+
+           double ell1, ell2, ell3;
+};
+
+struct SigmaContainer
+{
+   double R;
+   double dR;
+};
+
+
+void initSSC();
+
+
+double Cov_Bispec_SSC(const double& ell);
+
+double integrand_Cov_Bispec_SSC(const double& z, const double& ell);
+
+double I3(const double& ell1, const double& ell2, const double& ell3, const double& z, const double& chi);
+
+int integrand_I3(unsigned ndim, size_t npts, const double* vars, void* container, unsigned fdim, double* value);
+
+__global__ void integrand_I3(const double* vars, unsigned ndim, int npts, double* value, double ell1, double ell2, double ell3, double z, double chi);
 
 #endif //APERTURESTATISTICSCOVARIANCE_CUH
