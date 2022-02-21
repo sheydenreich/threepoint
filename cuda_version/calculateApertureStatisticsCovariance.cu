@@ -58,7 +58,7 @@ Argument 9: Survey geometry, either circle, square, or infinite
   thetaMax = covPar.thetaMax;
   sigma = covPar.shapenoise_sigma;
   n = covPar.galaxy_density;
-  lMin = 2*M_PI/thetaMax;
+  lMin = 0; //2*M_PI/thetaMax;
 
   cosmology cosmo(cosmo_paramfile);
 
@@ -91,7 +91,7 @@ Argument 9: Survey geometry, either circle, square, or infinite
     exit(-1);
   };
 
-
+  set_cosmology(cosmo, &nz);
 
 
   std::vector<double> thetas;
@@ -106,19 +106,14 @@ Argument 9: Survey geometry, either circle, square, or infinite
     return -1;
   }
 
-  // Initialize Bispectrum
+  // Initialize Covariance
+  initCovariance();
 
-  copyConstants();
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_thetaMax, &thetaMax, sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma, &sigma, sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n, &n, sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMin, &lMin, sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_constant_powerspectrum, &constant_powerspectrum, sizeof(bool)));
 
   std::cerr<<"Finished copying constants"<<std::endl;
 
   std::cerr << "Using n(z) from " << nzfn << std::endl;
-  set_cosmology(cosmo, &nz);
+ 
  
     std::cerr<<"Finished initializations"<<std::endl;
 
@@ -206,7 +201,7 @@ Argument 9: Survey geometry, either circle, square, or infinite
 
   if (calculate_T1)
   {
-    sprintf(filename, "cov_%s_term1Numerical_sigma_%.1f_n_%.2f_thetaMax_%.2f_gpu.dat",
+    sprintf(filename, "cov_%s_term1Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
             type_str.c_str(), sigma, n_deg, thetaMax_deg);
     std::cerr<<"Writing Term1 to "<<out_folder+filename<<std::endl;
     try
@@ -223,7 +218,7 @@ Argument 9: Survey geometry, either circle, square, or infinite
 
   if (calculate_T2)
   {
-    sprintf(filename, "cov_%s_term2Numerical_sigma_%.1f_n_%.2f_thetaMax_%.2f_gpu.dat",
+    sprintf(filename, "cov_%s_term2Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
             type_str.c_str(), sigma, n_deg, thetaMax_deg);
     std::cerr<<"Writing Term2 to "<<out_folder+filename<<std::endl;
 
@@ -241,7 +236,7 @@ Argument 9: Survey geometry, either circle, square, or infinite
 
   if (calculate_T4)
   {
-    sprintf(filename, "cov_%s_term4Numerical_sigma_%.1f_n_%.2f_thetaMax_%.2f_gpu.dat",
+    sprintf(filename, "cov_%s_term4Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
             type_str.c_str(), sigma, n_deg, thetaMax_deg);
 
     try
