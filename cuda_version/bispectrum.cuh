@@ -41,6 +41,7 @@ const int n_kbins = 256;
 
 extern __constant__ double dev_f_K_array[n_redshift_bins]; // Array for comoving distance
 extern __constant__ double dev_g_array[n_redshift_bins]; // Array for lensing efficacy g
+extern double g_array[n_redshift_bins];
 
 extern __constant__ bool dev_Pk_given;
 extern __constant__ double dev_Pk[n_kbins];
@@ -156,7 +157,9 @@ __device__ double f_K_interpolated(int idx, double didx);
    */
    __device__  void compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff);
 
-   __device__ double om_m_of_z(double z);
+   __device__ double dev_om_m_of_z(double z);
+
+   double om_m_of_z(double z);
 
    __device__ double om_v_of_z(double z);
 
