@@ -26,6 +26,7 @@ const double eps = 1.0e-4;
 
 __constant__ double dev_f_K_array[n_redshift_bins];     // Array for comoving distance
 __constant__ double dev_g_array[n_redshift_bins];       // Array for lensing efficacy g
+double g_array[n_redshift_bins];
 
 __constant__ bool dev_Pk_given;
 __constant__ double dev_Pk[n_kbins];
@@ -152,7 +153,6 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
  
   // Calculate f_K(z) and g(z)
   double f_K_array[n_redshift_bins];
-  double g_array[n_redshift_bins];
 
   //First: f_K
 #pragma omp parallel for
@@ -362,10 +362,16 @@ __device__ void compute_coefficients(int idx, double didx, double *D1, double *r
   *n_eff = dev_n_eff_array[idx] * (1 - didx) + dev_n_eff_array[idx + 1] * didx;
 }
 
-__device__ double om_m_of_z(double z)
+__device__ double dev_om_m_of_z(double z)
 {
   double aa = 1./(1+z);
   return dev_om/(dev_om + aa * (aa * aa * dev_ow + (1. - dev_om - dev_ow)));
+}
+
+double om_m_of_z(double z)
+{
+  double aa = 1./(1+z);
+  return cosmo.om/(cosmo.om + aa * (aa * aa * cosmo.ow + (1. - cosmo.om - cosmo.ow)));
 }
 
 __device__ double om_v_of_z(double z)
@@ -880,6 +886,8 @@ double window(double x, int i)
     return x * exp(-0.5 * x * x); // 1st derivative gaussian
   if (i == 3)
     return x * x * (1 - x * x) * exp(-x * x);
+  if (i==4)
+  return  (3*(x*x-3)*sin(x)+9*x*cos(x))/x/x/x/x; //1st derivative top hat
   printf("window ran out \n");
   return -1;
 }
@@ -971,7 +979,8 @@ __device__ double dev_Pell(double ell)
   }
   else
   {
-  return dev_GQ96_of_Pk(0, dev_z_max, ell)+P_shapenoise;
+    double result=dev_GQ96_of_Pk(0, dev_z_max, ell)+P_shapenoise;
+    return result;
   }
 }
 
