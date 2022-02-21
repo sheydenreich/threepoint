@@ -1,52 +1,63 @@
 #include "apertureStatistics.hpp"
 #include "bispectrum.hpp"
 #include <fstream>
+#include "helper.hpp"
 
-int main()
+int main(int argc, char * argv[])
 {
-  // Set Up Cosmology
-  struct cosmology cosmo;
-  double survey_area;
-  if (slics)
+
+  // Read in CLI
+  const char *message = R"( 
+calculateBispectrumAndCovariance.x : Wrong number of command line parameters (Needed: 12)
+Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
+Argument 2: Filename with n(z)
+Argument 3: Theta_Max [unit], this is the sidelength for a square survey
+Argument 4: Outputfolder (needs to exist)
+Argument 5: sigma, shapenoise (for both components)
+Argument 6: n [unit^-2] Galaxy numberdensity
+Argument 7: unit, either arcmin, deg, or rad
+)";
+
+  if (argc != 8)
   {
-    printf("using SLICS cosmology...");
-    cosmo.h = 0.6898;               // Hubble parameter
-    cosmo.sigma8 = 0.826;           // sigma 8
-    cosmo.omb = 0.0473;             // Omega baryon
-    cosmo.omc = 0.2905 - cosmo.omb; // Omega CDM
-    cosmo.ns = 0.969;               // spectral index of linear P(k)
-    cosmo.w = -1.0;
-    cosmo.om = cosmo.omb + cosmo.omc;
-    cosmo.ow = 1 - cosmo.om;
-    survey_area = pow(10. * M_PI / 180., 2);
+    std::cerr << message << std::endl;
+    exit(-1);
+  };
+  std::string cosmo_paramfile = argv[1]; // Parameter file
+  std::string nzfn = argv[2];
+  std::string out_folder = argv[3];
+  double thetaMax = std::stod(argv[4]);
+  double sigma = std::stod(argv[5]);
+  double n = std::stod(argv[6]);
+  std::string unit = argv[7];
+
+  std::cerr << "Using cosmology from " << cosmo_paramfile << std::endl;
+  std::cerr << "Using n(z) from " << nzfn << std::endl;
+  std::cerr << "Results are written to " << out_folder << std::endl;
+
+    // Initializations
+
+  double thetaMaxRad = convert_angle_to_rad(thetaMax, unit);
+  double nRad = n / convert_angle_to_rad(1, unit) / convert_angle_to_rad(1, unit);
+  double survey_area=thetaMaxRad*thetaMaxRad;
+
+  cosmology cosmo(cosmo_paramfile);
+
+  std::vector<double> nz;
+  try
+  {
+    read_n_of_z(nzfn, 100, cosmo.zmax, nz);
   }
-  else
+  catch (const std::exception &e)
   {
-    printf("using Millennium cosmology...");
-    cosmo.h = 0.73;
-    cosmo.sigma8 = 0.9;
-    cosmo.omb = 0.045;
-    cosmo.omc = 0.25 - cosmo.omb;
-    cosmo.ns = 1.;
-    cosmo.w = -1.0;
-    cosmo.om = cosmo.omc + cosmo.omb;
-    cosmo.ow = 1. - cosmo.om;
-    survey_area = pow(4. * M_PI / 180., 2);
+    std::cerr << e.what() << '\n';
+    return -1;
   }
 
-  if (CONSTANT_POWERSPECTRUM || ANALYTICAL_POWERSPECTRUM || ANALYTICAL_POWERSPECTRUM_V2)
-  {
-    printf("Using analytic survey area: 10x10 deg!");
-    survey_area = pow(10. * M_PI / 180., 2);
-  }
-  int n_pix = 4096;
-  //Initialize Bispectrum
 
-  int n_z = 100;      //Number of redshift bins for grids
-  double z_max = 1.1; //maximal redshift
-
-  bool fastCalc = false; //whether calculations should be sped up
-  BispectrumCalculator bispectrum(&cosmo, n_z, z_max, fastCalc);
+  BispectrumCalculator bispectrum(&cosmo, nz, 100, cosmo.zmax);
+  bispectrum.sigma = sigma;
+  bispectrum.n = nRad;
 
   // double ell_min = 100;
   // double ell_max = 100000;
@@ -59,15 +70,26 @@ int main()
   std::vector<double> bispectrum_covariance_array(n_ell * n_ell * n_ell);
   std::vector<double> bispectrum_array(n_ell * n_ell * n_ell);
   std::vector<double> powerspectrum_array(n_ell);
+  std::vector<double> bispectrum_array_diag(n_ell);
+  std::vector<double> bispectrum_covariance_array_diag(n_ell);
 
-  double ell_array[30] = {100.0, 126.89610031679221, 161.02620275609394, 204.33597178569417, 259.2943797404667, 329.03445623126674, 
-  417.53189365604004, 529.8316906283708, 672.3357536499335, 853.1678524172805, 1082.636733874054, 1373.8237958832638, 1743.3288221999874, 2212.21629107045, 2807.2162039411755, 
-  3562.2478902624443, 4520.35365636024, 5736.152510448682, 7278.953843983146, 9236.708571873865, 11721.022975334794, 14873.521072935118, 18873.918221350996, 23950.26619987486, 
-  30391.95382313195, 38566.20421163472, 48939.00918477499, 62101.694189156166, 78804.62815669904, 100000.0};
+  // double ell_array[30] = {100.0, 126.89610031679221, 161.02620275609394, 204.33597178569417, 259.2943797404667, 329.03445623126674, 
+  // 417.53189365604004, 529.8316906283708, 672.3357536499335, 853.1678524172805, 1082.636733874054, 1373.8237958832638, 1743.3288221999874, 2212.21629107045, 2807.2162039411755, 
+  // 3562.2478902624443, 4520.35365636024, 5736.152510448682, 7278.953843983146, 9236.708571873865, 11721.022975334794, 14873.521072935118, 18873.918221350996, 23950.26619987486, 
+  // 30391.95382313195, 38566.20421163472, 48939.00918477499, 62101.694189156166, 78804.62815669904, 100000.0};
+
+    double ell_array[30] = {30.        ,    36.65363692,    44.78296998,    54.71529072,
+          66.85048   ,    81.67710739,    99.79210129,   121.9247816 ,
+         148.96622254,   182.0051278 ,   222.37166239,   271.6910058 ,
+         331.94878269,   405.5710052 ,   495.52174564,   605.42247165,
+         739.6978486 ,   903.75387905,  1104.19555154,  1349.09276109,
+        1648.30520779,  2013.87935388,  2460.53342113,  3006.24995477,
+        3672.9998109 ,  4487.62671563,  5482.92800862,  6698.97508252,
+        8184.72667994, 10000. };
 
   for (int i = 0; i < n_ell; i++)
   {
-    powerspectrum_array[i] = bispectrum.convergence_power_spectrum(ell_array[i]);
+    powerspectrum_array[i] = bispectrum.Pell(ell_array[i]);
   }
   for (int i = 0; i < n_ell; i++)
   {
@@ -83,10 +105,7 @@ int main()
         {
           temp = bispectrum.bispectrumCovariance(ell1, ell2, ell3, ell1, ell2, ell3,
                                                  0.13 * ell1, 0.13 * ell2, 0.13 * ell3, 0.13 * ell1, 0.13 * ell2, 0.13 * ell3, survey_area);
-          if (CONSTANT_POWERSPECTRUM)
-          {
-            temp *= pow(0.3 * 0.3 / (2. * n_pix * n_pix / survey_area), 3);
-          }
+
           temp2 = bispectrum.bkappa(ell1, ell2, ell3);
         }
         else
@@ -94,6 +113,11 @@ int main()
           temp = 0;
           temp2 = 0;
         }
+        if(i==j && i==k)
+        {
+          bispectrum_array_diag[i]=temp2;
+          bispectrum_covariance_array_diag[i]=temp;
+        };
         bispectrum_covariance_array[i * n_ell * n_ell + j * n_ell + k] = temp;
         bispectrum_covariance_array[i * n_ell * n_ell + k * n_ell + j] = temp;
         bispectrum_covariance_array[j * n_ell * n_ell + i * n_ell + k] = temp;
@@ -110,60 +134,47 @@ int main()
       }
     }
   }
-#if CONSTANT_POWERSPECTRUM
 
-  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/constant_powerspectrum/model_bispectrum";
+
+  std::string outfn =out_folder+"/model_bispectrum";
+// "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_SLICS/model_bispectrum_2";
   std::ofstream out;
-  std::string outfn2 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/constant_powerspectrum/model_bispectrum_gaussian_covariance";
+  std::string outfn2 = out_folder+"/model_cov_bispectrum";
+  //"/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_SLICS/model_bispectrum_gaussian_covariance_2";
   std::ofstream out2;
-  std::string outfn3 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/constant_powerspectrum/model_powerspectrum";
+  std::string outfn3 = out_folder+"/model_powerspectrum";
+
+  //"/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_SLICS/model_powerspectrum_2";
   std::ofstream out3;
 
-#elif ANALYTICAL_POWERSPECTRUM
+  std::string outfn4 = out_folder+"/model_bispectrum_diag";
+  std::string outfn5 = out_folder+"/model_cov_bispectrum_diag";
 
-  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum/model_bispectrum";
-  std::ofstream out;
-  std::string outfn2 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum/model_bispectrum_gaussian_covariance";
-  std::ofstream out2;
-  std::string outfn3 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum/model_powerspectrum";
-  std::ofstream out3;
-
-#elif ANALYTICAL_POWERSPECTRUM_V2
-
-  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum_v2/model_bispectrum";
-  std::ofstream out;
-  std::string outfn2 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum_v2/model_bispectrum_gaussian_covariance";
-  std::ofstream out2;
-  std::string outfn3 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum_v2/model_powerspectrum";
-  std::ofstream out3;
-
-#else
-
-  std::string outfn = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_SLICS/model_bispectrum_2";
-  std::ofstream out;
-  std::string outfn2 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_SLICS/model_bispectrum_gaussian_covariance_2";
-  std::ofstream out2;
-  std::string outfn3 = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_SLICS/model_powerspectrum_2";
-  std::ofstream out3;
-
-#endif
+  std::ofstream out4, out5;
 
 #if TREAT_DEGENERATE_TRIANGLES
   outfn2.append("_approx_degenerate_triangles");
+  outfn5.append("_approx_degenerate_triangles");
 #endif
   outfn.append(".dat");
   outfn2.append(".dat");
   outfn3.append(".dat");
+  outfn4.append(".dat");
+  outfn5.append(".dat");
 
   std::cout << "Writing results to " << outfn2 << std::endl;
   out.open(outfn.c_str());
   out2.open(outfn2.c_str());
   out3.open(outfn3.c_str());
+  out4.open(outfn4.c_str());
+  out5.open(outfn5.c_str());
 
   //Print out ==> Should not be parallelized!!!
   for (int i = 0; i < n_ell; i++)
   {
     out3 << ell_array[i] << " " << powerspectrum_array[i] << std::endl;
+    out4 << ell_array[i] << " " << bispectrum_array_diag[i] <<std::endl;
+    out5 << ell_array[i] << " " <<bispectrum_covariance_array_diag[i] <<std::endl;
     for (int j = 0; j < n_ell; j++)
     {
       for (int k = 0; k < n_ell; k++)

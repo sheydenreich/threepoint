@@ -447,7 +447,7 @@ double BispectrumCalculator::bispectrumCovariance(double ell1, double ell2, doub
   double P3 = p1 * ell3 * exp(-p2 * ell3);
   product_power_spectra = P1 * P2 * P3;
 #else
-  product_power_spectra = convergence_power_spectrum(ell1) * convergence_power_spectrum(ell2) * convergence_power_spectrum(ell3);
+  product_power_spectra = Pell(ell1) * Pell(ell2) * Pell(ell3);
 #endif
 
 #if TREAT_DEGENERATE_TRIANGLES
