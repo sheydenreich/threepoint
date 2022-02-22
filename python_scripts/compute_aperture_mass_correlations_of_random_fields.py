@@ -332,7 +332,7 @@ if(__name__=='__main__'):
         filename = args.power_spectrum_filename.split("/")[-1]
         savepath = '/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/input_powerspectrum/'+filename.split(".")[0]
         
-    res_gamma,res_kappa = compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,n_pix,[1,2,4,8,16],args.realisations,n_processes=args.processes,compute_kappa=args.compute_from_kappa)
+    res_gamma,res_kappa = compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,n_pix,[2,4,8,16],args.realisations,n_processes=args.processes,compute_kappa=args.compute_from_kappa)
     if not os.path.exists(savepath):
         os.makedirs(savepath)
     savename = 'npix_'+str(n_pix)+'_fieldsize_'+str(np.int(np.round(global_fieldsize_deg)))

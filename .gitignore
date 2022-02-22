@@ -40,3 +40,13 @@ docs/
 
 # Pycache stuff
 python_scripts/__pycache__/*
+python_scripts/tests.ipynb
+
+# Cosmosis outputs
+cosmosis/outputs/
+cosmosis/__pycache__/
+
+# Results / Plots
+*.png
+*.npy
+*.ipynb

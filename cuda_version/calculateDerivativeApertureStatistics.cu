@@ -1,6 +1,7 @@
 #include "apertureStatistics.cuh"
 #include "bispectrum.cuh"
 #include "cuda_helpers.cuh"
+#include "helpers.cuh"
 
 #include <iostream>
 #include <fstream>
@@ -61,13 +62,12 @@ Example:
 
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);                   ///<cosmology at which derivative is calculated
-  double dz = cosmo.zmax / ((double)n_redshift_bins); //redshift binsize
 
   // Read in n_z
   std::vector<double> nz;
   if (nz_from_file)
   {
-    read_n_of_z(nzfn, dz, n_redshift_bins, nz);
+    read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
   };
 
   // Check if output file can be opened
@@ -98,8 +98,7 @@ Example:
     std::cerr << "Using three-point stencil" << std::endl;
   };
 
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96, &A96, 48 * sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96, &W96, 48 * sizeof(double)));
+  copyConstants();
 
   // Borders of integral
   double phiMin = 0.0;
@@ -272,11 +271,11 @@ Example:
     // Initialize Bispectrum
     if (nz_from_file)
     {
-      set_cosmology(cosmos[i], dz, nz_from_file, &nz);
+      set_cosmology(cosmos[i], &nz);
     }
     else
     {
-      set_cosmology(cosmos[i], dz);
+      set_cosmology(cosmos[i]);
     };
 
     //Needed for monitoring
@@ -288,14 +287,14 @@ Example:
     // Calculation only for theta1<=theta2<=theta3, other combinations are assigned
     for (int j = 0; j < N; j++)
     {
-      double theta1 = thetas.at(j) * 3.1416 / 180. / 60; //Conversion to rad
+      double theta1 = convert_angle_to_rad(thetas.at(j)); //Conversion to rad
       for (int k = j; k < N; k++)
       {
-        double theta2 = thetas.at(k) * 3.1416 / 180. / 60.;
+        double theta2 = convert_angle_to_rad(thetas.at(k));
         for (int l = k; l < N; l++)
         {
-          double theta3 = thetas.at(l) * 3.1416 / 180. / 60.;
-          double thetas_calc[3] = {theta1, theta2, theta3};
+          double theta3 = convert_angle_to_rad(thetas.at(l));
+          std::vector<double> thetas_calc = {theta1, theta2, theta3};
           //Progress for the impatient user (Thetas in arcmin)
           step += 1;
           std::cout << step << "/" << Ntotal << ": Thetas:" << thetas.at(j) << " " << thetas.at(k) << " " << thetas.at(l) << " \r"; //\r is so that only one line is shown

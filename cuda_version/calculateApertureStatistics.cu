@@ -2,6 +2,7 @@
 #include "bispectrum.cuh"
 #include "cosmology.cuh"
 #include "cuda_helpers.cuh"
+#include "helpers.cuh"
 
 #include <fstream>
 #include <iostream>
@@ -50,13 +51,11 @@ Example:
 
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);
-  double dz = cosmo.zmax / ((double)n_redshift_bins - 1); // redshift binsize
 
   // Read in n_z
   std::vector<double> nz;
   if (nz_from_file) {
-
-    read_n_of_z(nzfn, dz, n_redshift_bins, nz);
+    read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
   };
 
   // Check if output file can be opened
@@ -80,25 +79,19 @@ Example:
 
   // Initialize Bispectrum
 
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96, &A96, 48 * sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96, &W96, 48 * sizeof(double)));
+  copyConstants();
 
   if (nz_from_file) {
     std::cerr << "Using n(z) from " << nzfn << std::endl;
-    set_cosmology(cosmo, dz, nz_from_file, &nz);
-  } else {
-    set_cosmology(cosmo, dz);
+    set_cosmology(cosmo, &nz);
+  } 
+  else 
+  {
+    set_cosmology(cosmo);
   };
 
-  // Borders of integral
-  double phiMin = 0.0;
-  double phiMax = 6.28319;
-  double lMin = 1;
-
   // Set up vector for aperture statistics
-  int Ntotal =
-      N * (N + 1) * (N + 2) /
-      6.; // Total number of bins that need to be calculated, = (N+3+1) ncr 3
+  int Ntotal =  N * (N + 1) * (N + 2) / 6.; // Total number of bins that need to be calculated, = (N+3+1) ncr 3
   std::vector<double> MapMapMaps;
 
   // Needed for monitoring
@@ -108,23 +101,22 @@ Example:
   // Calculate <MapMapMap>(theta1, theta2, theta3) in three loops
   // Calculation only for theta1<=theta2<=theta3
   for (int i = 0; i < N; i++) {
-    double theta1 = thetas.at(i) * 3.1416 / 180. / 60; // Conversion to rad
+    double theta1 = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
 
     for (int j = i; j < N; j++) {
-      double theta2 = thetas.at(j) * 3.1416 / 180. / 60.;
+      double theta2 = convert_angle_to_rad(thetas.at(j));
 
       for (int k = j; k < N; k++) {
 
-        double theta3 = thetas.at(k) * 3.1416 / 180. / 60.;
-        double thetas_calc[3] = {theta1, theta2, theta3};
+        double theta3 = convert_angle_to_rad(thetas.at(k));
+        std::vector<double> thetas_calc = {theta1, theta2, theta3};
         // Progress for the impatient user (Thetas in arcmin)
         step += 1;
         std::cout << step << "/" << Ntotal << ": Thetas:" << thetas.at(i) << " "
                   << thetas.at(j) << " " << thetas.at(k) << " \r";
         std::cout.flush();
 
-        double Map3 =
-            MapMapMap(thetas_calc, phiMin, phiMax, lMin); // Do calculation
+        double Map3 = MapMapMap(thetas_calc); // Do calculation
         MapMapMaps.push_back(Map3);
       };
     };
