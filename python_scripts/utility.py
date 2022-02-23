@@ -650,3 +650,105 @@ def extract_aperture_masses_of_field(shears,npix,thetas,fieldsize,norm=None,ac=N
                 counter += 1
 
     return result
+
+
+from numpy import pi,sinh,tanh,cosh
+from scipy.special import jv,jn_zeros
+
+class besselintegrator:
+    """Input Parameters: n_dim_bessel: Order of Bessel function
+    prec_h: step width
+    prec_k: max. root of bessel function being considered in the integral"""
+    def psi(self,t):
+        return t*tanh(pi*sinh(t)/2)
+    def psip(self,t):
+        zahler = sinh(pi*sinh(t))+pi*t*cosh(t)
+        nenner = cosh(pi*sinh(t))+1
+        return zahler/nenner
+    
+    def __init__(self,n_dim_bessel,prec_h,prec_k):
+        self.n_dim_bessel = n_dim_bessel
+        self.prec_h = prec_h
+        self.prec_k = int(prec_k/prec_h)
+        self.bessel_zeros = jn_zeros(n_dim_bessel,self.prec_k)
+        self.pi_bessel_zeros = self.bessel_zeros/pi
+        self.psiarr = pi*self.psi(self.pi_bessel_zeros*self.prec_h)/self.prec_h
+        self.besselarr = jv(self.n_dim_bessel,self.psiarr)
+        self.psiparr = self.psip(self.prec_h*self.pi_bessel_zeros)
+        self.warr = 2/(pi*self.bessel_zeros*jv(n_dim_bessel+1,self.bessel_zeros)**2)
+
+    def integrate(self,function,R):
+        """Computes the Integral int f(k)J(kR) dk"""
+        return pi/R*np.sum(self.warr*function(self.psiarr/R)*self.besselarr*self.psiparr)
+
+
+bi = besselintegrator(0,0.001,6.)
+def correlation_function(x,n_pix,power_spectrum,mod=1.):
+    x = x*2*np.pi/n_pix
+    factor = (2*np.pi)**2/np.pi/n_pix**4/mod**2
+
+    def power_spectrum_ell(ell):
+        return ell*power_spectrum(ell)
+    
+    if(hasattr(x,'__len__')):
+        lx = len(x)
+        result = np.zeros(lx)
+        for i,xi in enumerate(x):
+            result[i] = bi.integrate(power_spectrum_ell,xi)
+        return factor*result
+    else:
+        return factor*bi.integrate(power_spectrum_ell,x)
+    
+def correlation_function_lognormal(x,alpha,n_pix,power_spectrum,sigma=1,mod=1):
+    c = np.exp(alpha**2/2)
+    A = sigma/np.sqrt(c**2-1)
+    return A**2*(np.exp(alpha**2*correlation_function(x,n_pix,power_spectrum,mod=mod))-1)
+
+def create_triangle(r1,r2,r3,offset = [0,0],yscale = 1.):
+    x1 = np.array([0,0])
+    x2 = np.array([r1,0])
+    y = (r2**2+r1**2-r3**2)/(2*r1)
+    x = np.sqrt(r2**2-y**2)
+    x3 = np.array([y,x])
+    offset = np.array(offset)
+    x1 = x1 + offset
+    x2 = x2 + offset
+    x3 = x3 + offset
+    result = np.array([x1,x2,x3])
+    result[:,1]*=yscale
+    return result
+
+def kappa_3pcf_lognormal(x12,x13,x23,alpha,n_pix,power_spectrum,sigma=1,mod=1,discrete=False):
+    if(discrete):
+        if(isinstance(x12,(list, tuple, np.ndarray))):
+            x12_temp = np.zeros_like(x12)
+            x13_temp = np.zeros_like(x12)
+            x23_temp = np.zeros_like(x12)
+            for i in range(len(x12)):
+                x1,x2,x3 = np.rint(create_triangle(x12[i],x13[i],x23[i]))
+                x12_temp[i] = np.linalg.norm(x1-x2)
+                x13_temp[i] = np.linalg.norm(x1-x3)
+                x23_temp[i] = np.linalg.norm(x2-x3)
+            x12 = x12_temp
+            x13 = x13_temp
+            x23 = x23_temp
+        else:
+            x1,x2,x3 = np.rint(create_triangle(x12,x13,x23))
+            x12 = np.linalg.norm(x1-x2)
+            x13 = np.linalg.norm(x1-x3)
+            x23 = np.linalg.norm(x2-x3)
+    c = np.exp(alpha**2/2)
+    A = sigma/np.sqrt(c**2-1)
+    term1 = correlation_function_lognormal(x12,alpha,n_pix,power_spectrum,sigma=sigma,mod=mod)*correlation_function_lognormal(x13,alpha,n_pix,power_spectrum,sigma=sigma,mod=mod)*correlation_function_lognormal(x23,alpha,n_pix,power_spectrum,sigma=sigma,mod=mod)
+    term21 = correlation_function_lognormal(x12,alpha,n_pix,power_spectrum,sigma=sigma,mod=mod)*correlation_function_lognormal(x13,alpha,n_pix,power_spectrum,sigma=sigma,mod=mod)
+    term22 = correlation_function_lognormal(x12,alpha,n_pix,power_spectrum,sigma=sigma,mod=mod)*correlation_function_lognormal(x23,alpha,n_pix,power_spectrum,sigma=sigma,mod=mod)
+    term23 = correlation_function_lognormal(x13,alpha,n_pix,power_spectrum,sigma=sigma,mod=mod)*correlation_function_lognormal(x23,alpha,n_pix,power_spectrum,sigma=sigma,mod=mod)
+    return term1/A**3+(term21+term22+term23)/A
+
+def create_lognormal_random_field(power_spectrum_of_gaussian_random_field,alpha,sigma=1.,npix=4096,fieldsize=4.*np.pi/180.):
+    """Returns a lognormal field with non-gaussianity alpha"""
+    c = np.exp(alpha**2/2)
+    new_field_prefactor = sigma/(c*np.sqrt(c**2-1))
+    gaussian_random_field = create_gaussian_random_field(power_spectrum_of_gaussian_random_field,npix=npix,fieldsize=fieldsize)
+    new_field = new_field_prefactor*(np.exp(alpha*gaussian_random_field)-c)
+    return new_field
