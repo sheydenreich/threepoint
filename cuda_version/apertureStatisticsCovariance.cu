@@ -888,3 +888,101 @@ __device__ double G_square(const double &ellX, const double &ellY)
 
     return j01 * j01 * j02 * j02;
 };
+
+
+__device__ double dev_integrand_Gaussian_Map2_covariance(const double& ell,
+  const double& theta_1, const double& theta_2)
+  {
+    return ell*pow(uHat(ell*theta_1)*uHat(ell*theta_2)*dev_Pell(ell),2);
+  }
+
+__global__ void integrand_Gaussian_Map2_Covariance(const double* vars, unsigned ndim, int npts, double theta_1, double theta_2,
+                                                    double* value)
+{
+  // index of thread
+  int thread_index=blockIdx.x*blockDim.x + threadIdx.x;
+
+  //Grid-Stride loop, so I get npts evaluations
+  for(int i=thread_index; i<npts; i+=blockDim.x*gridDim.x)
+    {
+      // printf("%d, %d \n",npts*ndim-i*ndim-3,npts-i);
+      double ell=vars[i*ndim];
+
+      value[i] = dev_integrand_Gaussian_Map2_covariance(ell,theta_1,theta_2);
+    }
+}
+
+int integral_Gaussian_Map2_Covariance(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value)
+{
+  if(fdim != 1)
+    {
+      std::cerr<<"integrand: Wrong number of function dimensions"<<std::endl;
+      exit(1);
+    };
+    if(ndim != 1)
+    {
+      std::cerr<<"integrand: Wrong number of variable dimensions"<<std::endl;
+      exit(1);
+    };
+
+  // Read data for integration
+  ApertureStatisticsCovarianceContainer* container = (ApertureStatisticsCovarianceContainer*) thisPtr;
+
+  double theta_1 = container-> theta_1;
+  double theta_2 = container-> theta_2;
+
+  // Allocate memory on device for integrand values
+  double* dev_value;
+  CUDA_SAFE_CALL(cudaMalloc((void**)&dev_value, fdim*npts*sizeof(double)));
+
+  // Copy integration variables to device
+  double* dev_vars;
+  CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim*npts*sizeof(double))); //allocate memory
+  CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim*npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+
+  // Calculate values
+  integrand_Gaussian_Map2_Covariance<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, theta_1, theta_2, dev_value);
+  CudaCheckError();
+  
+  cudaFree(dev_vars); //Free variables
+
+  
+  // Copy results to host
+  CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim*npts*sizeof(double), cudaMemcpyDeviceToHost));
+
+
+  cudaFree(dev_value); //Free values
+  
+  return 0; //Success :)  
+}
+
+double Gaussian_Map2_Covariance(double theta_1, double theta_2)
+{
+  //Set maximal l value such, that theta*l <= 10
+  double thetaMin=std::min({theta_1,theta_2}); //should increase runtime, if either theta_123 or theta_456 is zero, so is their product
+  double lMax=10./thetaMin;
+  double lMin = 1.;
+
+  ApertureStatisticsCovarianceContainer container;
+  container.theta_1=theta_1;
+  container.theta_2=theta_2;
+
+  double result,error;
+
+  double vals_min[1]={lMin};
+  double vals_max[1]={lMax}; //use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
+
+  hcubature_v(1, integral_Gaussian_Map2_Covariance, &container, 1, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
+  
+  double survey_area;
+  
+  if(type==1 || type==2)
+  {
+      survey_area = thetaMax*thetaMax;
+  }
+  else
+  {
+      throw std::logic_error("Gaussian_Map2_Covariance: Survey geometry not implemented");
+  }
+  return result/survey_area/M_PI;
+}

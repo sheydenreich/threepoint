@@ -325,6 +325,60 @@ __device__ double G_square(const double& ellX, const double& ellY);
 
 
 
+
+
+
+// Functions for calculation of Covariance for second order aperture statistics
+
+  /**
+   * @brief Integrand of Gaussian Covariance of MapMap
+   * @param ell ell
+   * @param z redshift
+   * @param theta_1 First Aperture radius [rad]
+   * @param theta_2 Second Aperture radius [rad]
+   * @return value of integrand
+   */
+   __device__ double dev_integrand_Gaussian_Map2_covariance(const double& ell,
+      const double& theta_1, const double& theta_2);  
+  /**
+   * @brief Wrapper for Integrand of Gaussian Covariance of MapMap
+   * @param vars integration variables ell,phi
+   * @param ndim number of integration variables (fixed at 2!)
+   * @param npts number of points to be evaluated
+   * @param theta_1 First Aperture radius [rad]
+   * @param theta_2 Second Aperture radius [rad]
+   * @param value return value of integrand
+   */
+   __global__ void integrand_Gaussian_Map2_Covariance(const double* vars, unsigned ndim, int npts, double theta_1, double theta_2,
+      double* value);
+
+  /**
+   * @brief Integrand for cubature library
+   * See https://github.com/stevengj/cubature for documentation
+   * @param ndim Number of dimensions of integral (here: 2, automatically assigned by integration)
+   * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+   * @param vars Array containing integration variables
+   * @param thisPts Pointer to ApertureStatisticsCovarianceContainer instance
+   * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration)
+   * @param value Value of integral
+   * @return 0 on success
+   */
+  int integral_Gaussian_Map2_Covariance(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
+
+
+    /**
+   * @brief Gaussian Covariance of Aperturestatistics calculated from Bispectrum
+   * This uses the hcubature_v routine from the cubature library
+   * @param theta_1 First Aperture radius [rad]
+   * @param theta_2 Second Aperture radius [rad]
+   */
+   double Gaussian_Map2_Covariance(double theta_1, double theta_2);
+
+
+
+
+
+
 struct ApertureStatisticsCovarianceContainer
 {
         // First aperture radii [rad]
@@ -332,6 +386,9 @@ struct ApertureStatisticsCovarianceContainer
 
         // Second aperture radii [rad]
         std::vector<double> thetas_456;
+
+      //   For second order Aperture statistics
+         double theta_1,theta_2;
 };
 
 #endif //APERTURESTATISTICSCOVARIANCE_CUH

@@ -33,7 +33,7 @@ Example:
 ./calculateApertureStatistics.x ../necessary_files/MR_cosmo.dat ../necessary_files/HOWLS_covariance.dat ../necessary_files/HOWLS_thetas.dat ../../results_MR/MapMapMap_bispec_gpu_nz.dat 1 1 ../necessary_files/nz_MR.dat
 )";
 
-  if (argc < 5) // Give out error message if too few CLI arguments
+  if (argc < 7) // Give out error message if too few CLI arguments
   {
     std::cerr << message << std::endl;
     exit(1);
@@ -48,7 +48,7 @@ Example:
   outfn = argv[4];
   nz_from_file = std::stoi(argv[5]);
   if (nz_from_file) {
-    nzfn = argv[7];
+    nzfn = argv[6];
   };
 
   covarianceParameters covPar(covariance_paramfile);
