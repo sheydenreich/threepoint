@@ -94,7 +94,7 @@ if(args.power_spectrum<0):
 global_fieldsize_rad = global_fieldsize_deg*np.pi/180
 global_fieldsize_arcmin = global_fieldsize_deg*60.
 
-def aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,random_seed,compute_gamma,compute_kappa,galaxy_density=None,shapenoise = 0.3):
+def aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,random_seed,galaxy_density=None,shapenoise = 0.3):
     if(galaxy_density is None):
         if(power_spectrum_filename is None):
             kappa_field = create_gaussian_random_field(power_spectrum,n_pix=npix,fieldsize=global_fieldsize_rad,random_seed=random_seed)
@@ -106,8 +106,7 @@ def aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,r
         if(np.any(np.isnan(kappa_field))):
             print("Error! NAN in kappa!")
             sys.exit()
-        if(compute_gamma):
-            shears = create_gamma_field(kappa_field)
+        shears = create_gamma_field(kappa_field)
     else:
         print("Galaxy number densities other than npix^2/fieldsize^2 not yet implemented.")
         sys.exit()
@@ -120,7 +119,7 @@ def aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,r
 
 def aperture_mass_correlation_gaussian_random_field_kernel(kwargs):
     power_spectrum,final_result_gamma_second_order,final_result_gamma_third_order,npix,thetas,random_seed,realisation = kwargs
-    result_gamma_second_order,result_gamma_third_order,measured_power_spectrum = aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,random_seed,compute_gamma,compute_kappa)
+    result_gamma_second_order,result_gamma_third_order,measured_power_spectrum = aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,random_seed)
     np.save("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/powerspectrum_{}",measured_power_spectrum)
 
     final_result_gamma_second_order[:,realisation] = result_gamma_second_order
