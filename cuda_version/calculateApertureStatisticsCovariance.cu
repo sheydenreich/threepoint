@@ -3,6 +3,7 @@
 #include "bispectrum.cuh"
 #include "helpers.cuh"
 #include "cuda_helpers.cuh"
+#include "halomodel.cuh"
 
 #include <iostream>
 #include <chrono>
@@ -11,7 +12,7 @@ int main(int argc, char *argv[])
 {
   // Read in CLI
   const char *message = R"( 
-calculateApertureStatisticsCovariance.x : Wrong number of command line parameters (Needed: 12)
+calculateApertureStatisticsCovariance.x : Wrong number of command line parameters (Needed: 10)
 Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
 Argument 2: Filename with thetas [arcmin]
 Argument 3: Filename with n(z)
@@ -20,10 +21,12 @@ Argument 5: Filename for covariance parameters (ASCII, see necessary_files/cov_p
 Argument 6: Calculate T1? (0 or 1)
 Argument 7: Calculate T2? (0 or 1)
 Argument 8: Calculate T4? (0 or 1)
-Argument 9: Survey geometry, either circle, square, or infinite
+Argument 9: Calculate T5? (0 or 1)
+Argument 10: Calculate T6? (0 or 1)
+Argument 10: Survey geometry, either circle, square, or infinite
 )";
 
-  if (argc != 10)
+  if (argc != 12)
   {
     std::cerr << message << std::endl;
     exit(-1);
@@ -37,7 +40,9 @@ Argument 9: Survey geometry, either circle, square, or infinite
   bool calculate_T1 = std::stoi(argv[6]);
   bool calculate_T2 = std::stoi(argv[7]);
   bool calculate_T4 = std::stoi(argv[8]);
-  std::string type_str = argv[9];
+  bool calculate_T5 = std::stoi(argv[9]);
+  bool calculate_T6 = std::stoi(argv[10]);
+  std::string type_str = argv[11];
 
   std::cerr << "Using cosmology from " << cosmo_paramfile << std::endl;
   std::cerr << "Using thetas from " << thetasfn << std::endl;
@@ -109,6 +114,11 @@ Argument 9: Survey geometry, either circle, square, or infinite
   // Initialize Covariance
   initCovariance();
 
+  if(calculate_T5 || calculate_T6)
+  {
+    initHalomodel();
+  }
+
 
   std::cerr<<"Finished copying constants"<<std::endl;
 
@@ -123,7 +133,7 @@ Argument 9: Survey geometry, either circle, square, or infinite
   int N_ind = N * (N + 1) * (N + 2) / 6; // Number of independent theta-combinations
   int N_total = N_ind * N_ind;
 
-  std::vector<double> Cov_term1s, Cov_term2s, Cov_term4s;
+  std::vector<double> Cov_term1s, Cov_term2s, Cov_term4s, Cov_term5s, Cov_term6s;
 
   int completed_steps = 0;
 
@@ -164,8 +174,21 @@ Argument 9: Survey geometry, either circle, square, or infinite
                 if (calculate_T4)
                 {
                   double term4 = T4_total(thetas_123, thetas_456);
+                  std::cerr<<"T4:"<<term4<<std::endl;
                   Cov_term4s.push_back(term4);
                 };
+                if (calculate_T5)
+                {
+                  double term5 = T5_total(thetas_123, thetas_456);
+                  std::cerr<<"T5:"<<term5<<std::endl;
+                  Cov_term5s.push_back(term5);
+                }
+                if (calculate_T6)
+                {
+                  double term6 = T6_total(thetas_123, thetas_456);
+                  std::cerr<<"T6:"<<term6<<std::endl;
+                  Cov_term6s.push_back(term6);
+                }
               }
               catch (const std::exception &e)
               {
@@ -248,6 +271,40 @@ Argument 9: Survey geometry, either circle, square, or infinite
       std::cerr << e.what() << '\n';
       std::cerr << "Writing instead to current directory!" << std::endl;
       writeCov(Cov_term4s, N_ind, filename);
+    }
+  };
+
+  if (calculate_T5)
+  {
+    sprintf(filename, "cov_%s_term5Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
+            type_str.c_str(), sigma, n_deg, thetaMax_deg);
+
+    try
+    {
+      writeCov(Cov_term5s, N_ind, out_folder + filename);
+    }
+    catch (const std::exception &e)
+    {
+      std::cerr << e.what() << '\n';
+      std::cerr << "Writing instead to current directory!" << std::endl;
+      writeCov(Cov_term5s, N_ind, filename);
+    }
+  };
+
+  if (calculate_T6)
+  {
+    sprintf(filename, "cov_%s_term6Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
+            type_str.c_str(), sigma, n_deg, thetaMax_deg);
+
+    try
+    {
+      writeCov(Cov_term6s, N_ind, out_folder + filename);
+    }
+    catch (const std::exception &e)
+    {
+      std::cerr << e.what() << '\n';
+      std::cerr << "Writing instead to current directory!" << std::endl;
+      writeCov(Cov_term6s, N_ind, filename);
     }
   };
 

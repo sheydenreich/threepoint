@@ -17,17 +17,8 @@ extern double thetaMax;
 extern __constant__ double dev_lMin;
 extern double lMin;
 
-const double logMmin=9;
-const double logMmax=17;
-const int n_mbins=128;
-extern __constant__ double devLogMmin, devLogMmax;
-extern int __constant__ dev_n_mbins;
-
 extern __constant__ double dev_sigmaW;
 extern double sigmaW, VW, chiMax;
-
-extern __constant__ double dev_sigma2_array[n_mbins]; 
-extern __constant__ double dev_dSigma2dm_array[n_mbins]; 
 
     /**
      * @brief Writes a covariance matrix (or one part of it) to a file
@@ -85,6 +76,26 @@ extern __constant__ double dev_dSigma2dm_array[n_mbins];
       */
      double T4_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
  
+
+     /**
+      * @brief Calculates the second Term in the Non-Gaussian Covariance with all permutations. Throws an exception if type is not 'infinite
+      * 
+      * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
+      * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
+      * @return double T_5, total(theta1, theta2, theta3, theta4, theta5, theta6) = T_5 + 8 Permutations
+      */
+      double T5_total(const std::vector<double> & thetas_123, const std::vector<double> &thetas_456);
+
+
+           /**
+      * @brief Calculates the third Term in the Non-Gaussian Covariance with all permutations. Throws an exception if type is not 'square'
+      * 
+      * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
+      * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
+      * @return double T_6, total(theta1, theta2, theta3, theta4, theta5, theta6) = T_6 + 5 Permutations
+      */
+      double T6_total(const std::vector<double> & thetas_123, const std::vector<double> &thetas_456);
+
      /**
       * @brief First Term of Gaussian Covariance for one permutation
       *
@@ -123,6 +134,33 @@ extern __constant__ double dev_dSigma2dm_array[n_mbins];
       */
      double T4(const double &theta1, const double &theta2, const double &theta3,
                const double &theta4, const double &theta5, const double &theta6);
+
+
+     /**
+      * @brief Second Term of NonGaussian Covariance for one permutation
+      *
+      * @param theta1 Aperture radius [rad]
+      * @param theta2 Aperture radius [rad]
+      * @param theta3 Aperture radius [rad]
+      * @param theta4 Aperture radius [rad]
+      * @param theta5 Aperture radius [rad]
+      * @param theta6 Aperture radius [rad]
+      */
+      double T5(const double &theta1, const double &theta2, const double &theta3,
+         const double &theta4, const double &theta5, const double &theta6);
+
+     /**
+      * @brief Third Term of NonGaussian Covariance for one permutation
+      *
+      * @param theta1 Aperture radius [rad]
+      * @param theta2 Aperture radius [rad]
+      * @param theta3 Aperture radius [rad]
+      * @param theta4 Aperture radius [rad]
+      * @param theta5 Aperture radius [rad]
+      * @param theta6 Aperture radius [rad]
+      */
+      double T6(const double &theta1, const double &theta2, const double &theta3,
+         const double &theta4, const double &theta5, const double &theta6);
 
 
     /**
@@ -177,7 +215,33 @@ extern __constant__ double dev_dSigma2dm_array[n_mbins];
       */
      int integrand_T4(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
  
+     /**
+      * @brief Wrapper of integrand_T5 for the cubature library
+      * See https://github.com/stevengj/cubature for documentation
+      * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
+      * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+      * @param vars Array containing integration variables
+      * @param container Pointer to ApertureStatisticsCovarianceContainer instance
+      * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
+      * @param value Value of integral
+      * @return 0 on success
+      */
+      int integrand_T5(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
 
+
+
+           /**
+      * @brief Wrapper of integrand_T6 for the cubature library
+      * See https://github.com/stevengj/cubature for documentation
+      * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
+      * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+      * @param vars Array containing integration variables
+      * @param container Pointer to ApertureStatisticsCovarianceContainer instance
+      * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
+      * @param value Value of integral
+      * @return 0 on success
+      */
+      int integrand_T6(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
 
 
 /**
@@ -319,6 +383,43 @@ __global__ void integrand_T1_infinite(const double* vars, unsigned ndim, int npt
  __global__ void integrand_T4_infinite(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
     double theta4, double theta5, double theta6, double* value);
 
+
+
+    /**
+ * @brief Integrand for Term 5 for infinite survey
+ * 
+ * @param vars Integration parameters (5 D)
+ * @param ndim Number of integration dimensions
+ * @param npts Number of integration points
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param theta3 Aperture radius [rad]
+ * @param theta4 Aperture radius [rad]
+ * @param theta5 Aperture radius [rad]
+ * @param theta6 Aperture radius [rad]
+ * @param value Value of integral
+ */
+ __global__ void integrand_T5_infinite(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
+   double theta4, double theta5, double theta6, double* value);
+
+
+       /**
+ * @brief Integrand for Term 6 for square survey
+ * 
+ * @param vars Integration parameters (9 D)
+ * @param ndim Number of integration dimensions
+ * @param npts Number of integration points
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param theta3 Aperture radius [rad]
+ * @param theta4 Aperture radius [rad]
+ * @param theta5 Aperture radius [rad]
+ * @param theta6 Aperture radius [rad]
+ * @param value Value of integral
+ */
+ __global__ void integrand_T6_square(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
+   double theta4, double theta5, double theta6, double* value);
+
     /**
      * @brief Geometric factor for circular survey
      *
@@ -352,118 +453,82 @@ void initCovariance();
 
 
 
-/// THE FOLLOWING THINGS ARE NEEDED FOR THE SUPERSAMPLE COVARIANCE
+// /// THE FOLLOWING THINGS ARE NEEDED FOR THE SUPERSAMPLE COVARIANCE
 
-   /**
-     * @brief Calculate the super sample covariance for one aperture radii combination.
-     *
-     * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
-     * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
-     */
-     double Cov_SSC(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
-
-
-     /**
-      * @brief Redshift integrand of Cov_SSC
-      * 
-      */
-     double integrand_Cov_SSC(const double& z, const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
+//    /**
+//      * @brief Calculate the super sample covariance for one aperture radii combination.
+//      *
+//      * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
+//      * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
+//      */
+//      double Cov_SSC(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
 
 
-     double f(const double& z, const std::vector<double> &thetas_123, const double& chi);
+//      /**
+//       * @brief Redshift integrand of Cov_SSC
+//       * 
+//       */
+//      double integrand_Cov_SSC(const double& z, const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
 
-     int integrand_f(unsigned ndim, size_t npts, const double* vars, void* container, unsigned fdim, double* value);
 
-     __global__ void integrand_f(const double* vars, unsigned ndim, int npts, double* value,  double theta1, double theta2, double theta3, double z, double chi);
+//      double f(const double& z, const std::vector<double> &thetas_123, const double& chi);
+
+//      int integrand_f(unsigned ndim, size_t npts, const double* vars, void* container, unsigned fdim, double* value);
+
+//      __global__ void integrand_f(const double* vars, unsigned ndim, int npts, double* value,  double theta1, double theta2, double theta3, double z, double chi);
 
 
-   __device__ double halobias(const double& m, const double& z);
+//    __device__ double halobias(const double& m, const double& z);
 
-   __device__ double dev_rhobar(const double& z);
+//    __device__ double dev_rhobar(const double& z);
 
-   double rhobar(const double& z);
-
-   __device__ double hmf(const double& m, const double& z);
+//    double rhobar(const double& z);
 
 
 
-  /**
-   * Approximation to Si(x) and Ci(x) Functions
-   * Same as GSL implementation, because they are not implemented in CUDA
-   * @param x x value
-   * @param si will contain Si(x)
-   * @param ci will contain Ci(x)
-   */
-   __host__ __device__  void SiCi(double x, double& si, double& ci);
-
-   __device__ double r_200(const double&m, const double&z);
-
-double r_200_host(const double&m, const double&z);
-
- __device__ double u_NFW(const double& k, const double& m, const double& z);
-
- __host__ double u_NFW_host(const double& k, const double& m, const double& z);
-
-   __host__ __device__ double concentration(const double& m, const double& z);
-
-   __device__ double delta_c(const double& z);
 
 
-   double sigma2(const double& m);
-   int integrand_sigma2(unsigned ndim, size_t npts, const double* k, void* thisPtr, unsigned fdim, double* value);
 
-   void setSigma2();
 
-   double dSigma2dm(const double& m);
-   int integrand_dSigma2dm(unsigned ndim, size_t npts, const double* k, void* thisPtr, unsigned fdim, double* value);
-   
-   void setdSigma2dm();
-
-   __device__ double get_sigma2(const double& m, const double& z);
-   __device__ double get_dSigma2dm(const double& m, const double& z);
 
 
    
 
-   void setSurveyVolume();
+//    void setSurveyVolume();
 
-   void setSigmaW();
+//    void setSigmaW();
 
-   double WindowSurvey(const double& k1, const double& k2, const double& k3);
+//    double WindowSurvey(const double& k1, const double& k2, const double& k3);
 
 
-   int integrand_SigmaW(unsigned ndim, size_t npts, const double* k, void* thisPtr, unsigned fdim, double* value);
+//    int integrand_SigmaW(unsigned ndim, size_t npts, const double* k, void* thisPtr, unsigned fdim, double* value);
    
 
-struct ApertureStatisticsSSCContainer
-{
-           // aperture radii [rad]
-           std::vector<double> thetas_123;
+// struct ApertureStatisticsSSCContainer
+// {
+//            // aperture radii [rad]
+//            std::vector<double> thetas_123;
 
-           double z; //redshift
-           double chi; //Comoving distance
+//            double z; //redshift
+//            double chi; //Comoving distance
 
-           double ell1, ell2, ell3;
-};
-
-struct SigmaContainer
-{
-   double R;
-   double dR;
-};
+//            double ell1, ell2, ell3;
+// };
 
 
-void initSSC();
 
 
-double Cov_Bispec_SSC(const double& ell);
+// void initSSC();
 
-double integrand_Cov_Bispec_SSC(const double& z, const double& ell);
 
-double I3(const double& ell1, const double& ell2, const double& ell3, const double& z, const double& chi);
+// double Cov_Bispec_SSC(const double& ell);
 
-int integrand_I3(unsigned ndim, size_t npts, const double* vars, void* container, unsigned fdim, double* value);
+// double integrand_Cov_Bispec_SSC(const double& z, const double& ell);
 
-__global__ void integrand_I3(const double* vars, unsigned ndim, int npts, double* value, double ell1, double ell2, double ell3, double z, double chi);
+// double I3(const double& ell1, const double& ell2, const double& ell3, const double& z, const double& chi);
+
+// int integrand_I3(unsigned ndim, size_t npts, const double* vars, void* container, unsigned fdim, double* value);
+
+// __global__ void integrand_I3(const double* vars, unsigned ndim, int npts, double* value, double ell1, double ell2, double ell3, double z, double chi);
 
 #endif //APERTURESTATISTICSCOVARIANCE_CUH
