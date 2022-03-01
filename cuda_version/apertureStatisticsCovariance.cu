@@ -435,32 +435,57 @@ double T5_total(const std::vector<double> &thetas_123, const std::vector<double>
     {
         if(th3==th4 && th4==th5) // All thetas_456 are equal
         {
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th3, th3);
             result = 9*T5(th0, th0, th0, th3, th3, th3);
         }
         else
         {
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th4, th5);
             result = 3*T5(th0, th0, th0, th3, th4, th5);
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th4, th3, th5);
             result+=3*T5(th0, th0, th0, th4, th3, th5);
-            result+=3*T5(th0, th0, th0, th4, th5, th3);
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th4, th5, th3);
+            result+=3*T5(th0, th0, th0, th5, th3, th4);
         }
     }
     else if(th3==th4 && th4==th5) //All thetas_456 are equal
     {
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th3, th3, th3);
         result = 3*T5(th0, th1, th2, th3, th3, th3);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th0, th2, th3, th3, th3);
         result+=3*T5(th1, th0, th2, th3, th3, th3);
-        result+=3*T5(th1, th2, th0, th3, th3, th3);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th2, th0, th3, th3, th3);
+        result+=3*T5(th2, th0, th1, th3, th3, th3);
     }
     else
     {
-    result = T5(th0, th1, th2, th3, th4, th5);
-    result+=T5(th0, th1, th2, th4, th3, th5);
-    result+=T5(th0, th1, th2, th4, th5, th3);
-    result+=T5(th1, th0, th2, th3, th4, th5);
-    result+=T5(th1, th0, th2, th4, th3, th5);
-    result+=T5(th1, th0, th2, th4, th5, th3);
-    result+=T5(th1, th2, th0, th3, th4, th5);
-    result+=T5(th1, th2, th0, th4, th3, th5);
-    result+=T5(th1, th2, th0, th4, th5, th3);
+    printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th3, th4, th5);
+    double tmp = T5(th0, th1, th2, th3, th4, th5);
+    result=tmp;
+    printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th4, th3, th5);
+    tmp=T5(th0, th1, th2, th4, th3, th5);
+    result+=tmp;
+    printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th5, th3, th4);
+    tmp=T5(th0, th1, th2, th5, th3, th4);
+    result+=tmp;
+    printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th0, th2, th3, th4, th5);
+    tmp=T5(th1, th0, th2, th3, th4, th5);
+    result+=tmp;
+    printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th0, th2, th4, th3, th5);
+    tmp=T5(th1, th0, th2, th4, th3, th5);
+    result+=tmp;
+    printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th0, th2, th5, th3, th4);
+    tmp=T5(th1, th0, th2, th5, th3, th4);
+    result+=tmp;
+    printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th1, th3, th4, th5);
+    tmp=T5(th2, th0, th1, th3, th4, th5);
+    result+=tmp;
+    printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th1, th4, th3, th5);
+    tmp=T5(th2, th0, th1, th4, th3, th5);
+    result+=tmp;
+    printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th1, th5, th3, th4);
+    tmp=T5(th2, th0, th1, th5, th3, th4);
+    result+=tmp;
     }
 
     result /= pow(2 * M_PI, 8);
@@ -487,31 +512,47 @@ double T6_total(const std::vector<double> &thetas_123, const std::vector<double>
     {
         if(th3==th4 && th4==th5) // All thetas_456 are equal
         {
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th3, th3);
             result = 3*T6(th0, th0, th0, th3, th3, th3);
-            result += 3*T6(th3, th3, th3, th0, th0, th0);
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th3, th0, th0, th0, th3);
+            result += 3*T6(th3, th3, th0, th0, th0, th3);
         }
         else
         {
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th4, th5);
             result = 3*T6(th0, th0, th0, th3, th4, th5);
-            result += T6(th3, th4, th5, th0, th0, th0);
-            result += T6(th3, th5, th4, th0, th0, th0);
-            result += T6(th4, th5, th3, th0, th0, th0);
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th4, th0, th0, th0, th5);
+            result += T6(th3, th4, th0, th0, th0, th5);
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th5, th0, th0, th0, th4);
+            result += T6(th3, th5, th0, th0, th0, th4);
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th5, th0, th0, th0, th3);
+            result += T6(th4, th5, th0, th0, th0, th3);
         }
     }
     else if(th3==th4 && th4==th5) //All thetas_456 are equal
     {
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th3, th3, th3);
         result = T6(th0, th1, th2, th3, th3, th3);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th2, th1, th3, th3, th3);
         result += T6(th0, th2, th1, th3, th3, th3);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th2, th0, th3, th3, th3);
         result += T6(th1, th2, th0, th3, th3, th3);
-        result += 3*T6(th3, th3, th3, th1, th2, th0);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th3, th3, th0, th2, th3);
+        result += 3*T6(th3, th3, th0, th1, th2, th3);
     }
     else
     {
+    printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th3, th4, th5);
     result = T6(th0, th1, th2, th3, th4, th5);
+    printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th2, th1, th3, th4, th5);
     result += T6(th0, th2, th1, th3, th4, th5);
+    printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th2, th0, th3, th4, th5);
     result += T6(th1, th2, th0, th3, th4, th5);
+    printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th4, th0, th1, th2, th5);
     result += T6(th3, th4, th5, th1, th2, th0);
+    printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th5, th0, th1, th2, th4);
     result += T6(th3, th5, th4, th1, th2, th0);
+    printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th5, th0, th1, th2, th3);
     result += T6(th4, th5, th3, th1, th2, th0);
     }
 
@@ -668,6 +709,7 @@ double T5(const double &theta1, const double &theta2, const double &theta3, cons
     double thetaMin_456 = std::min({theta4, theta5, theta6});
     double thetaMin = std::max({thetaMin_123, thetaMin_456});
     double lMax = 10. / thetaMin;
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
 
     // Create container
     ApertureStatisticsCovarianceContainer container;
@@ -705,7 +747,7 @@ double T6(const double &theta1, const double &theta2, const double &theta3, cons
     double thetaMin = std::max({thetaMin_123, thetaMin_456});
     double lMax = 10. / thetaMin;
 
-
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
     // Integral over ell 1
     std::vector<double> thetas1{theta1, theta2};
     ApertureStatisticsCovarianceContainer container;
@@ -916,6 +958,7 @@ int integrand_T4(unsigned ndim, size_t npts, const double *vars, void *container
     if (npts > 1e8)
     {
         std::cerr << "WARNING: Large number of points: " << npts << std::endl;
+        return 1;
     };
 
     // Allocate memory on device for integrand values
@@ -970,6 +1013,7 @@ int integrand_T5(unsigned ndim, size_t npts, const double *vars, void *container
     if (npts > 1e8)
     {
         std::cerr << "WARNING: Large number of points: " << npts << std::endl;
+        return 1;
     };
 
     // Allocate memory on device for integrand values
@@ -1017,6 +1061,7 @@ int integrand_T6(unsigned ndim, size_t npts, const double *vars, void *container
     if (npts > 1e8)
     {
         std::cerr << "WARNING: Large number of points: " << npts << std::endl;
+        return 1;
     };
 
     // Allocate memory on device for integrand values
@@ -1314,10 +1359,10 @@ int thread_index=blockIdx.x*blockDim.x+threadIdx.x;
         double z=vars[i*ndim+6];
 
         double l3 = sqrt(l1 * l1 + l2 * l2 + 2 * l1 * l2 * cos(phi1));
-        double l6 = sqrt(l1 * l1 + l5 * l5 - 2 * l1 * l5 * cos(phi2));
+        double l6 = sqrt(l1 * l1 + l5 * l5 + 2 * l1 * l5 * cos(phi2));
         double l4=l1;
 
-        if(l1<=dev_lMin || l2<=dev_lMin || l3<=dev_lMin || l4<=dev_lMin || l5<=dev_lMin || l6<=dev_lMin)
+        if(l1<=dev_lMin || l2<=dev_lMin || l3<=dev_lMin || l4<=dev_lMin || l5<=dev_lMin || l6<=dev_lMin || l3>dev_lMax || l6 >dev_lMax)
         {
             value[i]=0;
         }
@@ -1357,17 +1402,18 @@ int thread_index=blockIdx.x*blockDim.x+threadIdx.x;
 
         double l3x = l3*cos(phi3);
         double l3y = l3*sin(phi3);
-        double l6 = l3*l3+l4*l4+l5*l5+2*(l3*l4*cos(phi3-phi4)+l3*l5*cos(phi3-phi5)+l4*l5*cos(phi4-phi5));
+        double l6 = l3*l3+l4*l4+l5*l5+2*(l3*l4*cos(phi3-phi4)-l3*l5*cos(phi3-phi5)-l4*l5*cos(phi4-phi5));
         if(l6>0)
         {
         l6=sqrt(l6);
         }
         else
         {
+            printf("l6 is negative\n");
             l6=0;
         }
 
-        if(l3<=dev_lMin || l4<=dev_lMin || l5<=dev_lMin || l6<=dev_lMin)
+        if(l3<=dev_lMin || l4<=dev_lMin || l5<=dev_lMin || l6<=dev_lMin || l6 > dev_lMax)
         {
             value[i]=0;
         }
@@ -1382,11 +1428,7 @@ int thread_index=blockIdx.x*blockDim.x+threadIdx.x;
             result *= l3 * l4 * l5;
             result*=Gfactor;
 
-            if(!isfinite(result))
-            {
-            //    printf("%f %f %f %e %f %e %e\n", l3, l4, l5, m, z, trispec, Gfactor);
-            }
-            //printf("%e %f %e %e %e %e %.2e \n", m, z, l2, l3, l5, l6, trispectrum_integrand(m, z, l2, l3, l5, l6));
+
             value[i]=result;
         }
     }
