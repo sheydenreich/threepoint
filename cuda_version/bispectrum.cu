@@ -33,6 +33,7 @@ __constant__ double dev_Pk[n_kbins];
 double Pk[n_kbins];
 bool Pk_given;
 
+double D1_array[n_redshift_bins];
 __constant__ double dev_D1_array[n_redshift_bins];      // Array for growth factor
 __constant__ double dev_r_sigma_array[n_redshift_bins]; // Array for r(sigma)
 __constant__ double dev_n_eff_array[n_redshift_bins];   // Array for n_eff
@@ -199,7 +200,6 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_g_array, g_array, n_redshift_bins * sizeof(double)));
 
   // Calculating Non-linear scales
-  double D1_array[n_redshift_bins];
   double r_sigma_array[n_redshift_bins];
   double n_eff_array[n_redshift_bins];
   double ncur_array[n_redshift_bins];
@@ -970,12 +970,13 @@ __device__ double dev_GQ96_of_Pk(double a, double b, double ell)
 __device__ double dev_Pell(double ell)
 {
   double P_shapenoise=0.5*dev_sigma*dev_sigma/dev_n;
+
   if(ell==0) return P_shapenoise;
 
   if(dev_constant_powerspectrum)
   {
   return P_shapenoise;
-  //printf("%f, %f,  %.2e \n",dev_sigma, dev_n, P_shapenoise);
+
   }
   else
   {

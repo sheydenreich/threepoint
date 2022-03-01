@@ -48,6 +48,7 @@ extern __constant__ double dev_Pk[n_kbins];
 extern double Pk[n_kbins];
 extern bool Pk_given;
 
+extern double D1_array[n_redshift_bins];
 extern __constant__ double dev_D1_array[n_redshift_bins]; // Array for growth factor
 extern __constant__ double dev_r_sigma_array[n_redshift_bins]; // Array for r(sigma)
 extern __constant__ double dev_n_eff_array[n_redshift_bins]; // Array for n_eff
@@ -310,5 +311,9 @@ __device__ double dev_limber_integrand_power_spectrum(double ell, double z);
 
 __device__ double dev_limber_integrand_prefactor(double z, double g_value);
 double limber_integrand_prefactor(double z, double g_value);
+
+
+
+
 
 #endif //BISPECTRUM_CUH
