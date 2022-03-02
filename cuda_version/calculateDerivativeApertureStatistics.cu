@@ -85,10 +85,10 @@ Example:
   int N = thetas.size();
 
   // User output
-  std::cerr << "Using cosmology from " << cosmo_paramfile << ":" << std::endl;
-  std::cerr << cosmo;
-  std::cerr << "Using thetas in " << thetasfn << std::endl;
-  std::cerr << "Writing to:" << outfn << std::endl;
+  std::cout << "Using cosmology from " << cosmo_paramfile << ":" << std::endl;
+  std::cout << cosmo;
+  std::cout << "Using thetas in " << thetasfn << std::endl;
+  std::cout << "Writing to:" << outfn << std::endl;
   if (five_point)
   {
     std::cerr << "Using five-point stencil" << std::endl;

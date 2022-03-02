@@ -96,16 +96,16 @@ Example:
   int N = thetas.size();
 
   // User output
-  std::cerr << "Using cosmology from " << cosmo_paramfile << ":" << std::endl;
-  std::cerr << cosmo;
-  std::cerr << "Using thetas in " << thetasfn << std::endl;
-  std::cerr << "Covariance from " << covariance_paramfile << ":" << std::endl;
-  std::cerr << covPar;
+  std::cout << "Using cosmology from " << cosmo_paramfile << ":" << std::endl;
+  std::cout << cosmo;
+  std::cout << "Using thetas in " << thetasfn << std::endl;
+  std::cout << "Covariance from " << covariance_paramfile << ":" << std::endl;
+  std::cout << covPar;
   if(sigma!=0)
-    std::cerr << "Calculating Power Spectrum WITH shapenoise, sigma=" <<sigma<< std::endl;
+    std::cout << "Calculating Power Spectrum WITH shapenoise, sigma=" <<sigma<< std::endl;
   else
-    std::cerr << "Calculating Power Spectrum WITHOUT shapenoise" << std::endl;
-  std::cerr << "Writing to:" << outfn << std::endl;
+    std::cout << "Calculating Power Spectrum WITHOUT shapenoise" << std::endl;
+  std::cout << "Writing to:" << outfn << std::endl;
 
   // Initialize Bispectrum
 
@@ -114,7 +114,7 @@ Example:
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n, &n, sizeof(double)));
 
   if (nz_from_file) {
-    std::cerr << "Using n(z) from " << nzfn << std::endl;
+    std::cout << "Using n(z) from " << nzfn << std::endl;
     set_cosmology(cosmo, &nz);
   } else {
     set_cosmology(cosmo);
