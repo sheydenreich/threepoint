@@ -1429,7 +1429,7 @@ int thread_index=blockIdx.x*blockDim.x+threadIdx.x;
             double result = uHat(l3 * theta3) 
             * uHat(l4 * theta4) * uHat(l5 * theta5) * uHat(l6 * theta6);
 
-            double trispec=/trispectrum_limber_integrated(0, dev_z_max, m, l3, l4, l5, l6);//trispectrum_integrand(m, z, l3, l4, l5, l6);
+            double trispec=trispectrum_limber_integrated(0, dev_z_max, m, l3, l4, l5, l6);//trispectrum_integrand(m, z, l3, l4, l5, l6);
             result*=trispec;
             result *= l3 * l4 * l5;
             result*=Gfactor;
