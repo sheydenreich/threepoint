@@ -478,3 +478,15 @@ __device__ double trispectrum_integrand(double m, double z, double l1, double l2
 
     return result;
 }
+
+__device__ double trispectrum_limber_integrated(double a, double b, double m, double l1, double l2, double l3, double l4)
+{
+  int i;
+  double cx, dx, q;
+  cx = (a + b) / 2;
+  dx = (b - a) / 2;
+  q = 0;
+  for (i = 0; i < 48; i++)
+    q += dev_W96[i] * (trispectrum_integrand(m, cx - dx * dev_A96[i], l1, l2, l3, l4) + trispectrum_integrand(m, cx + dx * dev_A96[i], l1, l2, l3, l4));
+  return (q * dx);
+}

@@ -632,8 +632,8 @@ double T2(const double &theta1, const double &theta2, const double &theta3,
     // Integral over ell 3
     std::vector<double> thetas2{theta5, theta6};
     container.thetas_123 = thetas2;
-    //thetaMin=std::min({theta5, theta6});
-    //lMax = 10./thetaMin;
+    thetaMin=std::min({theta5, theta6});
+    lMax = 10./thetaMin;
 
     double result_A2, error_A2;
 
@@ -642,8 +642,8 @@ double T2(const double &theta1, const double &theta2, const double &theta3,
     // Integral over ell 2
     std::vector<double> thetas3{theta3, theta4};
     container.thetas_123 = thetas3;
-    //thetaMin=std::min({theta3, theta4});
-    //lMax = 10./thetaMin;
+    thetaMin=std::min({theta3, theta4});
+    lMax = 10./thetaMin;
     double result_B, error_B;
     if (type == 0)
     {
@@ -773,10 +773,16 @@ double T6(const double &theta1, const double &theta2, const double &theta3, cons
 
     double mmin=pow(10, logMmin);
     double mmax=pow(10, logMmax);
-    double vals_min[8] = {lMin, lMin, lMin, 0, 0, 0, mmin, 0};
-    double vals_max[8] = {lMax, lMax, lMax, 2*M_PI, 2*M_PI, 2*M_PI, mmax, z_max}; 
+    // double vals_min[8] = {lMin, lMin, lMin, 0, 0, 0, mmin, 0};
+    // double vals_max[8] = {lMax, lMax, lMax, 2*M_PI, 2*M_PI, 2*M_PI, mmax, z_max}; 
 
-    hcubature_v(1, integrand_T6, &container, 8, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+    // hcubature_v(1, integrand_T6, &container, 8, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+
+    double vals_min[7] = {lMin, lMin, lMin, 0, 0, 0, mmin};
+    double vals_max[7] = {lMax, lMax, lMax, 2*M_PI, 2*M_PI, 2*M_PI, mmax}; 
+
+    hcubature_v(1, integrand_T6, &container, 7, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+
 
     std::cerr<<result_A1<<" "<<result<<std::endl;
     return result_A1* result;
@@ -1057,7 +1063,7 @@ int integrand_T6(unsigned ndim, size_t npts, const double *vars, void *container
     };
 
     ApertureStatisticsCovarianceContainer *container_ = (ApertureStatisticsCovarianceContainer *)container;
-
+    std::cerr<<npts<<std::endl;
     if (npts > 1e8)
     {
         std::cerr << "WARNING: Large number of points: " << npts << std::endl;
@@ -1398,7 +1404,7 @@ int thread_index=blockIdx.x*blockDim.x+threadIdx.x;
         double phi4=vars[i*ndim+4];
         double phi5=vars[i*ndim+5];
         double m=vars[i*ndim+6];
-        double z=vars[i*ndim+7];
+      //  double z=vars[i*ndim+7];
 
         double l3x = l3*cos(phi3);
         double l3y = l3*sin(phi3);
@@ -1409,7 +1415,7 @@ int thread_index=blockIdx.x*blockDim.x+threadIdx.x;
         }
         else
         {
-            printf("l6 is negative\n");
+            //printf("l6 is negative\n");
             l6=0;
         }
 
@@ -1423,7 +1429,7 @@ int thread_index=blockIdx.x*blockDim.x+threadIdx.x;
             double result = uHat(l3 * theta3) 
             * uHat(l4 * theta4) * uHat(l5 * theta5) * uHat(l6 * theta6);
 
-            double trispec=trispectrum_integrand(m, z, l3, l4, l5, l6);
+            double trispec=/trispectrum_limber_integrated(0, dev_z_max, m, l3, l4, l5, l6);//trispectrum_integrand(m, z, l3, l4, l5, l6);
             result*=trispec;
             result *= l3 * l4 * l5;
             result*=Gfactor;
