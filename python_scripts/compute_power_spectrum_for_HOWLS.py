@@ -12,6 +12,7 @@ MyManager.register('np_zeros', np.zeros, multiprocessing.managers.ArrayProxy)
 
 
 startpath = '/vol/euclid7/euclid7_2/llinke/HOWLS/'
+# '/vol/euclid7/euclid7_2/llinke/HOWLS/'
 
 
 def compute_power_spectrum_of_field(filepath,savename):
@@ -25,7 +26,7 @@ def compute_power_spectrum_of_field(filepath,savename):
 
     field = fits.open(filepath)
     data = (field[0].data)[0]
-    result,bins = extract_power_spectrum(data, fieldsize)
+    result,bins = extract_power_spectrum(data, fieldsize, lmin=10, lmax=5e4, bins=128)
     np.savetxt(savename,result)
     return result
 
@@ -46,7 +47,8 @@ if(__name__=='__main__'):
             filenames = np.sort([filename for filename in _filenames if filename.endswith(".fits")])
             # if not 'SLICS' in dirpath:
             	# dir_end_path = dirpath.split('/')[-1]
-            savepath = "/vol/euclid2/euclid2_raid2/sven/HOWLS/power_spectra"+dirpath.split('convergence_maps')[1]
+            savepath = "/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/Map3_Covariances/GaussianRandomFields_slicslike/"
+#"/vol/euclid2/euclid2_raid2/sven/HOWLS/power_spectra"+dirpath.split('convergence_maps')[1]
             print('Reading convergence maps from ',dirpath)
             print('Writing power spectra to ',savepath)
             if not os.path.exists(savepath):

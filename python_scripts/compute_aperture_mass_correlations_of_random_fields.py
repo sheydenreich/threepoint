@@ -330,7 +330,8 @@ if(__name__=='__main__'):
     elif(INPUT_FILE_POWER_SPECTRUM):
         power_spectrum = np.loadtxt(args.power_spectrum_filename)
         filename = args.power_spectrum_filename.split("/")[-1]
-        savepath = '/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_cosmicShearShapenoise/'
+        savepath = '/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/Map3_Covariances/GaussianRandomFields_slicslike/'
+        #'/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_cosmicShearShapenoise/'
         #'/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/Map3_Covariances/GaussianRandomFields_cosmicShearShapenoise/'
 #'/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/input_powerspectrum/'+filename.split(".")[0]
         

@@ -13,7 +13,7 @@ class MyManager(multiprocessing.managers.BaseManager):
 MyManager.register('np_zeros', np.zeros, multiprocessing.managers.ArrayProxy)
 
 
-startpath = '/vol/euclid2/euclid2_raid2/sven/MS/'
+startpath = '/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/Map3_Covariances/MS/'
 
 def compute_aperture_masses_of_field(los,theta_ap_array,save_map=None,use_polynomial_filter=False):
     fieldsize = 4.*60
@@ -46,7 +46,7 @@ if(__name__=='__main__'):
     if not os.path.exists(savepath):
         os.makedirs(savepath)
 
-    compute_all_aperture_masses(all_los,savepath+'/',n_processes=64,aperture_masses = [0.5,1,2,4,8,16,32])
+    compute_all_aperture_masses(all_los,savepath+'/',n_processes=64,aperture_masses = [2,4,8,16])
 
     # for (dirpath,_,_filenames) in os.walk(startpath+"shear_catalogues/"):
     #     if(len(_filenames)>2):
