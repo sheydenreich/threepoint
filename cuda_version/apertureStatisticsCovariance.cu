@@ -781,7 +781,7 @@ double T6(const double &theta1, const double &theta2, const double &theta3, cons
     double vals_min[7] = {lMin, lMin, lMin, 0, 0, 0, mmin};
     double vals_max[7] = {lMax, lMax, lMax, 2*M_PI, 2*M_PI, 2*M_PI, mmax}; 
 
-    hcubature_v(1, integrand_T6, &container, 7, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+    hcubature_v(1, integrand_T6, &container, 7, vals_min, vals_max, 1e8, 0, 1e-1, ERROR_L1, &result, &error);
 
 
     std::cerr<<result_A1<<" "<<result<<std::endl;

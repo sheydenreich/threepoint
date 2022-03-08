@@ -1,4 +1,4 @@
-from utility import aperture_mass_computer, create_gaussian_random_field, create_gamma_field, extract_power_spectrum, create_gaussian_random_field_array
+from utility import aperture_mass_computer, create_lognormal_random_field, create_gamma_field
 import numpy as np
 import sys
 from tqdm import tqdm
@@ -7,9 +7,11 @@ from multiprocessing import Pool
 import os
 import sys
 import argparse
+from scipy.interpolate import interp1d
+import scipy.integrate as integrate
 
 parser = argparse.ArgumentParser(
-    description='Script for computing third-order aperture mass correlations of random fields.')
+    description='Script for computing third-order aperture mass correlations of lognormal fields.')
 
 parser.add_argument(
     '--npix', default=4096, metavar='INT', type=int,
@@ -36,14 +38,15 @@ parser.add_argument(
     help='Also compute the cross-aperture statistics. default: %(default)s'
 )
 
-parser.add_argument(
-    '--power_spectrum', default=0, metavar='INT', type=int,
-    help='Type of power spectrum used. \n -1:\t power spectrum from input file \n 0:\t constant\n 1:\t (x/1e4)^2*exp(-(x/1e4)^2)\n 2:\t (x/1e4)*exp(-(x/1e4))\n default: %(default)s'
-)
 
 parser.add_argument(
     '--power_spectrum_filename',
-    help='if power_spectrum=-1, filename for the power spectrum'
+    help='filename for the power spectrum (of the final lognormal fields)'
+)
+
+parser.add_argument(
+    '--alpha', default=0.5, metavar='FLOAT', type=float,
+    help='Parameter describing departure from Gaussianity. default: %(default)s'
 )
 
 parser.add_argument(
@@ -68,59 +71,14 @@ import numpy as np
 global_fieldsize_deg = args.fieldsize
 n_pix = args.npix
 
-CONSTANT_POWERSPECTRUM = False
-ANALYTICAL_POWERSPECTRUM = False
-ANALYTICAL_POWERSPECTRUM_V2 = False
-INPUT_FILE_POWER_SPECTRUM = False
 
-if(args.power_spectrum<0):
-    print("Using power spectrum from input file: ",args.power_spectrum_filename)
-    INPUT_FILE_POWER_SPECTRUM = True
-    
-if(args.power_spectrum==0):
-    print("Using constant powerspectrum")
-    CONSTANT_POWERSPECTRUM = True
-
-if(args.power_spectrum==1):
-    print("Using (x/1e4)^2*exp(-(x/1e4)^2) powerspectrum")
-    ANALYTICAL_POWERSPECTRUM = True
-
-if(args.power_spectrum==2):
-    print("Using (x/1e4)*exp(-(x/1e4)) powerspectrum")
-    ANALYTICAL_POWERSPECTRUM_V2 = True
-
+print("Using power spectrum from input file: ",args.power_spectrum_filename)
+ 
 
 
 global_fieldsize_rad = global_fieldsize_deg*np.pi/180
 global_fieldsize_arcmin = global_fieldsize_deg*60.
 
-
-
-def random_shear_power_spectrum(npix,random_seed,n_bins,fieldsize,galaxy_density=None,shapenoise = 0.3):
-    shapenoise_1d = shapenoise/np.sqrt(2)
-    np.random.seed(random_seed)
-    if(galaxy_density is None):
-        shears = np.random.normal(0,shapenoise_1d,size=(npix,npix)) + 1.0j * np.random.normal(0,shapenoise_1d,size=(npix,npix))
-    else:
-        print("Galaxy number densities other than npix^2/fieldsize^2 not yet implemented.")
-        sys.exit()
-    return extract_power_spectrum(shears,fieldsize,n_bins,npix/2)
-
-def compute_random_shear_power_spectrum_kernel(kwargs):
-    result,npix,fieldsize,random_seed,n_bins,realisation = kwargs
-    power_spectrum,_ = random_shear_power_spectrum(npix,random_seed,n_bins,fieldsize)
-    result[:,realisation] = power_spectrum
-
-def compute_random_shear_power_spectra(npix,fieldsize,n_realisations,n_bins,n_processes=64):
-    m = MyManager()
-    m.start()
-    final_results = m.np_zeros((n_bins,n_realisations))
-
-    with Pool(processes=n_processes) as p:
-        args = [[final_results,npix,fieldsize,i**3+250*i,n_bins,i] for i in range(n_realisations)]
-        for i in tqdm(p.imap_unordered(compute_random_shear_power_spectrum_kernel,args),total=n_realisations):
-            pass
-    return final_results
 
 
 def random_aperture_mass_correlation(npix,thetas,random_seed,galaxy_density=None,shapenoise = 0.3, periodic_boundary=True):
@@ -154,14 +112,10 @@ def compute_random_aperture_mass_correlations(npix,thetas,n_realisations,n_proce
     return final_results
 
 
-def aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,random_seed,compute_gamma,compute_kappa,galaxy_density=None,shapenoise = 0.3):
+def aperture_mass_correlation_lognormal_field(power_spectrum, alpha, sigma, npix,thetas,random_seed,compute_gamma,compute_kappa,galaxy_density=None):
     if(galaxy_density is None):
-        if(INPUT_FILE_POWER_SPECTRUM):
-            ell = power_spectrum[:,0]
-            pkappa_of_ell = power_spectrum[:,1]
-            kappa_field = create_gaussian_random_field_array(ell,pkappa_of_ell,n_pix=npix,fieldsize=global_fieldsize_rad,random_seed=random_seed)
-        else:
-            kappa_field = create_gaussian_random_field(power_spectrum,n_pix=npix,fieldsize=global_fieldsize_rad,random_seed=random_seed)
+        kappa_field=create_lognormal_random_field(power_spectrum,alpha,random_seed=random_seed,sigma=sigma)
+        
         if(args.substract_mean):
             kappa_field = kappa_field - np.mean(kappa_field)
         if(np.any(np.isnan(kappa_field))):
@@ -184,15 +138,15 @@ def aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,r
 
     return result_gamma,result_kappa
 
-def aperture_mass_correlation_gaussian_random_field_kernel(kwargs):
-    power_spectrum,final_results_gamma,final_results_kappa,npix,thetas,random_seed,realisation,compute_gamma,compute_kappa = kwargs
-    result_gamma,result_kappa = aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,random_seed,compute_gamma,compute_kappa)
+def aperture_mass_correlation_lognormal_field_kernel(kwargs):
+    power_spectrum, alpha, sigma, final_results_gamma,final_results_kappa,npix,thetas,random_seed,realisation,compute_gamma,compute_kappa = kwargs
+    result_gamma,result_kappa = aperture_mass_correlation_lognormal_field(power_spectrum, alpha, sigma, npix,thetas,random_seed,compute_gamma,compute_kappa)
     if(compute_gamma):
         final_results_gamma[:,:,:,:,realisation] = result_gamma
     if(compute_kappa):
         final_results_kappa[:,:,:,:,realisation] = result_kappa
 
-def compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,npix,thetas,n_realisations,n_processes=64,compute_gamma=True,compute_kappa=False):
+def compute_aperture_mass_correlations_of_lognormal_fields(power_spectrum,alpha, sigma,npix,thetas,n_realisations,n_processes=64,compute_gamma=True,compute_kappa=False):
     m = MyManager()
     m.start()
     n_theta = len(thetas)
@@ -207,8 +161,8 @@ def compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,
         final_results_kappa = None
 
     with Pool(processes=n_processes) as p:
-        args = [[power_spectrum,final_results_gamma,final_results_kappa,npix,thetas,(i**3+250*i)%2**32,i,compute_gamma,compute_kappa] for i in range(n_realisations)]
-        for i in tqdm(p.imap_unordered(aperture_mass_correlation_gaussian_random_field_kernel,args),total=n_realisations):
+        args = [[power_spectrum, alpha, sigma, final_results_gamma,final_results_kappa,npix,thetas,(i**3+250*i)%2**32,i,compute_gamma,compute_kappa] for i in range(n_realisations)]
+        for i in tqdm(p.imap_unordered(aperture_mass_correlation_lognormal_field_kernel,args),total=n_realisations):
             pass
 
     return final_results_gamma,final_results_kappa
@@ -248,7 +202,6 @@ def extract_aperture_masses(shears,npix,thetas,compute_mcross=False,kappa_field=
             sys.exit()
 
     index_maxtheta = int(round(maxtheta/(global_fieldsize_arcmin)*npix*4)) #take 4* the aperture radius and cut it off
-    # print(index_maxtheta,npix,maxtheta,global_fieldsize_arcmin)
     if(periodic_boundary):
         index_maxtheta = 0
 
@@ -303,39 +256,22 @@ def extract_aperture_masses(shears,npix,thetas,compute_mcross=False,kappa_field=
 
 
 if(__name__=='__main__'):
-    # only shapenoise
-#     res = compute_random_aperture_mass_correlations(4096,[1,2,4,8,16],2048,n_processes=64, periodic_boundary=True)
-# #    np.save('map_cubed_only_shapenoise_without_zeropadding', res)
-#     np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/map_cubed_only_shapenoise_without_zeropadding',res)
 
     
-    #res = compute_random_aperture_mass_correlations(4096,[1,2,4,8,16],1,n_processes=12, periodic_boundary=True)
-    #np.save('test',res)
+    savepath = f"/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/Map3_Covariances/LognormalFields_alpha_{args.alpha:.1f}/"
 
-    if(CONSTANT_POWERSPECTRUM):
-        def power_spectrum(x):
-            return 0.3**2/(2.*n_pix**2/global_fieldsize_rad**2)*np.ones(x.shape)
-        savepath = '/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/constant_powerspectrum/'
-        
-    elif(ANALYTICAL_POWERSPECTRUM):
-        def power_spectrum(x):
-            return (x/10000)**2*np.exp(-(x/10000)**2)
-        savepath = '/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum/'
+# Get sigma (standard-deviation of GRF = correlation function at zero)
+    power_spectrum = np.loadtxt(args.power_spectrum_filename)
+    ells = power_spectrum[:,0]
+    vals = power_spectrum[:,1]
 
-    elif(ANALYTICAL_POWERSPECTRUM_V2):
-        def power_spectrum(x):
-            return x/10000*np.exp(-x/10000)
-        savepath = '/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/analytical_powerspectrum_v2/'
+    power_spectrum_func = interp1d(ells,vals,fill_value=0,bounds_error=False)
 
-    elif(INPUT_FILE_POWER_SPECTRUM):
-        power_spectrum = np.loadtxt(args.power_spectrum_filename)
-        filename = args.power_spectrum_filename.split("/")[-1]
-        savepath = '/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/Map3_Covariances/GaussianRandomFields_slicslike/'
-        #'/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_cosmicShearShapenoise/'
-        #'/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/Map3_Covariances/GaussianRandomFields_cosmicShearShapenoise/'
-#'/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/input_powerspectrum/'+filename.split(".")[0]
-        
-    res_gamma,res_kappa = compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,n_pix,[2,4,8,16],args.realisations,n_processes=args.processes,compute_kappa=args.compute_from_kappa)
+    sigma = np.sqrt(integrate.quad(lambda ell: ell*power_spectrum_func(ell),10,10**5)[0]/(2.*np.pi))
+    print(sigma)
+# Do Calculation
+    res_gamma,res_kappa = compute_aperture_mass_correlations_of_lognormal_fields(power_spectrum_func,args.alpha, sigma, n_pix,[2,4,8,16],args.realisations,n_processes=args.processes,compute_kappa=args.compute_from_kappa)
+# Output
     if not os.path.exists(savepath):
         os.makedirs(savepath)
     savename = 'npix_'+str(n_pix)+'_fieldsize_'+str(np.int(np.round(global_fieldsize_deg)))
@@ -344,25 +280,3 @@ if(__name__=='__main__'):
     np.save(savepath+'map_cubed_from_gamma_'+savename,res_gamma)
     if(args.compute_from_kappa):
         np.save(savepath+'map_cubed_from_kappa_'+savename,res_kappa)
-
-
-
-    # res = compute_random_shear_power_spectra(4096,global_fieldsize_rad,1024,100)
-    # np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/power_spectra_only_shapenoise',res)
-    # kbins = random_shear_power_spectrum(4096,1,100,global_fieldsize_rad)[1]
-    # np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/power_spectra_only_shapenoise_bins',kbins)
-
-    #all_theta_MS = np.zeros((5,5,5,1,32))
-    #for los in range(32):
-    #    print(los)
-    #    los_no1 = los//8
-    #    los_no2 = los%8
-    #    ms_field = np.loadtxt("/vol/euclid7/euclid7_2/sven/millennium_maps/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
-        # kappa_field = ms_field[:,4].reshape(4096,4096)
-    #    shear_field = ms_field[:,2] + 1.0j*ms_field[:,3]
-        # PS,bins = extract_power_spectrum(kappa_field,global_fieldsize_rad,100,4096/2)
-        # all_ps_MS[:,los] = PS
-    #    all_theta_MS[:,:,:,:,los] = extract_aperture_masses(shear_field,4096,[1,2,4,8,16],compute_mcross=False)
-    #np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/map_cubed_direct',all_theta_MS)
-    # np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/power_spectra_MS',all_ps_MS)
-    # np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/power_spectra_MS_bins',bins)
