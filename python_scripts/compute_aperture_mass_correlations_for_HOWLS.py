@@ -79,7 +79,7 @@ if(__name__=='__main__'):
     _filenames=os.listdir(startpath)
     filenames=np.sort(([filename for filename in _filenames if ".fits" in filename]))
 
-    compute_all_aperture_masses(startpath, filenames, outpath, [2,4,6,8], n_processes=64, shape_noise=0.5)
+    compute_all_aperture_masses(startpath, filenames[:10], outpath, [2,4,6,8], n_processes=64, shape_noise=0.5)
 
 
     # for (dirpath,_,_filenames) in os.walk(startpath+"shear_catalogues/"):
