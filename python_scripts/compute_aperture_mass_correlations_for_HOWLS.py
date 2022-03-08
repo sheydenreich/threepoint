@@ -7,6 +7,7 @@ import multiprocessing.managers
 from multiprocessing import Pool
 from astropy.io import fits
 import os
+from numpy.random import default_rng
 
 class MyManager(multiprocessing.managers.BaseManager):
     pass
@@ -24,7 +25,7 @@ def compute_aperture_masses_of_field(filepath,theta_ap_array,save_map=None,use_p
 
     field = fits.open(filepath)
     data = field[1].data
-
+    
     # if(slics):
     #     X_pos = data['x_arcmin']
     #     Y_pos = data['y_arcmin']
@@ -37,9 +38,9 @@ def compute_aperture_masses_of_field(filepath,theta_ap_array,save_map=None,use_p
     shear_noise = -data['gamma1_noise']+1.0j*data['gamma2_noise']
 
     if shape_noise > 0:
-        sn1=np.random.normal(scale=shape_noise)
-        sn2=np.random.normal(scale=shape_noise)
-        noise=sn1+1.0j*sn2
+        rng=default_rng(42)
+        sn=rng.normal((len(shear_noise), 2), scale=shape_noise)
+        noise=sn[:,0]+1.0j*sn[:,1]
         shear_noise=(shear_noise+noise)/(1+shear_noise*np.conj(noise))
     # print("Flipping e2!")
     # shear_noise = -data['gamma1_noise']-1.0j*data['gamma2_noise']
