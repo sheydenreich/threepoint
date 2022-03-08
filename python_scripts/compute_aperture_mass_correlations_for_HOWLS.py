@@ -1,3 +1,4 @@
+from tracemalloc import start
 from utility import aperture_mass_computer,extract_aperture_masses
 import numpy as np
 import sys
@@ -12,10 +13,7 @@ class MyManager(multiprocessing.managers.BaseManager):
 MyManager.register('np_zeros', np.zeros, multiprocessing.managers.ArrayProxy)
 
 
-startpath = '/vol/euclid2/euclid2_raid2/sven/HOWLS/'
-
-
-def compute_aperture_masses_of_field(filepath,theta_ap_array,save_map=None,use_polynomial_filter=False):
+def compute_aperture_masses_of_field(filepath,theta_ap_array,save_map=None,use_polynomial_filter=False, shape_noise=0.0):
     slics = ('SLICS' in filepath)
     if(slics):
         fieldsize = 600.
@@ -37,6 +35,11 @@ def compute_aperture_masses_of_field(filepath,theta_ap_array,save_map=None,use_p
     X_pos = data['ra_gal']*60.
     Y_pos = data['dec_gal']*60.
     shear_noise = -data['gamma1_noise']+1.0j*data['gamma2_noise']
+
+    if shape_noise > 0:
+        sn1=np.random.normal(scale=shape_noise)
+        sn2=np.random.norm(scale=shape_noise)
+        shear_noise=shear_noise+sn1+1.0j*sn2
     # print("Flipping e2!")
     # shear_noise = -data['gamma1_noise']-1.0j*data['gamma2_noise']
 
@@ -44,11 +47,11 @@ def compute_aperture_masses_of_field(filepath,theta_ap_array,save_map=None,use_p
 
     return result
 
-def compute_all_aperture_masses(openpath,filenames,savepath,aperture_masses = [1.17,2.34,4.69,9.37],n_processes = 64,use_polynomial_filter=False):
+def compute_all_aperture_masses(openpath,filenames,savepath,aperture_masses = [1.17,2.34,4.69,9.37],n_processes = 64,use_polynomial_filter=False, shape_noise=0.0):
     n_files = len(filenames)
     with Pool(processes=n_processes) as p:
         # print('test')
-        result = [p.apply_async(compute_aperture_masses_of_field, args=(openpath+filenames[i],aperture_masses,None,use_polynomial_filter,)) for i in range(n_files)]
+        result = [p.apply_async(compute_aperture_masses_of_field, args=(openpath+filenames[i],aperture_masses,None,use_polynomial_filter,shape_noise)) for i in range(n_files)]
         data = [p.get() for p in result]
         datavec = np.array([data[i] for i in range(len(data))])
         np.savetxt(savepath+'map_cubed',datavec)
@@ -67,18 +70,32 @@ if(__name__=='__main__'):
     # print("Computing test aperture mass maps:")
     # path_kappa_dustgrain = "/vol/euclid7/euclid7_2/llinke/HOWLS/convergence_maps/DUSTGRAIN_COSMO_128/kappa_noise_0_LCDM_Om02_ks_nomask_shear.fits"
 
-    for (dirpath,_,_filenames) in os.walk(startpath+"shear_catalogues/"):
-        if(len(_filenames)>2 and 'SLICS' in dirpath):
-            filenames = np.sort([filename for filename in _filenames if ".fits" in filename])
-            # if not 'SLICS' in dirpath:
-            	# dir_end_path = dirpath.split('/')[-1]
-            savepath = dirpath.split('shear_catalogues')[0]+'map_squared_4096_pix'+dirpath.split('shear_catalogues')[1]
-            print('Reading shear catalogues from ',dirpath)
-            print('Writing summary statistics to ',savepath)
-            if not os.path.exists(savepath):
-                os.makedirs(savepath)
 
-            compute_all_aperture_masses(dirpath+'/',filenames,savepath+'/',n_processes=64)#,aperture_masses = [0.5,1,2,4,8,16,32])
+    startpath = '/vol/euclid2/euclid2_raid2/sven/HOWLS/shear_catalogues/SLICS_LCDM/'
+    outpath = '/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/Map3_Covariances/SLICS_sn0_5/'
+
+    _filenames=os.listdir(startpath)
+    filenames=np.sort(([filename for filename in _filenames if ".fits" in filename]))
+
+    compute_all_aperture_masses(startpath, filenames, outpath, [2,4,6,8], n_processes=64, shape_noise=0.5)
+
+
+    # for (dirpath,_,_filenames) in os.walk(startpath+"shear_catalogues/"):
+    #     if(len(_filenames)>2 and 'SLICS' in dirpath):
+    #         filenames = np.sort([filename for filename in _filenames if ".fits" in filename])
+    #         # if not 'SLICS' in dirpath:
+    #         	# dir_end_path = dirpath.split('/')[-1]
+    #         savepath = dirpath.split('shear_catalogues')[0]+'map_squared_4096_pix'+dirpath.split('shear_catalogues')[1]
+    #         print('Reading shear catalogues from ',dirpath)
+    #         print('Writing summary statistics to ',savepath)
+    #         if not os.path.exists(savepath):
+    #             os.makedirs(savepath)
+
+    #         compute_all_aperture_masses(dirpath+'/',filenames,savepath+'/',n_processes=64)#,aperture_masses = [0.5,1,2,4,8,16,32])
+
+
+
+
 
     # for (dirpath,_,_filenames) in os.walk(startpath+"shear_catalogues/"):
     #     if(len(_filenames)>2 and 'SLICS' in dirpath):
