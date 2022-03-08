@@ -38,8 +38,9 @@ def compute_aperture_masses_of_field(filepath,theta_ap_array,save_map=None,use_p
 
     if shape_noise > 0:
         sn1=np.random.normal(scale=shape_noise)
-        sn2=np.random.norm(scale=shape_noise)
-        shear_noise=shear_noise+sn1+1.0j*sn2
+        sn2=np.random.normal(scale=shape_noise)
+        noise=sn1+1.0j*sn2
+        shear_noise=(shear_noise+noise)/(1+shear_noise*np.conj(noise))
     # print("Flipping e2!")
     # shear_noise = -data['gamma1_noise']-1.0j*data['gamma2_noise']
 
