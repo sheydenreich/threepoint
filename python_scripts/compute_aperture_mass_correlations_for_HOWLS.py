@@ -14,14 +14,14 @@ class MyManager(multiprocessing.managers.BaseManager):
 MyManager.register('np_zeros', np.zeros, multiprocessing.managers.ArrayProxy)
 
 
-def compute_aperture_masses_of_field(filepath,theta_ap_array,save_map=None,use_polynomial_filter=False, shape_noise=0.0):
+def compute_aperture_masses_of_field(filepath,theta_ap_array,save_map=None,use_polynomial_filter=False, shape_noise=0.0, seed=42):
     slics = ('SLICS' in filepath)
     if(slics):
         fieldsize = 600.
-        npix = 4096
+        npix = 1024
     else:
         fieldsize = 5*60.
-        npix = 2048
+        npix = 512
 
     field = fits.open(filepath)
     data = field[1].data
@@ -38,14 +38,14 @@ def compute_aperture_masses_of_field(filepath,theta_ap_array,save_map=None,use_p
     shear_noise = -data['gamma1_noise']+1.0j*data['gamma2_noise']
 
     if shape_noise > 0:
-        rng=default_rng(42)
+        rng=default_rng(seed=seed)
         sn=rng.normal(size=(len(shear_noise), 2), scale=shape_noise)
         noise=sn[:,0]+1.0j*sn[:,1]
         shear_noise=(shear_noise+noise)#/(1+shear_noise*np.conj(noise))
     # print("Flipping e2!")
     # shear_noise = -data['gamma1_noise']-1.0j*data['gamma2_noise']
 
-    result = extract_aperture_masses(X_pos,Y_pos,shear_noise,npix,theta_ap_array,fieldsize,compute_mcross=False,save_map=save_map,use_polynomial_filter=use_polynomial_filter)
+    result = extract_aperture_masses(X_pos,Y_pos,shear_noise,npix,theta_ap_array,fieldsize,compute_mcross=False,save_map=save_map,use_polynomial_filter=use_polynomial_filter, same_fieldsize_for_all_theta=True)
 
     return result
 
@@ -53,7 +53,7 @@ def compute_all_aperture_masses(openpath,filenames,savepath,aperture_masses = [1
     n_files = len(filenames)
     with Pool(processes=n_processes) as p:
         # print('test')
-        result = [p.apply_async(compute_aperture_masses_of_field, args=(openpath+filenames[i],aperture_masses,None,use_polynomial_filter,shape_noise)) for i in range(n_files)]
+        result = [p.apply_async(compute_aperture_masses_of_field, args=(openpath+filenames[i],aperture_masses,None,use_polynomial_filter,shape_noise, i)) for i in range(n_files)]
         data = [p.get() for p in result]
         datavec = np.array([data[i] for i in range(len(data))])
         np.savetxt(savepath+'map_cubed',datavec)
@@ -79,7 +79,7 @@ if(__name__=='__main__'):
     _filenames=os.listdir(startpath)
     filenames=np.sort(([filename for filename in _filenames if ".fits" in filename]))
 
-    compute_all_aperture_masses(startpath, filenames[:20], outpath, [2,4,6,8], n_processes=64, shape_noise=0.5)
+    compute_all_aperture_masses(startpath, filenames[:20], outpath, [2,4,6,8], n_processes=64, shape_noise=0.0)
 
 
     # for (dirpath,_,_filenames) in os.walk(startpath+"shear_catalogues/"):
