@@ -58,6 +58,9 @@ Example:
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);
 
+  sigma=0;
+  n=1;
+
   // Read in n_z
   std::vector<double> nz;
   if (nz_from_file) {
@@ -80,8 +83,8 @@ Example:
 
 
    // Initialize Bispectrum
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96, &A96, 48 * sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_W96, &W96, 48 * sizeof(double)));
+
+    copyConstants();
 
     if (nz_from_file) {
       std::cerr << "Using n(z) from " << nzfn << std::endl;
