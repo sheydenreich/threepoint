@@ -7,6 +7,7 @@ from multiprocessing import Pool
 import os
 import sys
 import argparse
+import scipy
 
 parser = argparse.ArgumentParser(
     description='Script for computing third-order aperture mass correlations of random fields.')
@@ -54,6 +55,15 @@ parser.add_argument(
 parser.add_argument(
     '--realisations', default=1024, metavar='INT', type=int,
     help='Number of realisations computed. default: %(default)s'
+)
+
+parser.add_argument(
+    '--savepath', default="", help="Outputpath"
+)
+
+parser.add_argument(
+    '--cutOutFromBiggerField', action='store_true',
+    help='Cut out the random fields from a random field with size 10x field_size.'
 )
 
 args = parser.parse_args()
@@ -154,19 +164,28 @@ def compute_random_aperture_mass_correlations(npix,thetas,n_realisations,n_proce
     return final_results
 
 
-def aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,random_seed,compute_gamma,compute_kappa,galaxy_density=None,shapenoise = 0.3):
+def aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,random_seed,compute_gamma,compute_kappa,galaxy_density=None, cutOutFromBiggerField=False):
     if(galaxy_density is None):
         if(INPUT_FILE_POWER_SPECTRUM):
             ell = power_spectrum[:,0]
             pkappa_of_ell = power_spectrum[:,1]
-            kappa_field = create_gaussian_random_field_array(ell,pkappa_of_ell,n_pix=npix,fieldsize=global_fieldsize_rad,random_seed=random_seed)
+            if cutOutFromBiggerField:
+                kappa_field = create_gaussian_random_field_array(ell,pkappa_of_ell,n_pix=5*npix,fieldsize=5*global_fieldsize_rad,random_seed=random_seed)
+            else:
+                kappa_field = create_gaussian_random_field_array(ell, pkappa_of_ell, n_pix=n_pix, fieldsize=global_fieldsize_rad, random_seed=random_seed)
         else:
-            kappa_field = create_gaussian_random_field(power_spectrum,n_pix=npix,fieldsize=global_fieldsize_rad,random_seed=random_seed)
+            if cutOutFromBiggerField:
+                kappa_field = create_gaussian_random_field(power_spectrum,n_pix=5*npix,fieldsize=5*global_fieldsize_rad,random_seed=random_seed)
+            else:
+                kappa_field = create_gaussian_random_field(power_spectrum,n_pix=npix,fieldsize=global_fieldsize_rad,random_seed=random_seed)
         if(args.substract_mean):
             kappa_field = kappa_field - np.mean(kappa_field)
         if(np.any(np.isnan(kappa_field))):
             print("Error! NAN in kappa!")
             sys.exit()
+
+        if cutOutFromBiggerField:
+            kappa_field=kappa_field[2*n_pix:3*n_pix, 2*n_pix:3*n_pix]
         if(compute_gamma):
             shears = create_gamma_field(kappa_field)
     else:
@@ -185,14 +204,14 @@ def aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,r
     return result_gamma,result_kappa
 
 def aperture_mass_correlation_gaussian_random_field_kernel(kwargs):
-    power_spectrum,final_results_gamma,final_results_kappa,npix,thetas,random_seed,realisation,compute_gamma,compute_kappa = kwargs
-    result_gamma,result_kappa = aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,random_seed,compute_gamma,compute_kappa)
+    power_spectrum,final_results_gamma,final_results_kappa,npix,thetas,random_seed,realisation,compute_gamma,compute_kappa, cutOutFromBiggerField = kwargs
+    result_gamma,result_kappa = aperture_mass_correlation_gaussian_random_field(power_spectrum,npix,thetas,random_seed,compute_gamma,compute_kappa, cutOutFromBiggerField=cutOutFromBiggerField)
     if(compute_gamma):
         final_results_gamma[:,:,:,:,realisation] = result_gamma
     if(compute_kappa):
         final_results_kappa[:,:,:,:,realisation] = result_kappa
 
-def compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,npix,thetas,n_realisations,n_processes=64,compute_gamma=True,compute_kappa=False):
+def compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,npix,thetas,n_realisations,n_processes=64,compute_gamma=True,compute_kappa=False, cutOutFromBiggerField=False):
     m = MyManager()
     m.start()
     n_theta = len(thetas)
@@ -207,7 +226,7 @@ def compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,
         final_results_kappa = None
 
     with Pool(processes=n_processes) as p:
-        args = [[power_spectrum,final_results_gamma,final_results_kappa,npix,thetas,(i**3+250*i)%2**32,i,compute_gamma,compute_kappa] for i in range(n_realisations)]
+        args = [[power_spectrum,final_results_gamma,final_results_kappa,npix,thetas,(i**3+250*i)%2**32,i,compute_gamma,compute_kappa, cutOutFromBiggerField] for i in range(n_realisations)]
         for i in tqdm(p.imap_unordered(aperture_mass_correlation_gaussian_random_field_kernel,args),total=n_realisations):
             pass
 
@@ -335,7 +354,13 @@ if(__name__=='__main__'):
         #'/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/Map3_Covariances/GaussianRandomFields_cosmicShearShapenoise/'
 #'/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_analytic/gaussian_random_field/input_powerspectrum/'+filename.split(".")[0]
         
-    res_gamma,res_kappa = compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,n_pix,[2,4,8,16],args.realisations,n_processes=args.processes,compute_kappa=args.compute_from_kappa)
+    res_gamma,res_kappa = compute_aperture_mass_correlations_of_gaussian_random_fields(power_spectrum,n_pix,[2,4,8,16],args.realisations,n_processes=args.processes,compute_kappa=args.compute_from_kappa, cutOutFromBiggerField=args.cutOutFromBiggerField)
+    
+    if(args.savepath!=""):
+        savepath=args.savepath
+    
+    
+    
     if not os.path.exists(savepath):
         os.makedirs(savepath)
     savename = 'npix_'+str(n_pix)+'_fieldsize_'+str(np.int(np.round(global_fieldsize_deg)))
