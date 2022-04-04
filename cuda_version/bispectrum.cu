@@ -393,7 +393,8 @@ __device__ double limber_integrand(double ell, double z)
   }
   double g_value = g_interpolated(idx,didx);
   double f_K_value = f_K_interpolated(idx,didx);
-  // printf("%.2f, %.2f, %.5e, %.5e \n",z,ell,limber_integrand_prefactor(z, g_value),P_k_nonlinear(ell/f_K_value, z));
+  //printf("%.2e, %.2e\n", z, f_K_value);
+  //printf("%.2f, %.2f, %.5e, %.5e \n",z,ell,dev_limber_integrand_prefactor(z, g_value),P_k_nonlinear(ell/f_K_value, z));
   return dev_limber_integrand_prefactor(z, g_value)*P_k_nonlinear(ell/f_K_value, z);
 }
 
@@ -459,7 +460,8 @@ int limber_integrand_wrapper(unsigned ndim, size_t npts, const double* vars, voi
   // Copy results to host
   CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim*npts*sizeof(double), cudaMemcpyDeviceToHost));
 
-  // std::cerr << value[5] << std::endl;
+  //std::cerr<<std::endl;
+  //std::cerr << value[5] << std::endl;
 
   cudaFree(dev_value); //Free values
   
@@ -470,6 +472,7 @@ int limber_integrand_wrapper(unsigned ndim, size_t npts, const double* vars, voi
 double Pell(double ell)
 {
   double P_shapenoise=0.5*sigma*sigma/n;
+  if(sigma==0) P_shapenoise=0;
   if(ell==0) return P_shapenoise;
 
   if(constant_powerspectrum)
@@ -484,7 +487,7 @@ double Pell(double ell)
     
     hcubature_v(1, limber_integrand_wrapper, &ell, 1, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
   
-    
+    //std::cerr<<ell<<" "<<result<<" "<<error<<" "<<P_shapenoise<<std::endl;
     return result+P_shapenoise;
   }
 }
