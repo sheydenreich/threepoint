@@ -130,15 +130,12 @@ Argument 10: Survey geometry, either circle, square, or infinite
   // Calculations
 
   int N = thetas.size();
-  int N_ind = N * (N + 1) * (N + 2) / 6; // Number of independent theta-combinations
-  int N_total = N_ind * N_ind;
+
 
   std::vector<double> Cov_term1s, Cov_term2s, Cov_term4s, Cov_term5s, Cov_term6s;
 
-  int completed_steps = 0;
-
-  auto begin = std::chrono::high_resolution_clock::now(); // Begin time measurement
-  for (int i = 0; i < N; i++)
+  std::vector<std::vector<double>> theta_combis;
+  for (int i=0; i<N; i++)
   {
     double theta1 = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
     for (int j = i; j < N; j++)
@@ -148,71 +145,71 @@ Argument 10: Survey geometry, either circle, square, or infinite
       {
         double theta3 = convert_angle_to_rad(thetas.at(k));
         std::vector<double> thetas_123 = {theta1, theta2, theta3};
-        for (int l = 0; l < N; l++)
+
+        theta_combis.push_back(thetas_123);
+      }
+    }
+  }
+
+  int N_ind = theta_combis.size(); // Number of independent theta-combinations
+  int N_total = N_ind * (N_ind+1) / 2;
+
+  int completed_steps = 0;
+
+  auto begin = std::chrono::high_resolution_clock::now(); // Begin time measurement
+  for (int i = 0; i < N_ind; i++)
+  {
+    for (int j=i; j<N_ind; j++)
+    {
+      try
+      {
+        if (calculate_T1)
         {
-          double theta4 = convert_angle_to_rad(thetas.at(l)); // Conversion to rad
-          for (int m = l; m < N; m++)
-          {
-            double theta5 = convert_angle_to_rad(thetas.at(m));
-            for (int n = m; n < N; n++)
-            {
-              double theta6 = convert_angle_to_rad(thetas.at(n));
-              std::vector<double> thetas_456 = {theta4, theta5, theta6};
-
-              try
-              {
-                if (calculate_T1)
-                {
-                  double term1 = T1_total(thetas_123, thetas_456);
-                  Cov_term1s.push_back(term1);
-                };
-                if (calculate_T2)
-                {
-                  double term2 = T2_total(thetas_123, thetas_456);
-                  Cov_term2s.push_back(term2);
-                };
-                if (calculate_T4)
-                {
-                  double term4 = T4_total(thetas_123, thetas_456);
-                  std::cerr<<"T4:"<<term4<<std::endl;
-                  Cov_term4s.push_back(term4);
-                };
-                if (calculate_T5)
-                {
-                  double term5 = T5_total(thetas_123, thetas_456);
-                  std::cerr<<"T5:"<<term5<<std::endl;
-                  Cov_term5s.push_back(term5);
-                }
-                if (calculate_T6)
-                {
-                  double term6 = T6_total(thetas_123, thetas_456);
-                  std::cerr<<"T6:"<<term6<<std::endl;
-                  Cov_term6s.push_back(term6);
-                }
-              }
-              catch (const std::exception &e)
-              {
-                std::cerr << e.what() << '\n';
-                return -1;
-              }
-
-              // Progress for the impatient user
-              auto end = std::chrono::high_resolution_clock::now();
-              auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
-              completed_steps++;
-              double progress = (completed_steps * 1.) / (N_total);
-
-              fprintf(stderr, "\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step. Last thetas: (%.2f, %.2f, %.2f, %.2f, %.2f, %.2f) [%s]",
-                      static_cast<int>(progress * 100),
-                      elapsed.count() * 1e-9 / 3600,
-                      (N_total - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
-                      elapsed.count() * 1e-9 / completed_steps,
-                      convert_rad_to_angle(theta1), convert_rad_to_angle(theta2), convert_rad_to_angle(theta3),
-                      convert_rad_to_angle(theta4), convert_rad_to_angle(theta5), convert_rad_to_angle(theta6), "arcmin");
-            }
-          }
+          double term1 = T1_total(theta_combis.at(i), theta_combis.at(j));
+          Cov_term1s.push_back(term1);
+        };
+        if (calculate_T2)
+        {
+          double term2 = T2_total(theta_combis.at(i), theta_combis.at(j));
+          Cov_term2s.push_back(term2);
+        };
+        if (calculate_T4)
+        {
+          double term4 = T4_total(theta_combis.at(i), theta_combis.at(j));
+          std::cerr<<"T4:"<<term4<<std::endl;
+          Cov_term4s.push_back(term4);
+        };
+        if (calculate_T5)
+        {
+          double term5 = T5_total(theta_combis.at(i), theta_combis.at(j));
+          std::cerr<<"T5:"<<term5<<std::endl;
+          Cov_term5s.push_back(term5);
+        }
+        if (calculate_T6)
+        {
+          double term6 = T6_total(theta_combis.at(i), theta_combis.at(j));
+          std::cerr<<"T6:"<<term6<<std::endl;
+          Cov_term6s.push_back(term6);
         }
       }
+      catch (const std::exception &e)
+      {
+        std::cerr << e.what() << '\n';
+        return -1;
+      }
+      // Progress for the impatient user
+      auto end = std::chrono::high_resolution_clock::now();
+      auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
+      completed_steps++;
+      double progress = (completed_steps * 1.) / (N_total);
+      
+      fprintf(stderr, "\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step. Last thetas: (%.2f, %.2f, %.2f, %.2f, %.2f, %.2f) [%s]",
+                            static_cast<int>(progress * 100),
+                            elapsed.count() * 1e-9 / 3600,
+                            (N_total - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
+                            elapsed.count() * 1e-9 / completed_steps,
+                            convert_rad_to_angle(theta_combis.at(i).at(0)), convert_rad_to_angle(theta_combis.at(i).at(1)), convert_rad_to_angle(theta_combis.at(i).at(2)),
+                            convert_rad_to_angle(theta_combis.at(j).at(0)), convert_rad_to_angle(theta_combis.at(j).at(1)), convert_rad_to_angle(theta_combis.at(j).at(2)), "arcmin");
     }
   }
 

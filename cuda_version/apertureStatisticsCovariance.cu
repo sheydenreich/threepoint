@@ -23,7 +23,7 @@ double sigmaW, VW, chiMax;
 
 void writeCov(const std::vector<double> &values, const int &N, const std::string &filename)
 {
-    if (values.size() != N * N)
+    if (values.size() != N * (N+1)/2)
     {
         throw std::out_of_range("writeCov: Values has wrong length");
     };
@@ -34,11 +34,30 @@ void writeCov(const std::vector<double> &values, const int &N, const std::string
         throw std::runtime_error("writeCov: Could not open " + filename);
     };
 
+    std::vector<double> cov_tmp(N*N);
+    int ix=0;
+    for (int i=0; i<N; i++)
+    {
+        for(int j=i; j<N; j++)
+        {
+            cov_tmp.at(i*N+j)=values.at(ix);
+            ix+=1;
+        }
+    }
+
+    for(int i=0; i<N; i++)
+    {
+        for(int j=0; j<i; j++)
+        {
+            cov_tmp.at(i*N+j)=cov_tmp.at(j*N+i);
+        }
+    }
+
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < N; j++)
         {
-            out << values.at(i * N + j) << " ";
+            out << cov_tmp.at(i * N + j) << " ";
         };
         out << std::endl;
     }
