@@ -363,12 +363,20 @@ double T4_total(const std::vector<double> &thetas_123, const std::vector<double>
 
     double result;
 
-    if(th0==th1 && th1==th2) // All thetas_123 are equal
+    if(th0==th1 && th0 == th2)
     {
-        if(th3==th4 && th4==th5) // All thetas_456 are equal
+
+        if(th3==th4 && th3==th5)
         {
             printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th0, th0, th3, th3);
             result = 9*T4(th3, th0, th0, th0, th3, th3);
+        }
+        else if(th3 == th4)
+        {
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th0, th0, th3, th5);
+            result = 6*T4(th3, th0, th0, th0, th3, th5);
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th0, th0, th0, th3, th3);
+            result+=3*T4(th5, th0, th0, th0, th3, th3);
         }
         else
         {
@@ -380,35 +388,105 @@ double T4_total(const std::vector<double> &thetas_123, const std::vector<double>
             result+=3*T4(th5, th0, th0, th0, th3, th4);
         }
     }
-    else if(th3==th4 && th4==th5) //All thetas_456 are equal
+    else if(th0==th1)
     {
+        if(th3==th4 && th3==th5)
+        {
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th2, th0, th3, th3);
+            result = 6*T4(th3, th0, th2, th0, th3, th3);
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th0, th2, th3, th3);
+            result+=3*T4(th3, th0, th0, th2, th3, th3);
+        }
+        else if (th3==th4)
+        {
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th0, th2, th3, th5);
+            result = 2*T4(th3, th0, th0, th2, th3, th5);
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th2, th0, th3, th5);
+            result+=4*T4(th3, th0, th2, th0, th3, th5);
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th0, th0, th2, th3, th3);
+            result+=T4(th5, th0, th0, th2, th3, th3);
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th0, th2, th0, th3, th3);
+            result+=2*T4(th5, th0, th2, th0, th3, th3);
+        }
+        else
+        {
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th0, th2, th4, th5);
+            result = T4(th3, th0, th0, th2, th4, th5);
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th2, th0, th4, th5);
+            result+=2*T4(th3, th0, th2, th0, th4, th5);
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th0, th0, th2, th3, th5);
+            result+=T4(th4, th0, th0, th2, th3, th5);
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th0, th2, th0, th3, th5);
+            result+=2*T4(th4, th0, th2, th0, th3, th5);
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th0, th0, th2, th3, th4);
+            result+=T4(th5, th0, th0, th2, th3, th4);;
+            printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th0, th2, th0, th3, th4);
+            result+=2*T4(th5, th0, th2, th0, th3, th4);
+        }
+        
+    }
+    else if(th3==th4)
+    {
+        if(th3==th5)
+        {
         printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th1, th2, th3, th3);
         result = 3*T4(th3, th0, th1, th2, th3, th3);
         printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th2, th1, th3, th3);
         result+=3*T4(th3, th0, th2, th1, th3, th3);
         printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th1, th2, th0, th3, th3);
         result+=3*T4(th3, th1, th2, th0, th3, th3);
+        }
+        else
+        {
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th1, th2, th3, th5);
+        result = 2*T4(th3, th0, th1, th2, th3, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th2, th1, th3, th5);
+        result+=2*T4(th3, th0, th2, th1, th3, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th1, th2, th0, th3, th5);
+        result+=2*T4(th3, th1, th2, th0, th3, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th0, th1, th2, th3, th4);
+        result += T4(th5, th0, th1, th2, th3, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th1, th2, th0, th3, th3);
+        result+=T4(th5, th1, th2, th0, th3, th3);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th0, th2, th1, th3, th3);
+        result+=T4(th5, th0, th2, th1, th3, th3);
+        }
     }
+    else if(th4==th5)
+    {
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th1, th2, th3, th5);
+        result = T4(th3, th0, th1, th2, th4, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th2, th1, th3, th5);
+        result+=T4(th3, th0, th2, th1, th4, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th1, th2, th0, th3, th5);
+        result+=T4(th3, th1, th2, th0, th4, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th0, th1, th2, th3, th4);
+        result += 2*T4(th4, th0, th1, th2, th3, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th1, th2, th0, th3, th3);
+        result+=2*T4(th4, th1, th2, th0, th3, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th0, th2, th1, th3, th3);
+        result+=2*T4(th4, th0, th2, th1, th3, th4);
+        }
     else
     {
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th1, th2, th4, th5);
-    result = T4(th3, th0, th1, th2, th4, th5);
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th2, th1, th4, th5);
-    result+=T4(th3, th0, th2, th1, th4, th5);
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th1, th2, th0, th4, th5);
-    result+=T4(th3, th1, th2, th0, th4, th5);
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th0, th1, th2, th3, th5);
-    result+=T4(th4, th0, th1, th2, th3, th5);
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th0, th2, th1, th3, th5);
-    result+=T4(th4, th0, th2, th1, th3, th5);
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th1, th2, th0, th3, th5);
-    result+=T4(th4, th1, th2, th0, th3, th5);
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th0, th1, th2, th3, th4);
-    result+=T4(th5, th0, th1, th2, th3, th4);;
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th0, th2, th1, th3, th4);
-    result+=T4(th5, th0, th2, th1, th3, th4);
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th1, th2, th0, th3, th4);
-    result+=T4(th5, th1, th2, th0, th3, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th1, th2, th4, th5);
+        result = T4(th3, th0, th1, th2, th4, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th0, th2, th1, th4, th5);
+        result+=T4(th3, th0, th2, th1, th4, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th1, th2, th0, th4, th5);
+        result+=T4(th3, th1, th2, th0, th4, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th0, th1, th2, th3, th5);
+        result+=T4(th4, th0, th1, th2, th3, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th0, th2, th1, th3, th5);
+        result+=T4(th4, th0, th2, th1, th3, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th1, th2, th0, th3, th5);
+        result+=T4(th4, th1, th2, th0, th3, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th0, th1, th2, th3, th4);
+        result+=T4(th5, th0, th1, th2, th3, th4);;
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th0, th2, th1, th3, th4);
+        result+=T4(th5, th0, th2, th1, th3, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th5, th1, th2, th0, th3, th4);
+        result+=T4(th5, th1, th2, th0, th3, th4);
     }
 
     result /= pow(2 * M_PI, 8);
@@ -431,61 +509,149 @@ double T5_total(const std::vector<double> &thetas_123, const std::vector<double>
 
     double result;
 
-    if(th0==th1 && th1==th2) // All thetas_123 are equal
+    if(th0==th1)
     {
-        if(th3==th4 && th4==th5) // All thetas_456 are equal
+        if(th0==th1)
         {
-            printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th3, th3);
-            result = 9*T5(th0, th0, th0, th3, th3, th3);
+            if(th3==th4 && th3==th5)
+            {
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th3, th3);
+                result = 9*T5(th0, th0, th0, th3, th3, th3);
+            }
+            else if(th3==th4)
+            {
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th3, th5);
+                result = 6*T5(th0, th0, th0, th3, th3, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th5, th3, th3);
+                result+=3*T5(th0, th0, th0, th5, th3, th3);
+            }
+            else if(th4==th5)
+            {
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th4, th4);
+                result = 3*T5(th0, th0, th0, th3, th4, th4);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th4, th3, th4);
+                result+=6*T5(th0, th0, th0, th4, th3, th4);
+            }
+            else
+            {
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th4, th5);
+                result = 3*T5(th0, th0, th0, th3, th4, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th4, th3, th5);
+                result+=3*T5(th0, th0, th0, th4, th3, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th5, th3, th4);
+                result+=3*T5(th0, th0, th0, th5, th3, th4);
+            }
         }
         else
         {
-            printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th4, th5);
-            result = 3*T5(th0, th0, th0, th3, th4, th5);
-            printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th4, th3, th5);
-            result+=3*T5(th0, th0, th0, th4, th3, th5);
-            printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th4, th5, th3);
-            result+=3*T5(th0, th0, th0, th5, th3, th4);
+            if(th3==th4 && th3==th5)
+            {
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th2, th3, th3, th3);
+                result = 6*T5(th0, th0, th2, th3, th3, th3);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th0, th3, th3, th3);
+                result+=3*T5(th2, th0, th0, th3, th3, th3);
+            }
+            else if(th3==th4)
+            {
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th2, th3, th3, th5);
+                result = 4*T5(th0, th0, th2, th3, th3, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th2, th5, th3, th3);
+                result+=2*T5(th0, th0, th2, th5, th3, th3);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th0, th3, th3, th5);
+                result+=2*T5(th2, th0, th0, th3, th3, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th0, th5, th3, th3);
+                result+=T5(th2, th0, th0, th5, th3, th3);
+            }
+            else if(th4==th5)
+            {
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th2, th4, th3, th4);
+                result = 4*T5(th0, th0, th2, th4, th3, th4);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th2, th3, th4, th4);
+                result+=2*T5(th0, th0, th2, th3, th4, th4);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th0, th4, th3, th4);
+                result+=2*T5(th2, th0, th0, th4, th3, th4);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th0, th3, th4, th4);
+                result+=T5(th2, th0, th0, th3, th4, th4);
+
+            }
+            else
+            {
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th2, th3, th4, th5);
+                result = 2*T5(th0, th0, th2, th3, th4, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th2, th4, th3, th5);
+                result+=2*T5(th0, th0, th2, th4, th3, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th2, th5, th3, th4);
+                result+=2*T5(th0, th0, th2, th5, th3, th4);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th0, th3, th4, th5);
+                result+=T5(th2, th0, th0, th3, th4, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th0, th4, th3, th5);
+                result+=T5(th2, th0, th0, th4, th3, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th0, th5, th3, th4);
+                result+=T5(th2, th0, th0, th5, th3, th4);
+            }
         }
+
     }
-    else if(th3==th4 && th4==th5) //All thetas_456 are equal
+    else if(th3==th4 && th3==th5)
     {
         printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th3, th3, th3);
         result = 3*T5(th0, th1, th2, th3, th3, th3);
         printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th0, th2, th3, th3, th3);
         result+=3*T5(th1, th0, th2, th3, th3, th3);
-        printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th2, th0, th3, th3, th3);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th1, th3, th3, th3);
         result+=3*T5(th2, th0, th1, th3, th3, th3);
+    }
+    else if(th3==th4)
+    {
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th3, th3, th5);
+        result = 2*T5(th0, th1, th2, th3, th3, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th5, th3, th3);
+        result+=T5(th0, th1, th2, th5, th3, th3);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th0, th2, th3, th4, th5);
+        result+=2*T5(th1, th0, th2, th3, th4, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th0, th2, th5, th3, th3);
+        result+=T5(th1, th0, th2, th5, th3, th3);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th1, th3, th3, th5);
+        result+=2*T5(th2, th0, th1, th3, th3, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th1, th5, th3, th3);
+        result+=T5(th2, th0, th1, th5, th3, th3);
+    }
+    else if(th4==th5)
+    {
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th3, th4, th4);
+        result = T5(th0, th1, th2, th3, th4, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th4, th3, th4);
+        result+=2*T5(th0, th1, th2, th4, th3, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th0, th2, th3, th4, th4);
+        result+=T5(th1, th0, th2, th3, th4, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th0, th2, th4, th3, th4);
+        result+=2*T5(th1, th0, th2, th4, th3, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th1, th3, th4, th4);
+        result+=T5(th2, th0, th1, th3, th4, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th1, th4, th3, th4);
+        result+=2*T5(th2, th0, th1, th4, th3, th4);
     }
     else
     {
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th3, th4, th5);
-    double tmp = T5(th0, th1, th2, th3, th4, th5);
-    result=tmp;
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th4, th3, th5);
-    tmp=T5(th0, th1, th2, th4, th3, th5);
-    result+=tmp;
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th5, th3, th4);
-    tmp=T5(th0, th1, th2, th5, th3, th4);
-    result+=tmp;
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th0, th2, th3, th4, th5);
-    tmp=T5(th1, th0, th2, th3, th4, th5);
-    result+=tmp;
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th0, th2, th4, th3, th5);
-    tmp=T5(th1, th0, th2, th4, th3, th5);
-    result+=tmp;
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th0, th2, th5, th3, th4);
-    tmp=T5(th1, th0, th2, th5, th3, th4);
-    result+=tmp;
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th1, th3, th4, th5);
-    tmp=T5(th2, th0, th1, th3, th4, th5);
-    result+=tmp;
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th1, th4, th3, th5);
-    tmp=T5(th2, th0, th1, th4, th3, th5);
-    result+=tmp;
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th1, th5, th3, th4);
-    tmp=T5(th2, th0, th1, th5, th3, th4);
-    result+=tmp;
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th3, th4, th5);
+        result = T5(th0, th1, th2, th3, th4, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th4, th3, th5);
+        result+=T5(th0, th1, th2, th4, th3, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th5, th3, th4);
+        result+=T5(th0, th1, th2, th5, th3, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th0, th2, th3, th4, th5);
+        result+=T5(th1, th0, th2, th3, th4, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th0, th2, th4, th3, th5);
+        result+=T5(th1, th0, th2, th4, th3, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th0, th2, th5, th3, th4);
+        result+=T5(th1, th0, th2, th5, th3, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th1, th3, th4, th5);
+        result+=T5(th2, th0, th1, th3, th4, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th1, th4, th3, th5);
+        result+=T5(th2, th0, th1, th4, th3, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th2, th0, th1, th5, th3, th4);
+        result+=T5(th2, th0, th1, th5, th3, th4);
+        
     }
 
     result /= pow(2 * M_PI, 8);
@@ -508,52 +674,182 @@ double T6_total(const std::vector<double> &thetas_123, const std::vector<double>
 
     double result;
 
-    if(th0==th1 && th1==th2) // All thetas_123 are equal
+    if(th0==th1)
     {
-        if(th3==th4 && th4==th5) // All thetas_456 are equal
+        if(th0==th2)
         {
-            printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th3, th3);
-            result = 3*T6(th0, th0, th0, th3, th3, th3);
-            printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th3, th0, th0, th0, th3);
-            result += 3*T6(th3, th3, th0, th0, th0, th3);
+            if(th3==th4 && th3==th5)
+            {
+                //A
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th3, th3);
+                result = 3*T6(th0, th0, th0, th3, th3, th3);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th3, th0, th0, th0, th3);
+                result += 3*T6(th3, th3, th0, th0, th0, th3);
+            }
+            else if(th3==th4)
+            {
+                //B
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th3, th5);
+                result = 3*T6(th0, th0, th0, th3, th3, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th3, th0, th0, th0, th5);
+                result += T6(th3, th3, th0, th0, th0, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th5, th0, th0, th0, th3);
+                result += 2*T6(th3, th5, th0, th0, th0, th3);
+            }
+            else if(th4==th5)
+            {
+                //C
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th4, th4);
+                result = 3*T6(th0, th0, th0, th3, th4, th4);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th4, th0, th0, th0, th4);
+                result += 2*T6(th3, th4, th0, th0, th0, th4);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th4, th0, th0, th0, th3);
+                result += T6(th4, th4, th0, th0, th0, th3);
+            }
+            else
+            {
+                //D
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th4, th5);
+                result = 3*T6(th0, th0, th0, th3, th4, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th4, th0, th0, th0, th5);
+                result += T6(th3, th4, th0, th0, th0, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th5, th0, th0, th0, th4);
+                result += T6(th3, th5, th0, th0, th0, th4);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th5, th0, th0, th0, th3);
+                result += T6(th4, th5, th0, th0, th0, th3);
+            }
         }
         else
         {
-            printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th0, th3, th4, th5);
-            result = 3*T6(th0, th0, th0, th3, th4, th5);
-            printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th4, th0, th0, th0, th5);
-            result += T6(th3, th4, th0, th0, th0, th5);
-            printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th5, th0, th0, th0, th4);
-            result += T6(th3, th5, th0, th0, th0, th4);
-            printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th5, th0, th0, th0, th3);
-            result += T6(th4, th5, th0, th0, th0, th3);
+            if(th3==th4 && th3==th5)
+            {
+                //E
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th2, th3, th3, th3);
+                result = T6(th0, th0, th2, th3, th3, th3);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th2, th0, th3, th3, th3);
+                result += 2*T6(th0, th2, th0, th3, th3, th3);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th3, th0, th0, th2, th3);
+                result += 3*T6(th3, th3, th0, th0, th2, th3);
+            }
+            else if(th3==th4)
+            {
+                //F
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th2, th3, th3, th5);
+                result = T6(th0, th0, th2, th3, th3, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th2, th0, th3, th3, th5);
+                result += 2*T6(th0, th2, th0, th3, th3, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th3, th0, th0, th2, th5);
+                result += T6(th3, th3, th0, th0, th2, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th5, th0, th0, th2, th3);
+                result += 2*T6(th3, th5, th0, th0, th2, th3);
+            }
+            else if(th4==th5)
+            {
+                //G
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th2, th3, th4, th4);
+                result = T6(th0, th0, th2, th3, th4, th4);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th2, th0, th3, th4, th4);
+                result += 2*T6(th0, th2, th0, th3, th4, th4);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th4, th0, th0, th2, th4);
+                result += 2*T6(th3, th4, th0, th0, th2, th4);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th4, th0, th0, th2, th3);
+                result += T6(th4, th4, th0, th0, th2, th3);
+            }
+            else
+            {
+                //H
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th0, th2, th3, th4, th5);
+                result = T6(th0, th0, th2, th3, th4, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th2, th0, th3, th4, th5);
+                result += 2*T6(th0, th2, th0, th3, th4, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th4, th0, th0, th2, th5);
+                result += T6(th3, th4, th0, th0, th2, th5);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th5, th0, th0, th2, th4);
+                result += T6(th3, th5, th0, th0, th2, th4);
+                printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th5, th0, th0, th2, th3);
+                result += T6(th4, th5, th0, th0, th2, th3);
+            }
         }
     }
-    else if(th3==th4 && th4==th5) //All thetas_456 are equal
+    else if(th3==th4 && th3==th5)
     {
+        //I
         printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th3, th3, th3);
         result = T6(th0, th1, th2, th3, th3, th3);
         printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th2, th1, th3, th3, th3);
         result += T6(th0, th2, th1, th3, th3, th3);
         printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th2, th0, th3, th3, th3);
         result += T6(th1, th2, th0, th3, th3, th3);
-        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th3, th3, th0, th2, th3);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th3, th0, th1, th2, th3);
         result += 3*T6(th3, th3, th0, th1, th2, th3);
+    }
+    else if(th3==th4)
+    {
+        //J
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th3, th3, th5);
+        result = T6(th0, th1, th2, th3, th3, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th2, th1, th3, th3, th5);
+        result += T6(th0, th2, th1, th3, th3, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th2, th0, th3, th3, th5);
+        result += T6(th1, th2, th0, th3, th3, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th3, th0, th1, th2, th5);
+        result += T6(th3, th3, th0, th1, th2, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th5, th0, th1, th2, th3);
+        result += 2*T6(th3, th5, th0, th1, th2, th3);
+    }
+    else if(th4==th5)
+    {
+        //K
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th3, th4, th4);
+        result = T6(th0, th1, th2, th3, th4, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th2, th1, th3, th4, th4);
+        result += T6(th0, th2, th1, th3, th4, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th2, th0, th3, th4, th4);
+        result += T6(th1, th2, th0, th3, th4, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th4, th0, th1, th2, th4);
+        result += 2*T6(th3, th4, th0, th1, th2, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th4, th0, th1, th2, th3);
+        result += T6(th4, th4, th0, th1, th2, th3);
     }
     else
     {
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th3, th4, th5);
-    result = T6(th0, th1, th2, th3, th4, th5);
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th2, th1, th3, th4, th5);
-    result += T6(th0, th2, th1, th3, th4, th5);
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th2, th0, th3, th4, th5);
-    result += T6(th1, th2, th0, th3, th4, th5);
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th4, th0, th1, th2, th5);
-    result += T6(th3, th4, th5, th1, th2, th0);
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th5, th0, th1, th2, th4);
-    result += T6(th3, th5, th4, th1, th2, th0);
-    printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th5, th0, th1, th2, th3);
-    result += T6(th4, th5, th3, th1, th2, th0);
+        //L
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th1, th2, th3, th4, th5);
+        result = T6(th0, th1, th2, th3, th4, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th0, th2, th1, th3, th4, th5);
+        result += T6(th0, th2, th1, th3, th4, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th1, th2, th0, th3, th4, th5);
+        result += T6(th1, th2, th0, th3, th4, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th4, th0, th1, th2, th5);
+        result += T6(th3, th4, th0, th1, th2, th5);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th3, th5, th0, th1, th2, th4);
+        result += T6(th3, th5, th0, th1, th2, th4);
+        printf("Doing %f, %f, %f, %f, %f, %f \n", th4, th5, th0, th1, th2, th3);
+        result += T6(th4, th5, th0, th1, th2, th3);
+    }
+
+
+
+
+
+    if(th0==th1 && th1==th2) // All thetas_123 are equal
+    {
+        if(th3==th4 && th4==th5) // All thetas_456 are equal
+        {
+ 
+        }
+        else
+        {
+ 
+        }
+    }
+    else if(th3==th4 && th4==th5) //All thetas_456 are equal
+    {
+
+    }
+    else
+    {
+
     }
 
     result /= pow(2 * M_PI, 6);
@@ -1063,7 +1359,7 @@ int integrand_T6(unsigned ndim, size_t npts, const double *vars, void *container
     };
 
     ApertureStatisticsCovarianceContainer *container_ = (ApertureStatisticsCovarianceContainer *)container;
-    std::cerr<<npts<<std::endl;
+    //std::cerr<<npts<<std::endl;
     if (npts > 1e8)
     {
         std::cerr << "WARNING: Large number of points: " << npts << std::endl;
