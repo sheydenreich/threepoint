@@ -84,6 +84,12 @@ __host__ __device__ double hmf(const double& m, const double& z);
 
 __device__ double trispectrum_limber_integrated(double a, double b, double m, double l1, double l2, double l3, double l4);
 
+__device__ double pentaspectrum_integrand(double m, double z, double l1, double l2, 
+  double l3, double l4, double l5, double l6);
+
+__device__ double pentaspectrum_limber_integrated(double a, double b, double m, double l1, double l2, double l3, double l4, double l5, double l6);
+
+
     struct SigmaContainer
 {
    double R;

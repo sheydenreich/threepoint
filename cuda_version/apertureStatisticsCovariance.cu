@@ -875,6 +875,27 @@ double T6_total(const std::vector<double> &thetas_123, const std::vector<double>
     return result;
 }
 
+double T7_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456)
+{
+    if (thetas_123.size() != 3 || thetas_456.size() != 3)
+    {
+        throw std::invalid_argument("T7_total: Wrong number of aperture radii");
+    };
+
+    double th0=thetas_123.at(0);
+    double th1=thetas_123.at(1);
+    double th2=thetas_123.at(2);
+    double th3=thetas_456.at(0);
+    double th4=thetas_456.at(1);
+    double th5=thetas_456.at(2);
+
+    double result;
+    result=T7(th0, th1, th2, th3, th4,th5, th6);
+
+
+    result /= pow(2 * M_PI, 6);
+    return result;
+}
 
 
 double T1(const double &theta1, const double &theta2, const double &theta3,
@@ -911,7 +932,7 @@ double T1(const double &theta1, const double &theta2, const double &theta3,
     double vMax=lMax;
     double vals_min[6]={-vMax,-vMax, -lMax, -lMax, -lMax, -lMax};
     double vals_max[6]={1.02*vMax, 1.02*vMax, 1.02*lMax, 1.02*lMax, 1.02*lMax, 1.02*lMax};
-    hcubature_v(1, integrand_T1, &container, 6, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
+    hcubature_v(1, integrand_T1, &container, 6, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
 
     result /= pow(2 * M_PI, 6);
     }
@@ -1101,6 +1122,40 @@ double T6(const double &theta1, const double &theta2, const double &theta3, cons
 
     std::cerr<<result_A1<<" "<<result<<std::endl;
     return result_A1* result;
+}
+
+
+double T7(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6)
+{
+    // Set maximal l value such, that theta*l <= 10
+    double thetaMin_123 = std::min({theta1, theta2, theta3});
+    double thetaMin_456 = std::min({theta4, theta5, theta6});
+    double thetaMin = std::max({thetaMin_123, thetaMin_456});
+    double lMax = 10. / thetaMin;
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
+
+    // Create container
+    ApertureStatisticsCovarianceContainer container;
+    container.thetas_123 = std::vector<double>{theta1, theta2, theta3};
+    container.thetas_456 = std::vector<double>{theta4, theta5, theta6};
+    // Do integration
+    double result, error;
+    if (type == 2)
+    {
+        double mmin=pow(10, logMmin);
+        double mmax=pow(10, logMmax);
+    double vals_min[7] = {lMin, lMin, lMin, lMin, 0, 0, mmin};
+    double vals_max[7] = {lMax, lMax, lMax, lMax, 2*M_PI, 2*M_PI, mmax}; 
+
+    hcubature_v(1, integrand_T7, &container, 7, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+    result = result / thetaMax / thetaMax;
+    }
+    else
+    {
+    throw std::logic_error("T7: Wrong survey geometry, only coded for infinite survey");
+    };
+
+    return result;
 }
 
 
@@ -1398,6 +1453,54 @@ int integrand_T6(unsigned ndim, size_t npts, const double *vars, void *container
     if(type==1)
     {
         integrand_T6_square<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->thetas_123.at(0),
+                                                container_->thetas_123.at(1), container_->thetas_123.at(2),
+                                                container_->thetas_456.at(0), container_->thetas_456.at(1), 
+                                                container_->thetas_456.at(2), dev_value);
+    }
+    else // This should not happen
+    {
+        exit(-1);
+    };
+
+    cudaFree(dev_vars); //Free variables
+  
+    // Copy results to host
+    CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim*npts*sizeof(double), cudaMemcpyDeviceToHost));
+
+    cudaFree(dev_value); //Free values
+
+    return 0; // Success :)
+}
+
+int integrand_T7(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
+{
+    if (fdim != 1)
+    {
+        std::cerr << "integrand_T7: wrong function dimension" << std::endl;
+        return -1;
+    };
+
+    ApertureStatisticsCovarianceContainer *container_ = (ApertureStatisticsCovarianceContainer *)container;
+
+    if (npts > 1e8)
+    {
+        std::cerr << "WARNING: Large number of points: " << npts << std::endl;
+        return 1;
+    };
+
+    // Allocate memory on device for integrand values
+    double* dev_value;
+    CUDA_SAFE_CALL(cudaMalloc((void**)&dev_value, fdim*npts*sizeof(double)));
+
+    // Copy integration variables to device
+    double* dev_vars;
+    CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim*npts*sizeof(double))); //alocate memory
+    CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim*npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+
+    // Calculate values
+    if(type==2)
+    {
+        integrand_T7_infinite<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->thetas_123.at(0),
                                                 container_->thetas_123.at(1), container_->thetas_123.at(2),
                                                 container_->thetas_456.at(0), container_->thetas_456.at(1), 
                                                 container_->thetas_456.at(2), dev_value);
@@ -1755,6 +1858,46 @@ int thread_index=blockIdx.x*blockDim.x+threadIdx.x;
     }
 
 }
+
+__global__ void integrand_T7_infinite(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
+    double theta4, double theta5, double theta6, double* value)
+{
+int thread_index=blockIdx.x*blockDim.x+threadIdx.x;
+
+    for (int i=thread_index; i<npts; i+=blockDim.x*gridDim.x)
+    {
+        double l1=vars[i*ndim];
+        double l2=vars[i*ndim+1];
+        double l4=vars[i*ndim+2];
+        double l5=vars[i*ndim+3]
+        double phi1=vars[i*ndim+4];
+        double phi2=vars[i*ndim+5];
+        double m=vars[i*ndim+6];
+
+        double l3 = sqrt(l1 * l1 + l2 * l2 + 2 * l1 * l2 * cos(phi1));
+        double l6 = sqrt(l1 * l1 + l5 * l5 + 2 * l1 * l5 * cos(phi2));
+
+        if(l1<=dev_lMin || l2<=dev_lMin || l3<=dev_lMin || l4<=dev_lMin || l5<=dev_lMin || l6<=dev_lMin || l3>dev_lMax || l6 >dev_lMax)
+        {
+            value[i]=0;
+        }
+        else
+        {
+
+            double result = uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3) 
+            * uHat(l4 * theta4) * uHat(l5 * theta5) * uHat(l6 * theta6);
+
+            double pentaspec=pentaspectrum_limber_integrated(0, dev_z_max, m, l1, l2, l3, l4, l5, l6);
+            result *= pentaspec;
+            result *= l1 * l2 * l4 * l5;
+
+            //printf("%e %f %e %e %e %e %.2e \n", m, z, l2, l3, l5, l6, trispectrum_integrand(m, z, l2, l3, l5, l6));
+            value[i]=result;
+        }
+    }
+
+}
+
 
 __device__ double G_circle(const double &ell)
 {

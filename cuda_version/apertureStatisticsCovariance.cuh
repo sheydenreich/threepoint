@@ -96,6 +96,16 @@ extern double sigmaW, VW, chiMax;
       */
       double T6_total(const std::vector<double> & thetas_123, const std::vector<double> &thetas_456);
 
+              /**
+      * @brief Calculates the fourh Term in the Non-Gaussian Covariance with all permutations. Throws an exception if type is not 'infinite'
+      * 
+      * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
+      * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
+      * @return double T_7, total(theta1, theta2, theta3, theta4, theta5, theta6) = T_7 (doesnt have any permutations)
+      */
+      double T7_total(const std::vector<double> & thetas_123, const std::vector<double> &thetas_456);
+
+
      /**
       * @brief First Term of Gaussian Covariance for one permutation
       *
@@ -162,6 +172,19 @@ extern double sigmaW, VW, chiMax;
       double T6(const double &theta1, const double &theta2, const double &theta3,
          const double &theta4, const double &theta5, const double &theta6);
 
+
+              /**
+      * @brief Fourth Term of NonGaussian Covariance for one permutation
+      *
+      * @param theta1 Aperture radius [rad]
+      * @param theta2 Aperture radius [rad]
+      * @param theta3 Aperture radius [rad]
+      * @param theta4 Aperture radius [rad]
+      * @param theta5 Aperture radius [rad]
+      * @param theta6 Aperture radius [rad]
+      */
+      double T7(const double &theta1, const double &theta2, const double &theta3,
+         const double &theta4, const double &theta5, const double &theta6);
 
     /**
      * @brief Wrapper of integrand_T1 for the cubature library
@@ -243,6 +266,19 @@ extern double sigmaW, VW, chiMax;
       */
       int integrand_T6(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
 
+
+                 /**
+      * @brief Wrapper of integrand_T7 for the cubature library
+      * See https://github.com/stevengj/cubature for documentation
+      * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
+      * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+      * @param vars Array containing integration variables
+      * @param container Pointer to ApertureStatisticsCovarianceContainer instance
+      * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
+      * @param value Value of integral
+      * @return 0 on success
+      */
+      int integrand_T7(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
 
 /**
  * @brief Integrand of Term1 for circular survey
@@ -419,6 +455,26 @@ __global__ void integrand_T1_infinite(const double* vars, unsigned ndim, int npt
  */
  __global__ void integrand_T6_square(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
    double theta4, double theta5, double theta6, double* value);
+
+
+
+          /**
+ * @brief Integrand for Term 7 for infinite survey
+ * 
+ * @param vars Integration parameters (9 D)
+ * @param ndim Number of integration dimensions
+ * @param npts Number of integration points
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param theta3 Aperture radius [rad]
+ * @param theta4 Aperture radius [rad]
+ * @param theta5 Aperture radius [rad]
+ * @param theta6 Aperture radius [rad]
+ * @param value Value of integral
+ */
+ __global__ void integrand_T7_infinite(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
+   double theta4, double theta5, double theta6, double* value);
+
 
     /**
      * @brief Geometric factor for circular survey

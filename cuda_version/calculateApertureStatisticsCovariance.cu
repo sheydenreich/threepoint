@@ -23,7 +23,8 @@ Argument 7: Calculate T2? (0 or 1)
 Argument 8: Calculate T4? (0 or 1)
 Argument 9: Calculate T5? (0 or 1)
 Argument 10: Calculate T6? (0 or 1)
-Argument 10: Survey geometry, either circle, square, or infinite
+Argument 11: Calculate T7? (0 or 1)
+Argument 12: Survey geometry, either circle, square, or infinite
 )";
 
   if (argc != 12)
@@ -42,7 +43,8 @@ Argument 10: Survey geometry, either circle, square, or infinite
   bool calculate_T4 = std::stoi(argv[8]);
   bool calculate_T5 = std::stoi(argv[9]);
   bool calculate_T6 = std::stoi(argv[10]);
-  std::string type_str = argv[11];
+  bool calculate_T7 = std::stoi(argv[11]);
+  std::string type_str = argv[12];
 
   std::cerr << "Using cosmology from " << cosmo_paramfile << std::endl;
   std::cerr << "Using thetas from " << thetasfn << std::endl;
@@ -114,7 +116,7 @@ Argument 10: Survey geometry, either circle, square, or infinite
   // Initialize Covariance
   initCovariance();
 
-  if(calculate_T5 || calculate_T6)
+  if(calculate_T5 || calculate_T6 || calculate_T7)
   {
     initHalomodel();
   }
@@ -132,7 +134,7 @@ Argument 10: Survey geometry, either circle, square, or infinite
   int N = thetas.size();
 
 
-  std::vector<double> Cov_term1s, Cov_term2s, Cov_term4s, Cov_term5s, Cov_term6s;
+  std::vector<double> Cov_term1s, Cov_term2s, Cov_term4s, Cov_term5s, Cov_term6s, Cov_term7s;
 
   std::vector<std::vector<double>> theta_combis;
   for (int i=0; i<N; i++)
@@ -190,6 +192,12 @@ Argument 10: Survey geometry, either circle, square, or infinite
           double term6 = T6_total(theta_combis.at(i), theta_combis.at(j));
           std::cerr<<"T6:"<<term6<<std::endl;
           Cov_term6s.push_back(term6);
+        }
+        if (calculate_T7)
+        {
+          double term7 = T7_total(theta_combis.at(i), theta_combis.at(j));
+          std::cerr<<"T7:"<<term7<<std::endl;
+          Cov_term6s.push_back(term7);
         }
       }
       catch (const std::exception &e)
@@ -302,6 +310,24 @@ Argument 10: Survey geometry, either circle, square, or infinite
       std::cerr << e.what() << '\n';
       std::cerr << "Writing instead to current directory!" << std::endl;
       writeCov(Cov_term6s, N_ind, filename);
+    }
+  };
+
+
+  if (calculate_T7)
+  {
+    sprintf(filename, "cov_%s_term7Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
+            type_str.c_str(), sigma, n_deg, thetaMax_deg);
+
+    try
+    {
+      writeCov(Cov_term7s, N_ind, out_folder + filename);
+    }
+    catch (const std::exception &e)
+    {
+      std::cerr << e.what() << '\n';
+      std::cerr << "Writing instead to current directory!" << std::endl;
+      writeCov(Cov_term7s, N_ind, filename);
     }
   };
 
