@@ -890,7 +890,7 @@ double T7_total(const std::vector<double> &thetas_123, const std::vector<double>
     double th5=thetas_456.at(2);
 
     double result;
-    result=T7(th0, th1, th2, th3, th4,th5, th6);
+    result=T7(th0, th1, th2, th3, th4,th5);
 
 
     result /= pow(2 * M_PI, 6);
@@ -1869,7 +1869,7 @@ int thread_index=blockIdx.x*blockDim.x+threadIdx.x;
         double l1=vars[i*ndim];
         double l2=vars[i*ndim+1];
         double l4=vars[i*ndim+2];
-        double l5=vars[i*ndim+3]
+        double l5=vars[i*ndim+3];
         double phi1=vars[i*ndim+4];
         double phi2=vars[i*ndim+5];
         double m=vars[i*ndim+6];
