@@ -457,6 +457,114 @@ class bispectrum_extractor:
 
         return self.prefactor*np.sum(field_k1*field_k2*field_k3)/np.sum(ones_k1*ones_k2*ones_k3)
 
+class trispectrum_extractor:
+    def __init__(self,field,fieldsize = (4*np.pi/180)):
+        # pixsize = fieldsize/field.shape[0]
+        idx,idy = np.indices(field.shape)
+        idx = idx - idx.shape[0]/2
+        idy = idy - idy.shape[1]/2
+        dist = np.sqrt(idx**2+idy**2)*2*np.pi/fieldsize
+        self.dist=dist
+        self.field = np.copy(field)
+        self.fftfield = np.fft.fftshift(np.fft.fft2(field))
+        self.fieldshape = field.shape
+        self.prefactor = fieldsize**6/field.shape[0]**8
+    
+    def new_field(self,field):
+        self.field = np.copy(field)
+        self.fftfield = np.fft.fftshift(np.fft.fft2(field))
+
+    def extract_trispectra(self,k_array,delta_k=0.13,verbose=True,only_diagonal=False):
+        nk = len(k_array)
+        
+        dk = delta_k * k_array
+        fftones = np.zeros((nk,*self.fieldshape))
+        fftfields = np.zeros((nk,*self.fieldshape),dtype=complex)
+
+        if(verbose):
+            print("Pre-computing fields...")
+        for i in range(nk):
+            mask = (self.dist > k_array[i]-dk[i]/2) & (self.dist < k_array[i] + dk[i]/2)
+            fftones[i,mask] = 1
+            fftfields[i,mask] = self.fftfield[mask]
+
+        fftones = np.fft.ifft2(np.fft.ifftshift(fftones,axes=(1,2)),axes=(1,2))
+        fftfields = np.fft.ifft2(np.fft.ifftshift(fftfields,axes=(1,2)),axes=(1,2))
+
+        if(verbose):
+            print("Done. \n Computing trispectrum for all combinations.")
+
+        if(only_diagonal):
+            results = self.prefactor*np.sum(fftfields**4,axis=(1,2))/np.sum(fftones**4,axis=(1,2))
+        else:
+            results = np.zeros(nk*(nk+1)*(nk+2)*(nk+3)//24)
+            i = 0
+            for i1 in range(nk):
+                for i2 in range(i1,nk):
+                    for i3 in range(i2,nk):
+                        for i4 in range(i3,nk):
+                            results[i] = self.prefactor*np.sum(fftfields[i1]*fftfields[i2]*fftfields[i3]*fftfields[i4])/np.sum(fftones[i1]*fftones[i2]*fftones[i3]*fftones[i4])
+                            i += 1
+        if(verbose):
+            print("Done.")
+        return results
+
+
+
+
+    def extract_trispectrum(self,k1,k2,k3,k4,
+                            delta_k1 = 0.13, delta_k2 = 0.13, delta_k3 = 0.13, delta_k4 = 0.13):
+        dk1 = delta_k1*k1
+        dk2 = delta_k2*k2
+        dk3 = delta_k3*k3
+        dk4 = delta_k4*k4
+
+        mask_k1 = (self.dist > k1-dk1/2) & (self.dist < k1 + dk1/2)
+        mask_k2 = (self.dist > k2-dk2/2) & (self.dist < k2 + dk2/2)
+        mask_k3 = (self.dist > k3-dk3/2) & (self.dist < k3 + dk3/2)
+        mask_k4 = (self.dist > k4-dk4/2) & (self.dist < k4 + dk4/2)
+
+
+        fftones_k1 = np.zeros(self.fieldshape)
+        fftones_k2 = np.zeros(self.fieldshape)
+        fftones_k3 = np.zeros(self.fieldshape)
+        fftones_k4 = np.zeros(self.fieldshape)
+
+
+        fftones_k1[mask_k1] = 1
+        fftones_k2[mask_k2] = 1
+        fftones_k3[mask_k3] = 1
+        fftones_k4[mask_k4] = 1
+
+        
+        fftfield_k1 = np.zeros(self.fieldshape,dtype=complex)
+        fftfield_k2 = np.zeros(self.fieldshape,dtype=complex)
+        fftfield_k3 = np.zeros(self.fieldshape,dtype=complex)
+        fftfield_k4 = np.zeros(self.fieldshape,dtype=complex)
+
+
+        fftfield_k1[mask_k1] = self.fftfield[mask_k1]
+        fftfield_k2[mask_k2] = self.fftfield[mask_k2]
+        fftfield_k3[mask_k3] = self.fftfield[mask_k3]
+        fftfield_k4[mask_k4] = self.fftfield[mask_k4]
+
+        field_k1 = np.fft.ifft2(np.fft.ifftshift(fftfield_k1))
+        field_k2 = np.fft.ifft2(np.fft.ifftshift(fftfield_k2))
+        field_k3 = np.fft.ifft2(np.fft.ifftshift(fftfield_k3))
+        field_k4 = np.fft.ifft2(np.fft.ifftshift(fftfield_k4))
+
+        ones_k1 = np.fft.ifft2(np.fft.ifftshift(fftones_k1))
+        ones_k2 = np.fft.ifft2(np.fft.ifftshift(fftones_k2))
+        ones_k3 = np.fft.ifft2(np.fft.ifftshift(fftones_k3))
+        ones_k4 = np.fft.ifft2(np.fft.ifftshift(fftones_k4))
+
+
+        return self.prefactor*np.sum(field_k1*field_k2*field_k3*field_k4)/np.sum(ones_k1*ones_k2*ones_k3*ones_k4)
+
+
+
+
+
 def extract_power_spectrum(field,fieldsize,
     bins=10,linlog='log',lmin=200,lmax=10**4):
     n_pix = field.shape[0]
