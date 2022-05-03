@@ -120,7 +120,7 @@ int integrand_Map3(unsigned ndim, size_t npts, const double* vars, void* thisPtr
    * @param phiMax Maximal phi [rad] (optional, default: 6.283185307)
    * @param lMin Minimal ell (optional, default: 1)
    */
-double MapMapMap(const std::vector<double>& thetas, const double& phiMin=0, const double& phiMax=6.283185307, const double& lMin=1);
+double MapMapMap(const std::vector<double>& thetas, const double& phiMin=0, const double& phiMax=M_PI, const double& lMin=1);
   
 
 

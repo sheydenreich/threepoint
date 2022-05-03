@@ -3,6 +3,7 @@
 #include "cosmology.cuh"
 #include "cuda_helpers.cuh"
 #include "cubature.h"
+#include "helpers.cuh"
 
 #include <iostream>
 #include <algorithm>
@@ -113,6 +114,7 @@ double Map2(double theta)
   return result/2./M_PI;
 }
 
+bool print;
 
 
 
@@ -131,6 +133,11 @@ __global__ void integrand_Map3_kernel(const double* vars, unsigned ndim, int npt
 
       double l3=sqrt(l1*l1+l2*l2+2*l1*l2*cos(phi));
       value[i]= l1*l2*bkappa(l1, l2, l3)*uHat(l1*theta1)*uHat(l2*theta2)*uHat(l3*theta3); 
+      // if(print)
+      // {
+      //   printf("%.2e, %.2e, %.2e, %.4e, %.2e, %.2e, %.2e \n",l1,l2,l3,bkappa(l1,l2,l3),
+      // l1*theta1,l2*theta2,l3*theta3);
+      // }
 //      printf("%lf, %lf, %lf, %lf\n", l1, l2, l3, bkappa(l1, l2, l3));
     }
 }
@@ -145,10 +152,13 @@ int integrand_Map3(unsigned ndim, size_t npts, const double* vars, void* thisPtr
     };
   // Read data for integration
   ApertureStatisticsContainer* container = (ApertureStatisticsContainer*) thisPtr;
-
-  double theta1 = container-> thetas.at(0);
+  if(print){
+    std::cout << npts << "integration points" << std::endl;
+  }
+  // WARNING: TEMPORARY SWITCH OF THETA-ORDER
+  double theta3 = container-> thetas.at(0);
   double theta2 = container-> thetas.at(1);
-  double theta3 = container-> thetas.at(2);
+  double theta1 = container-> thetas.at(2);
 
   // Allocate memory on device for integrand values
   double* dev_value;
@@ -168,30 +178,75 @@ int integrand_Map3(unsigned ndim, size_t npts, const double* vars, void* thisPtr
   CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim*npts*sizeof(double), cudaMemcpyDeviceToHost));
 
   cudaFree(dev_value); //Free values
+
+  if(print)
+  {
+    for(int i=0; i<npts; i++)
+    {
+      double l1=vars[i*ndim];
+      double l2=vars[i*ndim+1];
+      double phi=vars[i*ndim+2];
+
+      double l3=sqrt(l1*l1+l2*l2+2*l1*l2*cos(phi));
+
+      std::cout << "l1,l2,l3,phi=" <<
+      l1 << ", " <<
+      l2 << ", " << 
+      l3 << ", " <<
+      phi << ", " <<
+      "theta1,theta2,theta3=" <<
+      theta1 << ", " <<
+      theta2 << ", " <<
+      theta3 << ", " <<
+      "l_i*theta_i=" <<
+      l1*theta1 << ", " <<
+      l2*theta2 << ", " << 
+      l3*theta2 << ": " << 
+
+      value[i] << std::endl;
+
+    }
+  }
   
   return 0; //Success :)  
   
 
 }
 
-
 double MapMapMap(const std::vector<double>& thetas, const double& phiMin, const double& phiMax, const double& lMin)
 {
   //Set maximal l value such, that theta*l <= 10
   double thetaMin=std::min({thetas[0], thetas[1], thetas[2]});
-  double lMax=10./thetaMin;
+  double lMax=5./thetaMin;
 
 
   ApertureStatisticsContainer container;
   container.thetas=thetas;
   double result,error;
+  result = 0;
 
   double vals_min[3]={lMin, lMin, phiMin};
   double vals_max[3]={lMax, lMax, phiMax};
 
- 
-  hcubature_v(1, integrand_Map3, &container, 3, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
+  print = false;
+  double precision = 1e-4;
+  do
+  {
+    if(print)
+    {
+      std::cout << "Repeating computation at thetas " <<
+      convert_rad_to_angle(thetas[0],"arcmin") << ", " << 
+      convert_rad_to_angle(thetas[1],"arcmin") << ", " << 
+      convert_rad_to_angle(thetas[2],"arcmin") << ": " <<
+      result << std::endl; 
+    }
+    hcubature_v(1, integrand_Map3, &container, 3, vals_min, vals_max, 0, 0, precision, ERROR_L1, &result, &error);
+    precision /= 10;
+    print=true;
+  }
+  while(result < 1e-20);
 
-  
+  result *= 2; // since phiMax=pi instead of 2*pi, use symmetry
+
   return result/8/M_PI/M_PI/M_PI;//Divided by (2*pi)³
 }
