@@ -308,4 +308,7 @@ __device__ double dev_limber_integrand_power_spectrum(double ell, double z);
 __device__ double dev_limber_integrand_prefactor(double z, double g_value);
 double limber_integrand_prefactor(double z, double g_value);
 
+__device__ double baryon_ratio(double k1, double k2, double k3, double z);
+
+
 #endif //BISPECTRUM_CUH

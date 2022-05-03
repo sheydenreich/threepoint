@@ -14,6 +14,7 @@ __constant__ bool dev_constant_powerspectrum;
 
 // Cosmological Parameters
 __constant__ double dev_h, dev_sigma8, dev_omb, dev_omc, dev_ns, dev_w, dev_om, dev_ow, dev_norm;
+__constant__ bool dev_baryons;
 cosmology cosmo;
 double norm_P;
 
@@ -121,6 +122,9 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_w, &cosmo.w, sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_om, &cosmo.om, sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_ow, &cosmo.ow, sizeof(double)));
+
+  // Whether to include baryonic effects
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_baryons, &cosmo.baryons, sizeof(bool)));
 
   // Copy P_k and binning
   bool Pk_given=(P_k!=NULL);
@@ -291,6 +295,11 @@ __device__ double bispec(double k1, double k2, double k3, double z, int idx, dou
   for (i = 1; i <= 3; i++)
     BS3h *= 1. / (1. + en * q[i]);
   // if (BS1h+BS3h>=0)
+  if(dev_baryons)
+  {
+    // printf("Baryon factor \n");
+    return (BS1h+BS3h)*baryon_ratio(k1,k2,k3,z);
+  }
   return BS1h + BS3h;
   // else return 0;
 }
@@ -1009,3 +1018,44 @@ double limber_integrand_prefactor(double z, double g_value)
   return 9. / 4. * H0_over_c * H0_over_c * H0_over_c * cosmo.om * cosmo.om * (1. + z) * (1. + z) * g_value * g_value / E(z);
 }
 
+
+__device__ double baryon_ratio(double k1, double k2, double k3, double z)
+{
+  int i;
+  double a, A0, A1, mu0, mu1, sigma0, sigma1, alpha0, alpha2, beta2, ks, k[4], x[4], Rb;
+
+  if (z > 5.)
+    return 1.; // baryon_ratio is calbrated at z=0-5
+
+  a = 1. / (1. + z);
+  k[1] = k1, k[2] = k2, k[3] = k3;
+  for (i = 1; i <= 3; i++)
+    x[i] = log10(k[i]);
+
+  if (a > 0.5)
+    A0 = 0.068 * pow(a - 0.5, 0.47);
+  else
+    A0 = 0.;
+  mu0 = 0.018 * a + 0.837 * a * a;
+  sigma0 = 0.881 * mu0;
+  alpha0 = 2.346;
+
+  if (a > 0.2)
+    A1 = 1.052 * pow(a - 0.2, 1.41);
+  else
+    A1 = 0.;
+  mu1 = fabs(0.172 + 3.048 * a - 0.675 * a * a);
+  sigma1 = (0.494 - 0.039 * a) * mu1;
+
+  ks = 29.90 - 38.73 * a + 24.30 * a * a;
+  alpha2 = 2.25;
+  beta2 = 0.563 / (pow(a / 0.060, 0.02) + 1.) / alpha2;
+
+  Rb = 1.;
+  for (i = 1; i <= 3; i++)
+  {
+    Rb *= A0 * exp(-pow(fabs(x[i] - mu0) / sigma0, alpha0)) - A1 * exp(-pow(fabs(x[i] - mu1) / sigma1, 2)) + pow(1. + pow(k[i] / ks, alpha2), beta2); // Eq.(C1)
+  }
+
+  return Rb;
+}
