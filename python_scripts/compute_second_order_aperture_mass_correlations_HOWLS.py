@@ -16,6 +16,7 @@ startpath = '/vol/euclid2/euclid2_raid2/sven/HOWLS/'
 
 
 def compute_aperture_masses_of_field(filepath,theta_ap_array,save_map=None,use_polynomial_filter=False):
+    print(filepath)
     slics = ('SLICS' in filepath)
     if(slics):
         fieldsize = 600.
@@ -44,7 +45,7 @@ def compute_aperture_masses_of_field(filepath,theta_ap_array,save_map=None,use_p
 
     return result
 
-def compute_all_aperture_masses(openpath,filenames,savepath,aperture_masses = [2,4,8,16],n_processes = 64,use_polynomial_filter=False):
+def compute_all_aperture_masses(openpath,filenames,savepath,aperture_masses = [0.5,1,2,4,8,16,32],n_processes = 64,use_polynomial_filter=False):
     n_files = len(filenames)
     with Pool(processes=n_processes) as p:
         # print('test')
@@ -78,13 +79,13 @@ if(__name__=='__main__'):
             filenames = np.sort([filename for filename in _filenames if ".fits" in filename])
             # if not 'SLICS' in dirpath:
             	# dir_end_path = dirpath.split('/')[-1]
-            savepath = dirpath.split('shear_catalogues')[0]+'maps_4096_pix_2_to_16'+dirpath.split('shear_catalogues')[1]
+            savepath = dirpath.split('shear_catalogues')[0]+'maps_4096_pix_0p5_to_32'+dirpath.split('shear_catalogues')[1]
             print('Reading shear catalogues from ',dirpath)
             print('Writing summary statistics to ',savepath)
             if not os.path.exists(savepath):
                 os.makedirs(savepath)
 
-            compute_all_aperture_masses(dirpath+'/',filenames,savepath+'/',n_processes=64)#,aperture_masses = [0.5,1,2,4,8,16,32])
+            compute_all_aperture_masses(dirpath+'/',filenames,savepath+'/',n_processes=96)#,aperture_masses = [0.5,1,2,4,8,16,32])
 
     # for (dirpath,_,_filenames) in os.walk(startpath+"shear_catalogues/"):
     #     if(len(_filenames)>2 and 'SLICS' in dirpath):

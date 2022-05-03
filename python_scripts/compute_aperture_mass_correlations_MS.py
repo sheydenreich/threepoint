@@ -21,9 +21,9 @@ def compute_aperture_masses_of_field(los,theta_ap_array,save_map=None,use_polyno
     field = get_gamma_millennium(los)
 
     result_3pt = extract_aperture_masses_of_field(field,npix,theta_ap_array,fieldsize,
-    save_map=save_map,use_polynomial_filter=use_polynomial_filter)
+    save_map=save_map,use_polynomial_filter=use_polynomial_filter,same_fieldsize_for_all_theta=False)
     result_2pt = extract_second_order_aperture_masses_of_field(field,npix,theta_ap_array,fieldsize,
-    save_map=save_map,use_polynomial_filter=use_polynomial_filter)
+    save_map=save_map,use_polynomial_filter=use_polynomial_filter,same_fieldsize_for_all_theta=False)
 
     return result_2pt,result_3pt
 
@@ -49,12 +49,14 @@ if(__name__=='__main__'):
     all_los = range(64)
     # if not 'SLICS' in dirpath:
         # dir_end_path = dirpath.split('/')[-1]
-    savepath = startpath + 'map2_MS_2_to_16'
+    savepath = startpath + 'maps_MS_0p5_to_32'
     print('Writing summary statistics to ',savepath)
     if not os.path.exists(savepath):
         os.makedirs(savepath)
 
-    compute_all_aperture_masses(all_los,savepath+'/',n_processes=64,aperture_masses = [2,4,8,16])
+    compute_aperture_masses_of_field(1,[0.5,1,2,4,8,16,32])
+
+    compute_all_aperture_masses(all_los,savepath+'/',n_processes=64,aperture_masses = [0.5,1,2,4,8,16,32])
 
     # for (dirpath,_,_filenames) in os.walk(startpath+"shear_catalogues/"):
     #     if(len(_filenames)>2):
