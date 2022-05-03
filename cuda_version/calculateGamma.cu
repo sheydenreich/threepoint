@@ -82,13 +82,13 @@ Example:
     };
 
   // User output
-  std::cerr<<"Using cosmology:"<<std::endl;
-  std::cerr<<cosmo;
-  std::cerr<<"Writing to:"<<outfn<<std::endl;
+  std::cout<<"Using cosmology:"<<std::endl;
+  std::cout<<cosmo;
+  std::cout<<"Writing to:"<<outfn<<std::endl;
 
   configGamma config;
   read_gamma_config(config_file,config);
-  std::cerr<<config;
+  std::cout<<config;
   // Binning
   int steps = config.rsteps;
   int usteps = config.usteps;

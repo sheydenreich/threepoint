@@ -16,7 +16,7 @@ cosmology::cosmology(const std::string& fn_parameters)
       exit(1);
     };
   std::vector<std::string> parameterNames;
-  std::vector<double> parameterValues;
+  std::vector<std::string> parameterValues;
   
   if(input.is_open())
     {
@@ -25,7 +25,7 @@ cosmology::cosmology(const std::string& fn_parameters)
 	{
 	  if(line[0]=='#' || line.empty()) continue;
 	  std::string name;
-	  double value;
+	  std::string value;
 	  std::istringstream iss(line);
 	  iss>>name>>value;
 	  parameterNames.push_back(name);
@@ -37,32 +37,36 @@ cosmology::cosmology(const std::string& fn_parameters)
     {
       if(parameterNames.at(i)=="h")
 	{
-	  h=parameterValues.at(i);
+	  h=std::stod(parameterValues.at(i));
 	}
       else if(parameterNames.at(i)=="sigma_8")
 	{
-	  sigma8=parameterValues.at(i);
+	  sigma8=std::stod(parameterValues.at(i));
 	}
       else if(parameterNames.at(i)=="Omega_b")
 	{
-	  omb=parameterValues.at(i);
+	  omb=std::stod(parameterValues.at(i));
 	}
       else if(parameterNames.at(i)=="n_s")
 	{
-	  ns=parameterValues.at(i);
+	  ns=std::stod(parameterValues.at(i));
 	}
       else if(parameterNames.at(i)=="w")
 	{
-	  w=parameterValues.at(i);
+	  w=std::stod(parameterValues.at(i));
 	}
       else if(parameterNames.at(i)=="Omega_m")
 	{
-	  om=parameterValues.at(i);
+	  om=std::stod(parameterValues.at(i));
 	}
       else if(parameterNames.at(i)=="z_max")
 	{
-	  zmax=parameterValues.at(i);
+	  zmax=std::stod(parameterValues.at(i));
 	}
+      else if(parameterNames.at(i)=="baryons")
+  {
+    std::istringstream(parameterValues.at(i)) >> baryons;
+  }
       else
 	{
 	  std::cout<<"Cosmology::Parameter file is not in the right format"
@@ -84,6 +88,14 @@ std::ostream& operator<<(std::ostream& out, const cosmology& cosmo)
   out<<"w "<<cosmo.w<<std::endl;
   out<<"Omega_m "<<cosmo.om<<std::endl;
   out<<"z_max "<<cosmo.zmax<<std::endl;
+  if(cosmo.baryons)
+  {
+    out << "Computing bispectrum WITH baryons" << std::endl;
+  }
+  else
+  {
+    out << "Computing bispectrum WITHOUT baryons" << std::endl;
+  }
   return out;
 }
 

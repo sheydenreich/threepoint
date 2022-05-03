@@ -22,6 +22,8 @@ public:
   double ow; /**< dimensionless density parameter of Dark Energy*/
   double zmax; /**< Maximal redshift of simulation */
 
+  bool baryons = false; /**< whether to include baryons in modeling */
+
   cosmology(){}; //Empty constructor
 
   cosmology(const std::string& fn_parameters); // Constructor from filename (reads in)
