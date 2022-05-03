@@ -38,37 +38,6 @@ def setup(options):
     #put in.
 
     mode = options[option_section, "mode"] # e.g. Peaks-DESY1, DSS, tomo bin, etc...
-    n_theta = options[option_section, "theta_bins"]
-    n_theta_map3 = n_theta*(n_theta+1)*(n_theta+2)//6
-    n_theta_joint = n_theta+n_theta_map3
-
-    mask = np.zeros(n_theta_joint,dtype=bool)
-
-    calculate_map2 = options[option_section, "calculate_Map2"]
-    calculate_map3 = options[option_section, "calculate_Map3"]
-    calculate_map3_diag = options[option_section, "diag_only"]
-
-    # Filter_r = options[option_section,"filter_size"]
-
-    if(calculate_map2):
-        mask[:n_theta] = True
-
-    if(calculate_map3):
-        if(calculate_map3_diag):
-            counter = n_theta
-            for i in range(n_theta):
-                for j in range(i,n_theta):
-                    for k in range(j,n_theta):
-                        if(i==j==k):
-                            mask[counter] = True
-                        counter += 1
-        else:
-            mask[n_theta:] = True
-    
-    print("Length of data vector: {}".format(np.sum(mask)))
-
-    print(mask.shape)
-
 
     print("-- Initializing the Emulator with mode:")
     print(mode)
@@ -83,7 +52,7 @@ def setup(options):
     # Maybe specify the input parameter here? Maybe do more?        
     #Whatever you return here will be saved by the system and the function below
     #will get it back as 'config'.  You could return 0 if you won't need anything.
-    return emu, mask, calculate_map2, calculate_map3   # 0 #loaded_data
+    return emu   # 0 #loaded_data
 
 
 def execute(block, config):
@@ -92,7 +61,7 @@ def execute(block, config):
     #earlier modules, and the config is what we loaded earlier.
 
     # Just a simple rename for clarity.
-    emu, mask, calculate_map2, calculate_map3 = config
+    emu = config
 
     #------
     #This loads values from the section "cosmological_parameters" that we read above.
@@ -105,21 +74,14 @@ def execute(block, config):
     S8 = sigma8*np.sqrt(omega_m/0.3)
     Trial_Nodes =  np.array([omega_m, S8, h0, w])
 
-    model_datavector = emu(Trial_Nodes)[1][mask]
-
+    model_datavector = emu(Trial_Nodes)[1]
     # print(model_datavector)
     # Now we have got a result we save it back to the block like this.
     # I should probably create a new pblock for this...
     #block[cosmo, "PeakCount"] = GP_Pred[:][0]
 
     # block[mode, "principal_components"] = model_datavector
-    if(calculate_map2):
-        block["threepoint","Map2s"] = model_datavector[:4]
-        if(calculate_map3):
-            block["threepoint","Map3s"] = model_datavector[4:]
-    elif(calculate_map3):
-        block["threepoint","Map3s"] = model_datavector
-
+    block["threepoint","pc_gamma"] = model_datavector
     # print("Done GPR execute") 
 
     #We tell CosmoSIS that everything went fine by returning zero

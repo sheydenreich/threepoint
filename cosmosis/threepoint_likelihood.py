@@ -1,5 +1,6 @@
 # Quick and dirty cosmosis module for likelihood 
 # (should be replaced by proper likelihood module in the future)
+from __future__ import division
 
 from cosmosis.datablock import names
 import numpy as np
@@ -17,6 +18,14 @@ def setup(options):
     likelihoods = options["threepoint_likelihood","likelihoods"]
     calculate_Map2 = ("Map2" in likelihoods)
     calculate_Map3 = ("Map3" in likelihoods)
+    calculate_gamma = ("gamma" in likelihoods)
+
+    account_for_emulator_error = options.get_bool("threepoint_likelihood","account_for_emulator_error",
+                                                    default=False)
+    
+    account_for_cutoff = options.get_bool("threepoint_likelihood","account_for_cutoff",
+                                          default=True)
+
     N_sim = options["threepoint_likelihood", "N_sim"]
 
     print("Using covariance matrix from "+fn_cov)
@@ -39,14 +48,31 @@ def setup(options):
     cov=np.loadtxt(fn_cov, comments='#')
     N=len(data)
     cov=cov.reshape((N,N))
+
+    if(account_for_emulator_error):
+        print("Accounting for Emulator uncertainty")
+        fn_cov_split = fn_cov.split(".")
+        cov_add = np.loadtxt(fn_cov_split[0]+"_emulator."+fn_cov_split[1])
+        cov += cov_add
+        
+    if(account_for_cutoff):
+        fieldsize = options["threepoint_likelihood","fieldsize"]
+        theta_max = options["threepoint_likelihood","theta_max"]
+        fieldsize_new = fieldsize-8*theta_max
+        modification_factor = fieldsize_new**2/fieldsize**2
+        print("Decreasing covariance matrix to account for cut-off of boundary.")
+        print("Previous fieldsize: {}, new fieldsize: {}, modification factor: {}".format(fieldsize,fieldsize_new,modification_factor))
+        cov *= modification_factor
+
     cov_inv=np.linalg.inv(cov)
 
     if not np.allclose(np.dot(cov,cov_inv),np.eye(cov.shape[0]),atol=1e-8):
         raise ValueError("Error: Covariance Matrix not invertible")
 
     np.savetxt(fn_cov_inv, cov_inv)
+    
 
-    return [data, cov_inv, calculate_Map2, calculate_Map3, N_sim]
+    return [data, cov_inv, calculate_Map2, calculate_Map3, calculate_gamma, N_sim]
     
 
 
@@ -61,7 +87,7 @@ def execute(block, config):
         0: designates success (needed for cosmosis reasons)
     """
     
-    [map3_data, cov_inv, calculate_Map2, calculate_Map3, N_sim]=config
+    [data, cov_inv, calculate_Map2, calculate_Map3, calculate_gamma, N_sim]=config
     
     model = np.zeros(0)
 
@@ -73,8 +99,14 @@ def execute(block, config):
         # print(block["threepoint", "Map3s"])
         model = np.concatenate((model,block["threepoint", "Map3s"]))
 
-    # print(model)
-    delta = model - map3_data
+    if(calculate_gamma):
+        model = np.concatenate((model,block["threepoint", "pc_gamma"]))
+
+    # print(model.shape,data.shape)
+    # import sys
+    # sys.exit(-1)
+
+    delta = model - data
     chi2=np.einsum("i,ij,j",delta,cov_inv,delta)
     log_det=0#1.0/np.log(np.linalg.det(cov_inv))
 
