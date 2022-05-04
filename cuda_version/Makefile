@@ -1,6 +1,5 @@
 # define the Compiler to use
-#NVCC = /usr/local/cuda/bin/nvcc -std=c++11 -rdc=true -Xcompiler -fopenmp -O3 -arch=sm_86
-NVCC = nvcc -std=c++11 -rdc=true -Xcompiler -fopenmp -O3 -arch=sm_70
+NVCC = /usr/local/cuda/bin/nvcc -std=c++17 -rdc=true -Xcompiler -fopenmp -O3 -arch=sm_86
 
 # define the C++ compiler to use
 GCC = g++
@@ -11,12 +10,10 @@ CFLAGS = -std=c++17 -fopenmp -W -Wall -Wpointer-arith -Wformat-nonliteral -Winit
 NVCCFLAGS = -g -Xcompiler -fPIC
 
 # define library paths in addition to /usr/lib
-#LFLAGS= -L /vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/ -Xcompiler \"-Wl,-R,/vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/\"  -L /usr/local/lib/
-LFLAGS= -L /home/laila/cosmosis/cosmosis/datablock/ -Xcompiler \"-Wl,-R,/home/laila/cosmosis/cosmosis/datablock/\"  -L /usr/local/lib/
+LFLAGS= -L /vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/ -Xcompiler \"-Wl,-R,/vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/\"  -L /usr/local/lib/ -L ../Cuba-4.2.2/
 
 # define any libraries
-LIBS = -lm -lgsl -lgslcblas -lcosmosis
-
+LIBS = -lm -lgsl -lgslcblas -lcosmosis -lcuba
 
 # define the cuda source files
 SRCS_CU = $(wildcard *.cu)
