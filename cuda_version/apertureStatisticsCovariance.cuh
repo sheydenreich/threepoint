@@ -112,6 +112,20 @@ extern double lMin;
      double T4(const double &theta1, const double &theta2, const double &theta3,
                const double &theta4, const double &theta5, const double &theta6);
 
+      /**
+      * @brief Placeholder of Pentaspectrum Covariance
+      *
+      * @param theta1 Aperture radius [rad]
+      * @param theta2 Aperture radius [rad]
+      * @param theta3 Aperture radius [rad]
+      * @param theta4 Aperture radius [rad]
+      * @param theta5 Aperture radius [rad]
+      * @param theta6 Aperture radius [rad]
+      */
+      double dummy_T7(const double &theta1, const double &theta2, const double &theta3,
+         const double &theta4, const double &theta5, const double &theta6);
+              
+
 
     /**
      * @brief Wrapper of integrand_T1 for the cubature library
@@ -165,7 +179,20 @@ extern double lMin;
       */
      int integrand_T4(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
  
-
+     /**
+      * @brief Placeholder for Wrapper of integrand_T7 for the cuba library
+      * See http://www.feynarts.de/cuba/ for documentation
+      * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
+      * @param xx Array containing integration variables
+      * @param ncomp Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
+      * @param ff Value of integral
+      * @param userdata Pointer to ApertureStatisticsCovarianceContainer instance
+      * @param nvec Number of integration points that are evaluated at the same time (automatically determined by integration)
+      * @return 0 on success
+      */     
+     static int dummy_integrand_T7(const int *ndim, const double* xx,
+      const int *ncomp, double* ff, void *userdata, const int* nvec);
+  
 
 
 /**
@@ -307,6 +334,36 @@ __global__ void integrand_T1_infinite(const double* vars, unsigned ndim, int npt
  __global__ void integrand_T4_infinite(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
     double theta4, double theta5, double theta6, double* value);
 
+   /**
+   * @brief Placeholder for integrand for Term 7 for infinite survey
+   * 
+   * @param vars Integration parameters (5 D)
+   * @param ndim Number of integration dimensions
+   * @param npts Number of integration points
+   * @param theta1 Aperture radius [rad]
+   * @param theta2 Aperture radius [rad]
+   * @param theta3 Aperture radius [rad]
+   * @param theta4 Aperture radius [rad]
+   * @param theta5 Aperture radius [rad]
+   * @param theta6 Aperture radius [rad]
+   * @param lMin minimum ell-mode of integration
+   * @param lMax maximum ell-mode of integration
+   * @param phiMin minimum phi-mode of integration
+   * @param phiMax maximum phi-mode of integration
+
+   * @param value Value of integral
+   */
+
+    __global__ void dummy_integrand_T7_inf(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
+      double theta4, double theta5, double theta6, double* value, double lMin, double lMax, double phiMin, double phiMax);
+  
+   /**
+      * @brief Placeholder for function to be integrated for T7
+      * param r, phi some arbitrary parameters
+   */
+   __device__ double dummy_testfunc(double r, double phi);
+   
+
     /**
      * @brief Geometric factor for circular survey
      *
@@ -332,6 +389,8 @@ struct ApertureStatisticsCovarianceContainer
 
         // Second aperture radii [rad]
         std::vector<double> thetas_456;
+
+        double lMin,lMax,phiMin,phiMax;
 };
 
 #endif //APERTURESTATISTICSCOVARIANCE_CUH

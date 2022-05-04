@@ -4,6 +4,7 @@
 #include "cuda_helpers.cuh"
 
 #include "cubature.h"
+#include "cuba.h"
 
 
 #include <algorithm>
@@ -408,6 +409,87 @@ throw std::logic_error("T4: Wrong survey geometry");
 return result;
 }
 
+double dummy_T7(const double &theta1, const double &theta2, const double &theta3,
+    const double &theta4, const double &theta5, const double &theta6)
+{
+    // Set maximal l value such, that theta*l <= 5
+    double thetaMin_123 = std::min({theta1, theta2, theta3});
+    double thetaMin_456 = std::min({theta4, theta5, theta6});
+    double thetaMin = std::max({thetaMin_123, thetaMin_456});
+    double lMax = 5. / thetaMin;
+    // Create container
+    ApertureStatisticsCovarianceContainer container;
+    container.thetas_123 = std::vector<double>{theta1, theta2, theta3};
+    container.thetas_456 = std::vector<double>{theta4, theta5, theta6};
+    // Set integral bounaries
+    container.lMin = 0.;
+    container.lMax = lMax;
+    container.phiMin = 0.;
+    container.phiMax = 2.*M_PI;
+    // allocate necessary variables
+    int neval,fail,nregions;
+    double integral[1],error[1],prob[1];
+    // Internal parameters of the integration
+    int NDIM = 6; // dimensions of integration parameters
+    int NCOMP = 1; // dimensions of function
+
+    int NVEC = 1048576; // maximum value of parallel executions (adjust so that GPU memory can not overload)
+                        // now: 2^20
+
+    double EPSREL = 1e-4; // accuracy parameters
+    double EPSABS = 0;
+
+    int VERBOSE = 2; // verbosity
+    int LAST = 4;
+
+    int SEED = 0; // random seed. =0: Sobol quasi-random number, >0 pseudo-random numbers
+    int MINEVAL = 1000; // minimum number of evaluations
+    int MAXEVAL = 1000000000; // maximum number of evaluations, if integral is not converged by then it throws an error
+
+    int NNEW = 1000;
+    int NMIN = 2;
+    double FLATNESS = 25; // describes the "flatness" of integration function in the unit cube. try different values, see what happens
+
+    const char* STATEFILE = NULL; // possibility to save integration and resume at later stage
+    void* SPIN = NULL; // something to do with the parallel processes, only necessary if parallelized manually
+
+
+    Suave(NDIM, NCOMP, (integrand_t)dummy_integrand_T7, &container, NVEC,
+        EPSREL, EPSABS, VERBOSE | LAST, SEED,
+        MINEVAL, MAXEVAL, NNEW, NMIN, FLATNESS,
+        STATEFILE, SPIN,
+        &nregions, &neval, &fail, integral, error, prob);
+
+    if(VERBOSE)
+    {
+        printf("SUAVE RESULT:\tnregions %d\tneval %d\tfail %d\n",
+        nregions, neval, fail);
+
+        for(int comp = 0; comp < NCOMP; comp++ )
+            printf("SUAVE RESULT:\t%.8f +- %.8f\t p = %.3f\n",
+            integral[comp], error[comp], prob[comp]);
+
+    }
+
+    if(fail!=0)
+    {
+        if(fail>0)
+        {
+            std::cerr << "Integral did not converge after " << neval << "evaluations." << std::endl;
+            exit(1);
+        }
+        if(fail<0)
+        {
+            std::cerr << "An error occured in the integration." << std::endl;
+            exit(1);
+        }
+    }
+
+    return integral[0];
+
+}
+
+
 int integrand_T1(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
 {
     if (fdim != 1)
@@ -619,6 +701,62 @@ int integrand_T4(unsigned ndim, size_t npts, const double *vars, void *container
 
     return 0; // Success :)
 }
+
+static int dummy_integrand_T7(const int *ndim, const double* xx,
+    const int *ncomp, double* ff, void *userdata, const int* nvec)
+{   
+    if(*ndim!=6)
+    {
+        std::cerr << "Wrong number of argument dimension in T7" << std::endl;
+        exit(1);
+    }
+
+    if(*ncomp!=1)
+    {
+        std::cerr << "Wrong number of function dimensions in T7" << std::endl;
+        exit(1);
+    }
+
+    ApertureStatisticsCovarianceContainer* container = (ApertureStatisticsCovarianceContainer*) userdata;
+
+    std::vector<double> thetas_123 = container->thetas_123;
+    std::vector<double> thetas_456 = container->thetas_456;
+
+    double theta1 = thetas_123[0];
+    double theta2 = thetas_123[1];
+    double theta3 = thetas_123[2];
+
+    double theta4 = thetas_456[0];
+    double theta5 = thetas_456[1];
+    double theta6 = thetas_456[2];
+
+    // Allocate memory on device for integrand values
+    double* dev_value;
+    CUDA_SAFE_CALL(cudaMalloc((void**)&dev_value, *ncomp * *nvec*sizeof(double)));
+
+    // Copy integration variables to device
+    double* dev_vars;
+    CUDA_SAFE_CALL(cudaMalloc(&dev_vars, *ndim* *nvec * sizeof(double))); //alocate memory
+    CUDA_SAFE_CALL(cudaMemcpy(dev_vars, xx, *ndim* *nvec * sizeof(double), cudaMemcpyHostToDevice)); //copying
+
+    dummy_integrand_T7_inf<<<BLOCKS, THREADS>>>(dev_vars, *ndim, *nvec, theta1, theta2, theta3,
+                                                    theta4, theta5, theta6, dev_value,
+                                                container->lMin,container->lMax,container->phiMin,container->phiMax);
+
+    cudaFree(dev_vars); //Free variables
+
+    // Copy results to host
+    CUDA_SAFE_CALL(cudaMemcpy(ff, dev_value, *ncomp * *nvec*sizeof(double), cudaMemcpyDeviceToHost));
+
+    cudaFree(dev_value); //Free values
+
+    return 0; // Success :)
+                                                
+}
+
+
+
+
 
 __global__ void integrand_T1_circle(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
     double theta4, double theta5, double theta6, double* value)
@@ -859,6 +997,39 @@ __global__ void integrand_T4_infinite(const double* vars, unsigned ndim, int npt
     }
 
 }
+
+__device__ double dummy_testfunc(double r, double phi)
+{
+    return exp(-r*r/2);
+}
+
+__global__ void dummy_integrand_T7_inf(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
+    double theta4, double theta5, double theta6, double* value, double lMin, double lMax, double phiMin, double phiMax)
+{
+    int thread_index=blockIdx.x*blockDim.x+threadIdx.x;
+    double deltaEll = lMax-lMin;
+    double deltaPhi = phiMax-phiMin;
+
+    for (int i=thread_index; i<npts; i+=blockDim.x*gridDim.x)
+    {
+        double ell1 = vars[i*ndim+0]*deltaEll+lMin; //variable transformation to unit cube
+        double ell2 = vars[i*ndim+1]*deltaEll+lMin;
+        double ell3 = vars[i*ndim+2]*deltaEll+lMin;
+
+        double phi1 = vars[i*ndim+3]*deltaPhi+phiMin;
+        double phi2 = vars[i*ndim+4]*deltaPhi+phiMin;
+        double phi3 = vars[i*ndim+5]*deltaPhi+phiMin;
+
+
+        double result = dummy_testfunc(ell1,phi1)*dummy_testfunc(ell2,phi2)*dummy_testfunc(ell3,phi3);
+        result *= (pow(deltaEll,3)*pow(deltaPhi,3)); //adjust for variable transformation
+        value[i] = result;
+    }
+}
+
+
+
+
 
 
 __device__ double G_circle(const double &ell)
