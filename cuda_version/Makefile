@@ -22,8 +22,7 @@ SRCS_CU = $(wildcard *.cu)
 SRCS_CPP = $(wildcard *.cpp)
 
 # define the CUDA executables (ADD ALL HERE)
-EXECS_CU = calculateSecondOrderAperturestatistics.x calculatePowerspectrum.x calculatePowerspectrum_varyingcosmos.x calculateApertureStatisticsCovariance.x calculateApertureStatistics_varyingCosmos.x calculateApertureStatistics.x calculateDerivativeApertureStatistics.x calculateGamma_input_fisher.x calculateGamma.x testGamma.x calculateGamma_varyingCosmos.x testPowerspectrum.x testHalomodel.x calculateMap4.x calculateMap6.x calculatePowerspectrum_halomodel.x calculateTrispectrum_halomodel.x calculateTrispectrum3D_halomodel.x calculateNFW.x calculateHMF.x #calculateApertureStatisticsSSC.x testBispecSSC.x
-
+EXECS_CU = calculateApertureStatisticsCovariance.x calculateGamma_input_fisher.x calculatePowerspectrum.x calculateApertureStatistics.x  calculateGamma_varyingCosmos.x  calculatePowerspectrum_halomodel.x calculateApertureStatisticsSSC.x calculateHMF.x calculatePowerspectrum_varyingcosmos.x calculateApertureStatistics_varyingCosmos.x  calculateMap4.x                 calculateSecondOrderAperturestatistics.cu calculateDerivativeApertureStatistics.cu      calculateMap6.cu                 calculateTrispectrum3D_halomodel.cu calculateGamma.cu                             calculateNFW.cu                  calculateTrispectrum_halomodel.cu
 # define cpp object files
 OBJS_CPP = $(SRCS_CPP:.cpp=.o)
 
