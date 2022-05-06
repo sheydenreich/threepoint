@@ -1546,6 +1546,15 @@ int integrand_T6(unsigned ndim, size_t npts, const double *vars, void *container
   
     // Copy results to host
     CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim*npts*sizeof(double), cudaMemcpyDeviceToHost));
+
+
+    cudaFree(dev_value); //Free values
+
+    return 0; // Success :)
+}
+
+
+
 static int dummy_integrand_T7(const int *ndim, const double* xx,
     const int *ncomp, double* ff, void *userdata, const int* nvec)
 {   

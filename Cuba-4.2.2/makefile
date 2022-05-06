@@ -1,14 +1,14 @@
-CC = gcc
+CC = /users/llinke/anaconda3/bin/x86_64-conda-linux-gnu-cc
 SUFFIX = 
-CFLAGS = -O3 -fomit-frame-pointer -ffast-math -Wall -DHAVE_CONFIG_H -fPIC -DREALSIZE=8 -I$(common) -I. -I$(srcdir)
+CFLAGS = -march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe -isystem /users/llinke/anaconda3/include -DHAVE_CONFIG_H -DREALSIZE=8 -I$(common) -I. -I$(srcdir)
 MCFLAGS = 
-FC = gfortran
+FC = /users/llinke/anaconda3/bin/x86_64-conda-linux-gnu-gfortran
 FCFLAGS = -g -O2 -DREALSIZE=8
 LIBS = -lm
 INSTALL = /usr/bin/install -c
 INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
-RANLIB = ranlib
+RANLIB = /users/llinke/anaconda3/bin/x86_64-conda-linux-gnu-ranlib
 EXE = 
 
 prefix = /usr/local
@@ -21,7 +21,7 @@ datarootdir = ${prefix}/share
 datadir = ${datarootdir}
 
 MATH_DEFAULT = 
-TOOLS_DEFAULT = tools
+TOOLS_DEFAULT = 
 DEMO_FORTRAN_DEFAULT = demo-fortran$(EXE)
 
 MCC = CC="$(tools)/fcc" CXX="$(tools)/fcc -stdlib=libstdc++" \
