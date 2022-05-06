@@ -476,7 +476,7 @@ double dummy_T7(const double &theta1, const double &theta2, const double &theta3
         if(fail>0)
         {
             std::cerr << "Integral did not converge after " << neval << "evaluations." << std::endl;
-            exit(1);
+            exit(1); // program is cancelled if integration does not converge. alternative: return 0 or nan
         }
         if(fail<0)
         {
