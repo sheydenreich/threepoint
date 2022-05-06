@@ -33,6 +33,7 @@ Example:
 ./calculateApertureStatistics.x ../necessary_files/MR_cosmo.dat ../necessary_files/HOWLS_thetas.dat ../../results_MR/MapMapMap_bispec_gpu_nz.dat 1 ../necessary_files/nz_MR.dat
 )";
 
+
   if (argc < 5) // Give out error message if too few CLI arguments
   {
     std::cerr << message << std::endl;
@@ -95,7 +96,7 @@ Example:
   //thetas={2, 4, 8};
   //N=thetas.size();
   // Set up vector for aperture statistics
-  int Ntotal = factorial(N+3)/factorial(N-1)/24; // Total number of bins that need to be calculated, = (N+4+1) ncr 3
+  int Ntotal = N;//factorial(N+3)/factorial(N-1)/24; // Total number of bins that need to be calculated, = (N+4+1) ncr 3
   //int Ntotal=N;
   std::vector<double> Map4s;
 
@@ -111,15 +112,15 @@ Example:
   {
     double theta1 = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
 
-    for (int j = i; j < N; j++) 
+    for (int j = i; j < i+1; j++) 
     {
       double theta2 = convert_angle_to_rad(thetas.at(j));
 
-      for (int k = j; k < N; k++) 
+      for (int k = j; k < i+1; k++) 
       {
 
         double theta3 = convert_angle_to_rad(thetas.at(k));
-        for (int l = k; l < N; l++) 
+        for (int l = k; l < i+1; l++) 
         {
 
           double theta4 = convert_angle_to_rad(thetas.at(l));
@@ -143,9 +144,9 @@ Example:
   // Output
   step = 0;
   for (int i = 0; i < N; i++) {
-    for (int j = i; j < N; j++) {
-      for (int k = j; k < N; k++) {
-        for (int l=k; l<N; l++){
+    for (int j = i; j < i+1; j++) {
+      for (int k = j; k < i+1; k++) {
+        for (int l=k; l<i+1; l++){
         out << thetas[i] << " " << thetas[j] << " " << thetas[k] << " " << thetas[l] << " "
             << Map4s.at(step) << " " << std::endl;
         step++;

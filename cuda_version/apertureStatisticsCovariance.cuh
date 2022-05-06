@@ -522,8 +522,10 @@ __global__ void integrand_T1_infinite(const double* vars, unsigned ndim, int npt
    * @param value Value of integral
    */
 
-    __global__ void dummy_integrand_T7_inf(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
-      double theta4, double theta5, double theta6, double* value, double lMin, double lMax, double phiMin, double phiMax);
+    __global__ void dummy_integrand_T7_inf(const double* vars, unsigned ndim, int npts, 
+      double theta1, double theta2, double theta3, 
+      double theta4, double theta5, double theta6, 
+      double* value, double lMin, double lMax, double phiMin, double phiMax);
   
    /**
       * @brief Placeholder for function to be integrated for T7

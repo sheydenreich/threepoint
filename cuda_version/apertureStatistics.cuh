@@ -163,10 +163,25 @@ __global__ void integrand_Map3_kernel(const double* vars, unsigned ndim, int npt
 int integrand_Map3(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
 
 
-__global__ void integrand_Map4_kernel(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double* value);
+__global__ void integrand_Map4_kernel(const double* vars, unsigned ndim, int npts, 
+  double theta1, double theta2, double theta3, double theta4, double* value,
+  double lMin, double lMax, double phiMin, double phiMax, 
+  double mMin, double mMax, double zMin, double zMax);
 
-int integrand_Map4(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
 
+       /**
+      * @brief Wrapper of integrand_Map4_kernel for the cuba library
+      * See http://www.feynarts.de/cuba/ for documentation
+      * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
+      * @param xx Array containing integration variables
+      * @param ncomp Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
+      * @param ff Value of integral
+      * @param userdata Pointer to ApertureStatisticsContainer instance
+      * @param nvec Number of integration points that are evaluated at the same time (automatically determined by integration)
+      * @return 0 on success
+      */     
+static int integrand_Map4(const int *ndim, const double* xx,
+  const int *ncomp, double* ff, void *userdata, const int* nvec);
 
 __global__ void integrand_Map6_kernel(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double* value);
 
@@ -191,6 +206,11 @@ struct ApertureStatisticsContainer
 {
   /** Apertureradii [rad]*/
   std::vector<double> thetas;
+
+  double lMin, lMax;
+  double phiMin, phiMax;
+  double mMin, mMax;
+  double zMin, zMax;
 };
 
 

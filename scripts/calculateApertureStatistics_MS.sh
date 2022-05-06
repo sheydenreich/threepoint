@@ -1,14 +1,17 @@
 DIR_BIN=../cuda_version/
 
-DIR_RESULTS=/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/results_MR/
+DIR_RESULTS=/vol/aibn238/data1/llinke/5_Projects/02_3ptStatistics/results_MR/ #~/OneDrive/5_Projects/02_3ptStatistics/results_MR/
 
 FILE_NZ=../necessary_files/nz_MR.dat
 
 FILE_THETAS=../necessary_files/Our_thetas.dat
 
+export CUDA_VISIBLE_DEVICES=$(nvidia-smi --query-gpu=memory.free,index --format=csv,nounits,noheader | sort -nr | head -1 | awk '{ print $NF }')
+echo Using GPU $CUDA_VISIBLE_DEVICES
+
 #$DIR_BIN/calculateApertureStatistics.x ../necessary_files/MR_cosmo.dat $FILE_THETAS  $DIR_RESULTS/MapMapMap_bispec.dat 1 $FILE_NZ
 
-$DIR_BIN/calculateMap4.x ../necessary_files/MR_cosmo.dat $FILE_THETAS $DIR_RESULTS/Map4_trispec_diag 1 $FILE_NZ
+taskset --cpu-list 1 $DIR_BIN/calculateMap4.x ../necessary_files/MR_cosmo.dat $FILE_THETAS $DIR_RESULTS/Map4_trispec_diag_newCode 1 $FILE_NZ
 
 #$DIR_BIN/calculateMap6.x ../necessary_files/MR_cosmo.dat $FILE_THETAS $DIR_RESULTS/Map6_trispec 1 $FILE_NZ
 

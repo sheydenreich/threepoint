@@ -42,7 +42,7 @@ Example:
   bool nz_from_file = false;
 
   cosmo_paramfile = argv[1];
-  thetasfn = argv[2];
+   thetasfn = argv[2];
   outfn = argv[3];
   nz_from_file = std::stoi(argv[4]);
   if (nz_from_file) {
