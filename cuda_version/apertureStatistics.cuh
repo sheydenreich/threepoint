@@ -162,6 +162,16 @@ __global__ void integrand_Map3_kernel(const double* vars, unsigned ndim, int npt
    */
 int integrand_Map3(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
 
+
+__global__ void integrand_Map4_kernel(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double* value);
+
+int integrand_Map4(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
+
+
+__global__ void integrand_Map6_kernel(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double* value);
+
+int integrand_Map6(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
+
   /**
    * @brief Aperturestatistics calculated from Bispectrum
    * @warning This is NOT Eq 58 from Schneider, Kilbinger & Lombardi (2003), but a third of that, due to the bispectrum definition
@@ -173,8 +183,9 @@ int integrand_Map3(unsigned ndim, size_t npts, const double* vars, void* thisPtr
    */
 double MapMapMap(const std::vector<double>& thetas, const double& phiMin=0, const double& phiMax=6.283185307, const double& lMin=1);
   
+double Map4(const std::vector<double>& thetas, const double& phiMin=0, const double& phiMax=6.283185307, const double& lMin=0);
 
-
+double Map6(const std::vector<double>& thetas, const double& phiMin=0, const double& phiMax=6.283185307, const double& lMin=0);
 
 struct ApertureStatisticsContainer
 {

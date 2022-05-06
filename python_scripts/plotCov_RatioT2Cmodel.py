@@ -43,13 +43,13 @@ for thetas in thetas_ind:
 N=len(thetas_ind)
 thetas_ticks=np.arange(0, N)
 
-sidelengths=np.array([5, 10, 15])
+sidelengths=np.array([10])#np.array([5, 10, 15])
 Nsides=len(sidelengths)
-fig= plt.figure(figsize=(5*Nsides+2,10))
+fig= plt.figure(figsize=(5*Nsides+7,10))
 
 cmap=cm.get_cmap('inferno', 10)
 
-grid=ImageGrid(fig, 111, nrows_ncols=(1, Nsides), axes_pad=0.15, share_all=True, aspect=True, cbar_location="right", cbar_mode="single", cbar_size="3%", cbar_pad=0.15)
+grid=ImageGrid(fig, 111, nrows_ncols=(1, Nsides), axes_pad=5, share_all=True, aspect=True, cbar_location="right", cbar_mode="single", cbar_size="3%", cbar_pad=0.15)
 
 # Set yLabel
 grid[0].set_ylabel(r'$(\theta_1, \theta_2, \theta_3)$')

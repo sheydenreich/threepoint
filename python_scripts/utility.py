@@ -663,6 +663,145 @@ def extract_aperture_masses_of_field(shears,npix,thetas,fieldsize,norm=None,ac=N
     return result
 
 
+
+def extract_fourth_order_aperture_masses(Xs,Ys,shear_catalogue,npix,thetas,fieldsize,compute_mcross=False,save_map=None,same_fieldsize_for_all_theta=False,use_polynomial_filter=False):
+    ac = aperture_mass_computer(npix,1.,fieldsize,use_polynomial_filter=use_polynomial_filter)
+    shears,norm = ac.normalize_shear(Xs,Ys,shear_catalogue)
+    result = extract_fourth_order_aperture_masses_of_field(shears,npix,thetas,fieldsize,norm=norm,ac=ac,compute_mcross=compute_mcross,
+    save_map=save_map,same_fieldsize_for_all_theta=same_fieldsize_for_all_theta,use_polynomial_filter=use_polynomial_filter)
+    return result
+
+def extract_fourth_order_aperture_masses_of_field(shears,npix,thetas,fieldsize,norm=None,ac=None,
+    save_map=None,same_fieldsize_for_all_theta=False,use_polynomial_filter=False):
+    n_thetas = len(thetas)
+    maxtheta = np.max(thetas)
+    if ac is None:
+        ac = aperture_mass_computer(npix,1.,fieldsize,use_polynomial_filter=use_polynomial_filter)
+
+ 
+    Nind=int(np.math.factorial(n_thetas+3)/np.math.factorial(n_thetas-1)/24)
+    print(Nind)
+    result = np.zeros(Nind)
+
+    aperture_mass_fields = np.zeros((npix,npix,n_thetas))
+
+
+    for x,theta in enumerate(thetas):
+        ac.change_theta_ap(theta)
+
+        map = ac.Map_fft(shears,norm=norm,return_mcross=False,periodic_boundary=False)
+
+        aperture_mass_fields[:,:,x] = map
+
+    if(save_map is not None):
+        np.save(save_map,aperture_mass_fields)
+
+    counter = 0
+    for i in range(n_thetas):
+        field1 = aperture_mass_fields[:,:,i]
+
+        for j in range(i,n_thetas):
+            field2 = aperture_mass_fields[:,:,j]
+
+            for k in range(j,n_thetas):                     
+                field3 = aperture_mass_fields[:,:,k]
+
+                for l in range(k, n_thetas):
+                    field4=aperture_mass_fields[:,:,l]
+
+
+                    if not same_fieldsize_for_all_theta:
+                        maxtheta = thetas[k]
+                
+                    if(use_polynomial_filter):
+                        factor_cutoff = 1. #polynomial filter is zero outside of theta_ap
+                    else:
+                        factor_cutoff = 4. #exponential filter has 99.8 percent of its power within 4*theta_ap
+
+                    index_maxtheta = int(np.round(maxtheta/(fieldsize)*npix*factor_cutoff)) #cut off boundaries
+                
+                    field1_cut = field1[index_maxtheta:(npix-index_maxtheta),index_maxtheta:(npix-index_maxtheta)]
+                    field2_cut = field2[index_maxtheta:npix-index_maxtheta,index_maxtheta:npix-index_maxtheta]
+                    field3_cut = field3[index_maxtheta:npix-index_maxtheta,index_maxtheta:npix-index_maxtheta]
+                    field4_cut = field4[index_maxtheta:npix-index_maxtheta,index_maxtheta:npix-index_maxtheta]
+
+
+                    result[counter] = np.mean(field1_cut*field2_cut*field3_cut*field4_cut)
+                    print(thetas[i], thetas[j], thetas[k], thetas[l], counter, result[counter])
+                    counter += 1
+
+    return result
+
+
+def extract_sixth_order_aperture_masses_of_field(shears,npix,thetas,fieldsize,norm=None,ac=None,
+    save_map=None,same_fieldsize_for_all_theta=False,use_polynomial_filter=False):
+    n_thetas = len(thetas)
+    maxtheta = np.max(thetas)
+    if ac is None:
+        ac = aperture_mass_computer(npix,1.,fieldsize,use_polynomial_filter=use_polynomial_filter)
+
+ 
+    Nind=int(np.math.factorial(n_thetas+3)/np.math.factorial(n_thetas-1)/24)
+    result = np.zeros(Nind)
+
+    aperture_mass_fields = np.zeros((npix,npix,n_thetas))
+
+
+    for x,theta in enumerate(thetas):
+        ac.change_theta_ap(theta)
+
+        map = ac.Map_fft(shears,norm=norm,return_mcross=False,periodic_boundary=False)
+
+        aperture_mass_fields[:,:,x] = map
+
+    if(save_map is not None):
+        np.save(save_map,aperture_mass_fields)
+
+    counter = 0
+    for i in range(n_thetas):
+        field1 = aperture_mass_fields[:,:,i]
+
+        for j in range(i,n_thetas):
+            field2 = aperture_mass_fields[:,:,j]
+
+            for k in range(j,n_thetas):                     
+                field3 = aperture_mass_fields[:,:,k]
+
+                for l in range(k, n_thetas):
+                    field4=aperture_mass_fields[:,:,l]
+
+                    for m in range(l, n_thetas):
+                        field5=aperture_mass_fields[:,:,m]
+
+                        for n in range(m, n_thetas):
+                            field6=aperture_mass_fields[:,:,n]
+                        if not same_fieldsize_for_all_theta:
+                            maxtheta = thetas[n]
+                
+                            if(use_polynomial_filter):
+                                factor_cutoff = 1. #polynomial filter is zero outside of theta_ap
+                            else:
+                                factor_cutoff = 4. #exponential filter has 99.8 percent of its power within 4*theta_ap
+
+                                index_maxtheta = int(np.round(maxtheta/(fieldsize)*npix*factor_cutoff)) #cut off boundaries
+                
+                                field1_cut = field1[index_maxtheta:(npix-index_maxtheta),index_maxtheta:(npix-index_maxtheta)]
+                                field2_cut = field2[index_maxtheta:npix-index_maxtheta,index_maxtheta:npix-index_maxtheta]
+                                field3_cut = field3[index_maxtheta:npix-index_maxtheta,index_maxtheta:npix-index_maxtheta]
+                                field4_cut = field4[index_maxtheta:npix-index_maxtheta,index_maxtheta:npix-index_maxtheta]
+                                field5_cut = field5[index_maxtheta:npix-index_maxtheta,index_maxtheta:npix-index_maxtheta]
+                                field6_cut = field6[index_maxtheta:npix-index_maxtheta,index_maxtheta:npix-index_maxtheta]
+
+
+
+                                result[counter] = np.mean(field1_cut*field2_cut*field3_cut*field4_cut*field5_cut*field6_cut)
+                                print(thetas[i], thetas[j], thetas[k], thetas[l], counter, result[counter])
+                                counter += 1
+
+    return result
+
+
+
 from numpy import pi,sinh,tanh,cosh
 from scipy.special import jv,jn_zeros
 

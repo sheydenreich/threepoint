@@ -179,3 +179,9 @@ double valueMap(const std::map<double, double>& map, double value)
     double diff = (value - ix_lower->first) / (ix->first - ix_lower->first);
     return diff * ix->second + (1 - diff) * ix_lower->second;
 }
+
+
+int factorial(int n)
+{
+  return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;
+}

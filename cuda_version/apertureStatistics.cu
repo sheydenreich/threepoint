@@ -3,6 +3,7 @@
 #include "cosmology.cuh"
 #include "cuda_helpers.cuh"
 #include "cubature.h"
+#include "halomodel.cuh"
 
 #include <iostream>
 #include <algorithm>
@@ -300,4 +301,226 @@ double MapMapMap(const std::vector<double>& thetas, const double& phiMin, const 
 
   
   return result/8/M_PI/M_PI/M_PI;//Divided by (2*pi)³
+}
+
+
+__global__ void integrand_Map4_kernel(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double* value)
+{
+  // index of thread
+  int thread_index=blockIdx.x*blockDim.x + threadIdx.x;
+
+  //Grid-Stride loop, so I get npts evaluations
+  for(int i=thread_index; i<npts; i+=blockDim.x*gridDim.x)
+    {
+      double l1=vars[i*ndim];
+      double l2=vars[i*ndim+1];
+      double l3=vars[i*ndim+2];
+      double phi1=vars[i*ndim+3];
+      double phi2=vars[i*ndim+4];
+      double phi3=vars[i*ndim+5];
+      double m=vars[i*ndim+6];
+
+      double l4=l1*l1+l2*l2+l3*l3+2*l1*l2*cos(phi2-phi1)+2*l2*l3*cos(phi2-phi3)+2*l1*l3*cos(phi3-phi1);
+      if(l4>0)
+      {
+        l4=sqrt(l4);
+        value[i]= l1*l2*l3*trispectrum_limber_integrated(0, dev_z_max, m, l1, l2, l3, l4)*uHat(l1*theta1)*uHat(l2*theta2)*uHat(l3*theta3)*uHat(l4*theta4); 
+       // printf("%e %e %e %e %e %e\n", l1, l2, l3, l4, trispectrum_limber_integrated(0, dev_z_max, m, l1, l2, l3, l4), value[i]);
+      }
+      else
+      {
+        l4=0;
+        value[i]=0;
+      };
+    }
+}
+
+
+int integrand_Map4(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value)
+{
+  if(fdim != 1)
+    {
+      std::cerr<<"integrand: Wrong number of function dimensions"<<std::endl;
+      exit(1);
+    };
+  // Read data for integration
+  ApertureStatisticsContainer* container = (ApertureStatisticsContainer*) thisPtr;
+
+  if (npts > 1e8)
+  {
+      std::cerr << "WARNING: Large number of points: " << npts << std::endl;
+      return 1;
+  };
+  std::cerr<<npts<<std::endl;
+  double theta1 = container-> thetas.at(0);
+  double theta2 = container-> thetas.at(1);
+  double theta3 = container-> thetas.at(2);
+  double theta4 = container-> thetas.at(3);
+
+  // Allocate memory on device for integrand values
+  double* dev_value;
+  CUDA_SAFE_CALL(cudaMalloc((void**)&dev_value, fdim*npts*sizeof(double)));
+
+  // Copy integration variables to device
+  double* dev_vars;
+  CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim*npts*sizeof(double))); //alocate memory
+  CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim*npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+
+  // Calculate values
+  integrand_Map4_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, theta1, theta2, theta3, theta4, dev_value);
+
+  cudaFree(dev_vars); //Free variables
+  
+  // Copy results to host
+  CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim*npts*sizeof(double), cudaMemcpyDeviceToHost));
+
+  cudaFree(dev_value); //Free values
+  
+  return 0; //Success :)  
+  
+
+}
+
+double Map4(const std::vector<double>& thetas, const double& phiMin, const double& phiMax, const double& lMin)
+{
+  //Set maximal l value such, that theta*l <= 10
+  double thetaMin=std::min({thetas[0], thetas[1], thetas[2], thetas[3]});
+  double lMax=10./thetaMin;
+
+
+  ApertureStatisticsContainer container;
+  container.thetas=thetas;
+  double result,error;
+
+  double mmin=pow(10, logMmin);
+  double mmax=pow(10, logMmax);
+  double vals_min[7] = {lMin, lMin, lMin, phiMin, phiMin, phiMin, mmin};
+  double vals_max[7] = {lMax, lMax, lMax, phiMax, phiMax, phiMax, mmax}; 
+
+  std::cerr<<mmin<<" "<<mmax<<std::endl;
+  //std::cerr<<lMin<<" "<<lMax<<" "<<phiMin<<" "<<phiMax<<std::endl;
+  hcubature_v(1, integrand_Map4, &container, 7, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
+
+  
+  return result/pow(2*M_PI, 6);//Divided by (2*pi)^6
+}
+
+
+__global__ void integrand_Map6_kernel(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double* value)
+{
+  // index of thread
+  int thread_index=blockIdx.x*blockDim.x + threadIdx.x;
+
+  //Grid-Stride loop, so I get npts evaluations
+  for(int i=thread_index; i<npts; i+=blockDim.x*gridDim.x)
+    {
+      double l1=vars[i*ndim];
+      double l2=vars[i*ndim+1];
+      double l3=vars[i*ndim+2];
+      double l4=vars[i*ndim+3];
+      double l5=vars[i*ndim+4];
+      double phi1=vars[i*ndim+5];
+      double phi2=vars[i*ndim+6];
+      double phi3=vars[i*ndim+7];
+      double phi4=vars[i*ndim+8];
+      double phi5=vars[i*ndim+9];
+      double m=vars[i*ndim+10];
+
+      double l6=l1*l1+l2*l2+l3*l3+l4*l4+l5*l5;
+      l6+=2*l1*l2*cos(phi2-phi1)+2*l1*l3*cos(phi3-phi1)+2*l1*l4*cos(phi4-phi1);
+      l6+=2*l1*l5*cos(phi5-phi1)+2*l2*l3*cos(phi3-phi2)+2*l2*l4*cos(phi4-phi2);
+      l6+=2*l2*l5*cos(phi5-phi2)+2*l3*l4*cos(phi4-phi3)+2*l3*l5*cos(phi5-phi3);
+      l6+=2*l4*l5*cos(phi5-phi4);
+
+      if(l6>0)
+      {
+        l6=sqrt(l6);
+      }
+      else
+      {
+        l6=0;
+      };
+      //printf("zmax: %lf", dev_z_max);
+      if(l6<=0)
+      {
+        value[i]=0;
+      }
+      else
+      {
+      value[i]= l1*l2*l3*l4*l5*pentaspectrum_limber_integrated(0, dev_z_max, m, l1, l2, l3, l4, l5, l6)
+        *uHat(l1*theta1)*uHat(l2*theta2)*uHat(l3*theta3)*uHat(l4*theta4)*uHat(l5*theta5)*uHat(l6*theta6); 
+      };
+      
+    }
+}
+
+int integrand_Map6(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value)
+{
+  if(fdim != 1)
+    {
+      std::cerr<<"integrand: Wrong number of function dimensions"<<std::endl;
+      exit(1);
+    };
+  // Read data for integration
+  ApertureStatisticsContainer* container = (ApertureStatisticsContainer*) thisPtr;
+  printf("%d\n", npts);
+
+  if (npts > 5e7)
+  {
+      std::cerr << "WARNING: Large number of points: " << npts << std::endl;
+      return 1;
+  };
+
+  double theta1 = container-> thetas.at(0);
+  double theta2 = container-> thetas.at(1);
+  double theta3 = container-> thetas.at(2);
+  double theta4 = container-> thetas.at(3);
+  double theta5 = container-> thetas.at(4);
+  double theta6 = container-> thetas.at(5);
+
+  // Allocate memory on device for integrand values
+  double* dev_value;
+  CUDA_SAFE_CALL(cudaMalloc((void**)&dev_value, fdim*npts*sizeof(double)));
+
+  // Copy integration variables to device
+  double* dev_vars;
+  CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim*npts*sizeof(double))); //alocate memory
+  CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim*npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+
+  // Calculate values
+  integrand_Map6_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, theta1, theta2, theta3, theta4, theta5, theta6,  dev_value);
+
+  cudaFree(dev_vars); //Free variables
+  
+  // Copy results to host
+  CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim*npts*sizeof(double), cudaMemcpyDeviceToHost));
+
+  cudaFree(dev_value); //Free values
+  
+  return 0; //Success :)  
+  
+
+}
+
+double Map6(const std::vector<double>& thetas, const double& phiMin, const double& phiMax, const double& lMin)
+{
+  //Set maximal l value such, that theta*l <= 10
+  double thetaMin=std::min({thetas[0], thetas[1], thetas[2], thetas[3], thetas[4], thetas[5]});
+  double lMax=10./thetaMin;
+
+
+  ApertureStatisticsContainer container;
+  container.thetas=thetas;
+  double result,error;
+
+  double mmin=pow(10, logMmin);
+  double mmax=pow(10, logMmax);
+  double vals_min[11] = {lMin, lMin, lMin, lMin, lMin, phiMin, phiMin, phiMin, phiMin, phiMin, mmin};
+  double vals_max[11] = {lMax, lMax, lMax, lMax, lMax, phiMax, phiMax, phiMax, phiMax, phiMax, mmax}; 
+
+ 
+  hcubature_v(1, integrand_Map6, &container, 11, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+
+  
+  return result/pow(2*M_PI, 10);//Divided by (2*pi)^10
 }

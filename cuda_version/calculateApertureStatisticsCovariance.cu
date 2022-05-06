@@ -27,7 +27,7 @@ Argument 11: Calculate T7? (0 or 1)
 Argument 12: Survey geometry, either circle, square, or infinite
 )";
 
-  if (argc != 12)
+  if (argc != 13)
   {
     std::cerr << message << std::endl;
     exit(-1);
@@ -197,7 +197,7 @@ Argument 12: Survey geometry, either circle, square, or infinite
         {
           double term7 = T7_total(theta_combis.at(i), theta_combis.at(j));
           std::cerr<<"T7:"<<term7<<std::endl;
-          Cov_term6s.push_back(term7);
+          Cov_term7s.push_back(term7);
         }
       }
       catch (const std::exception &e)

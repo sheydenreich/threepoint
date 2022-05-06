@@ -38,4 +38,6 @@ void read_thetas(const std::string& fn, std::vector<double>& thetas);
 
 
 double valueMap(const std::map<double, double>& map, double value);
+
+int factorial(int n);
  #endif //HELPERS_CUH

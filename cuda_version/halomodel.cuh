@@ -1,5 +1,5 @@
 const double logMmin=9;
-const double logMmax=17;
+const double logMmax=17;//20;//17;
 const int n_mbins=128;
 extern __constant__ double devLogMmin, devLogMmax;
 extern int __constant__ dev_n_mbins;
@@ -19,6 +19,7 @@ extern double dSigma2dm_array[n_mbins];
  * 
  */
 void initHalomodel();
+
 
 /**
  * @brief Halo mass function (Sheth & Tormen 1999)
@@ -82,6 +83,9 @@ __host__ __device__ double hmf(const double& m, const double& z);
   __device__ double trispectrum_integrand(double m, double z, double l1, double l2, 
     double l3, double l4);
 
+    __device__ double trispectrum_3D_integrand(double m, double z, double k1, double k2, 
+      double k3, double k4);
+
 __device__ double trispectrum_limber_integrated(double a, double b, double m, double l1, double l2, double l3, double l4);
 
 __device__ double pentaspectrum_integrand(double m, double z, double l1, double l2, 
@@ -90,8 +94,65 @@ __device__ double pentaspectrum_integrand(double m, double z, double l1, double 
 __device__ double pentaspectrum_limber_integrated(double a, double b, double m, double l1, double l2, double l3, double l4, double l5, double l6);
 
 
+__device__ double powerspectrum_integrand(double m, double z, double l);
+
+__device__ double powerspectrum_limber_integrated(double a, double b, double m, double l);
+
+int integrand_Powerspectrum(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
+
+
+__global__ void integrand_Powerspectrum_kernel(const double* vars, unsigned ndim, int npts, double thetal, double* value);
+
+
+double Powerspectrum(const double& l);
+
+
+int integrand_Trispectrum(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
+
+
+__global__ void integrand_Trispectrum_kernel(const double* vars, unsigned ndim, int npts, double l1, double l2, double l3, double l4, double* value);
+
+
+double Trispectrum(const double& l1, const double& l2, const double& l3, const double& l4);
+
+
+int integrand_Trispectrum_3D(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
+
+
+__global__ void integrand_Trispectrum_3D_kernel(const double* vars, unsigned ndim, int npts, double k1, double k2, double k3, double k4, double z, double* value);
+
+
+double Trispectrum_3D(const double& k1, const double& k2, const double& k3, const double& k4, const double& z);
+
+
+
+
     struct SigmaContainer
 {
    double R;
    double dR;
+};
+
+struct PowerspecContainer
+{
+  double l;
+};
+
+struct TrispecContainer
+{
+  double l1;
+  double l2;
+  double l3;
+  double l4;
+
+};
+
+
+struct TrispecContainer3D
+{
+  double k1;
+  double k2;
+  double k3;
+  double k4;
+  double z;
 };

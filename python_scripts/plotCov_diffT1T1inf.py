@@ -44,9 +44,9 @@ for thetas in thetas_ind:
 N=len(thetas_ind)
 thetas_ticks=np.arange(0, N)
 
-sidelengths=np.array([5, 10, 15])
+sidelengths=np.array([10])#np.array([5, 10, 15])
 Nsides=len(sidelengths)
-fig= plt.figure(figsize=(5*Nsides+2,10))
+fig= plt.figure(figsize=(5*Nsides+7,10))
 cmap=cm.get_cmap('RdBu', 20)
 
 grid=ImageGrid(fig, 111, nrows_ncols=(1, Nsides), axes_pad=0.15, share_all=True, aspect=True, cbar_location="right", cbar_mode="single", cbar_size="3%", cbar_pad=0.15)
@@ -77,14 +77,14 @@ for i, theta in enumerate(sidelengths):
         print("Cov type not specified")
         exit
 
-    diff_T1 = 2*(cov_term1Numerical-cov_infiniteField)/(cov_term1Numerical+cov_infiniteField)
+    diff_T1 = 2*(cov_term1Numerical-cov_infiniteField)/(cov_term1Numerical+cov_infiniteField)/3
 
     grid[i].set_xlabel(r'$(\theta_4, \theta_5, \theta_6)$')
     grid[i].set_xticks(thetas_ticks)
     grid[i].set_xticklabels(thetas_labels, rotation=90)
 
     grid[i].text(19, 0, r"$\vartheta_\textrm{max}=$"+f"{thetaMax:.2f}°", verticalalignment='top', horizontalalignment='right',bbox=dict(facecolor='white', alpha=1))  
-    im = grid[i].imshow(0.5*(diff_T1+diff_T1.T), vmin=-0.5, vmax=0.5, cmap=cmap)  
+    im = grid[i].imshow(0.5*(diff_T1+diff_T1.T), vmin=-0.2, vmax=0.2, cmap=cmap)  
 
 grid[Nsides-1].text(19, 19, cov_type, verticalalignment='bottom', horizontalalignment='right',bbox=dict(facecolor='white', alpha=1))  
 grid[0].cax.cla()

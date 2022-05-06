@@ -61,6 +61,8 @@ __host__ __device__ double hmf(const double& m, const double& z)
     double result=-rho_mean/m/sigma2*dsigma2*A*(1+pow(q*nu, -p))*sqrt(q*nu/2/M_PI)*exp(-0.5*q*nu);
 
 
+   //printf("%e %e %e\n", m, z, result);
+
     /*
      * \f $n(m,z)=-\frac{\bar{\rho}}{m \sigma} \dv{\sigma}{m} A \sqrt{2q/pi} (1+(\frac{\sigma^2}{q\delta_c^2})^p) \frac{\delta_c}{\sigma} \exp(-\frac{q\delta_c^2}{2\sigma^2})$ \f
      */
@@ -468,12 +470,7 @@ __device__ double trispectrum_integrand(double m, double z, double l1, double l2
     result*=m*m*m*m/rhobar/rhobar/rhobar/rhobar;
     result*=pow(1.5*dev_om/dev_c_over_H0/dev_c_over_H0, 4); //Prefactor in h^8
     result*=pow(1+z, 4);
-    if(!isfinite(result))
-    {
-      printf("%e %e %e %e %e %e %e\n", u_NFW(l1/chi, m, z),
-      u_NFW(l2/chi, m, z), u_NFW(l3/chi, m, z), u_NFW(l4/chi, m, z) ,l4, chi,result);
-    }
-
+    //printf("%e %e %e %e %e %e %e %e %e\n", m, z, l1, l2, l3, l4, result, hmf(m, z), g);
     return result;
 }
 
@@ -530,4 +527,283 @@ __device__ double pentaspectrum_limber_integrated(double a, double b, double m, 
   for (i = 0; i < 48; i++)
     q += dev_W96[i] * (pentaspectrum_integrand(m, cx - dx * dev_A96[i], l1, l2, l3, l4, l5, l6) + pentaspectrum_integrand(m, cx + dx * dev_A96[i], l1, l2, l3, l4, l5, l6));
   return (q * dx);
+}
+
+
+__device__ double powerspectrum_integrand(double m, double z, double l)
+{
+    double didx = z / dev_z_max * (n_redshift_bins - 1);
+    int idx = didx;
+    didx = didx - idx;
+    if (idx == n_redshift_bins - 1)
+    {
+      idx = n_redshift_bins - 2;
+      didx = 1.;
+    }
+    double g= dev_g_array[idx] * (1 - didx) + dev_g_array[idx + 1] * didx;
+    double chi = dev_f_K_array[idx] * (1-didx) + dev_f_K_array[idx + 1] * didx;
+    double rhobar = 2.7754e11; //critical density[Msun*h²/Mpc³]
+    rhobar*=dev_om;
+
+
+    double result=hmf(m, z)*g*g;
+    result*=dev_c_over_H0/dev_E(z);
+    result*=pow(u_NFW(l/chi, m, z),2);
+    result*=m*m/rhobar/rhobar;
+    result*=pow(1.5*dev_om/dev_c_over_H0/dev_c_over_H0, 2); //Prefactor in h^4
+    result*=pow(1+z, 2);
+    return result;
+}
+
+__device__ double powerspectrum_limber_integrated(double a, double b, double m, double l)
+{
+  int i;
+  double cx, dx, q;
+  cx = (a + b) / 2;
+  dx = (b - a) / 2;
+  q = 0;
+  for (i = 0; i < 48; i++)
+    q += dev_W96[i] * (powerspectrum_integrand(m, cx - dx * dev_A96[i], l) + powerspectrum_integrand(m, cx + dx * dev_A96[i], l));
+  return (q * dx);
+}
+
+
+int integrand_Powerspectrum(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value)
+{
+  if(fdim != 1)
+  {
+    std::cerr<<"integrand: Wrong number of function dimensions"<<std::endl;
+    exit(1);
+  };
+  // Read data for integration
+  PowerspecContainer* container = (PowerspecContainer*) thisPtr;
+
+if (npts > 1e8)
+{
+    std::cerr << "WARNING: Large number of points: " << npts << std::endl;
+    return 1;
+};
+
+double l = container-> l;
+// Allocate memory on device for integrand values
+double* dev_value;
+CUDA_SAFE_CALL(cudaMalloc((void**)&dev_value, fdim*npts*sizeof(double)));
+
+// Copy integration variables to device
+double* dev_vars;
+CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim*npts*sizeof(double))); //alocate memory
+CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim*npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+
+// Calculate values
+integrand_Powerspectrum_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, l, dev_value);
+
+cudaFree(dev_vars); //Free variables
+
+// Copy results to host
+CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim*npts*sizeof(double), cudaMemcpyDeviceToHost));
+
+cudaFree(dev_value); //Free values
+
+return 0; //Success :)  
+}
+
+__global__ void integrand_Powerspectrum_kernel(const double* vars, unsigned ndim, int npts, double l, double* value)
+{
+   // index of thread
+   int thread_index=blockIdx.x*blockDim.x + threadIdx.x;
+
+   //Grid-Stride loop, so I get npts evaluations
+   for(int i=thread_index; i<npts; i+=blockDim.x*gridDim.x)
+     {
+       double m=vars[i*ndim];
+       value[i]=  powerspectrum_limber_integrated(0, dev_z_max, m, l);       
+     }
+}
+
+double Powerspectrum(const double& l)
+{
+  PowerspecContainer container;
+  container.l = l;
+  double result, error;
+
+  double mmin=pow(10, logMmin);
+  double mmax=pow(10, logMmax);
+  double vals_min[1]={mmin};
+  double vals_max[1]={mmax};
+
+  hcubature_v(1, integrand_Powerspectrum, &container, 1, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+
+  return result;
+}
+
+
+int integrand_Trispectrum(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value)
+{
+  if(fdim != 1)
+  {
+    std::cerr<<"integrand: Wrong number of function dimensions"<<std::endl;
+    exit(1);
+  };
+  // Read data for integration
+  TrispecContainer* container = (TrispecContainer*) thisPtr;
+
+  if (npts > 1e8)
+  {
+    std::cerr << "WARNING: Large number of points: " << npts << std::endl;
+    return 1;
+  };
+
+  double l1 = container-> l1;
+  double l2 = container-> l2;
+  double l3 = container-> l3;
+  double l4 = container-> l4;
+
+  // Allocate memory on device for integrand values
+  double* dev_value;
+  CUDA_SAFE_CALL(cudaMalloc((void**)&dev_value, fdim*npts*sizeof(double)));
+
+  // Copy integration variables to device
+  double* dev_vars;
+  CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim*npts*sizeof(double))); //alocate memory
+  CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim*npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+
+  // Calculate values
+  integrand_Trispectrum_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, l1, l2, l3, l4, dev_value);
+
+  cudaFree(dev_vars); //Free variables
+
+  // Copy results to host
+  CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim*npts*sizeof(double), cudaMemcpyDeviceToHost));
+
+  cudaFree(dev_value); //Free values
+
+  return 0; //Success :)  
+}
+
+
+__global__ void integrand_Trispectrum_kernel(const double* vars, unsigned ndim, int npts, double l1, double l2, double l3, double l4, double* value)
+{
+   // index of thread
+   int thread_index=blockIdx.x*blockDim.x + threadIdx.x;
+
+   //Grid-Stride loop, so I get npts evaluations
+   for(int i=thread_index; i<npts; i+=blockDim.x*gridDim.x)
+     {
+       double m=vars[i*ndim];
+       value[i]=  trispectrum_limber_integrated(0, dev_z_max, m, l1, l2, l3, l4);       
+     }
+}
+
+double Trispectrum(const double& l1, const double& l2, const double& l3, const double& l4)
+{
+  TrispecContainer container;
+  container.l1 = l1;
+  container.l2 = l2;
+  container.l3 = l3;
+  container.l4=l4;
+  double result, error;
+
+  double mmin=pow(10, logMmin);
+  double mmax=pow(10, logMmax);
+  double vals_min[1]={mmin};
+  double vals_max[1]={mmax};
+
+  hcubature_v(1, integrand_Trispectrum, &container, 1, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+
+  return result;
+}
+
+
+__device__ double trispectrum_3D_integrand(double m, double z, double k1, double k2, double k3, double k4)
+{
+    double rhobar = 2.7754e11; //critical density[Msun*h²/Mpc³]
+    rhobar*=dev_om;
+
+
+    double result=hmf(m, z);
+    result*=u_NFW(k1, m, z)*u_NFW(k2, m, z)*u_NFW(k3, m, z)*u_NFW(k4, m, z);
+    result*=m*m*m*m/rhobar/rhobar/rhobar/rhobar;
+
+    return result;
+}
+
+int integrand_Trispectrum_3D(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value)
+{
+  if(fdim != 1)
+  {
+    std::cerr<<"integrand: Wrong number of function dimensions"<<std::endl;
+    exit(1);
+  };
+  // Read data for integration
+  TrispecContainer3D* container = (TrispecContainer3D*) thisPtr;
+
+if (npts > 1e8)
+{
+    std::cerr << "WARNING: Large number of points: " << npts << std::endl;
+    return 1;
+};
+
+double k1 = container-> k1;
+double k2 = container-> k2;
+double k3 = container-> k3;
+double k4 = container-> k4;
+double z = container->z;
+
+// Allocate memory on device for integrand values
+double* dev_value;
+CUDA_SAFE_CALL(cudaMalloc((void**)&dev_value, fdim*npts*sizeof(double)));
+
+// Copy integration variables to device
+double* dev_vars;
+CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim*npts*sizeof(double))); //alocate memory
+CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim*npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+
+// Calculate values
+integrand_Trispectrum_3D_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, k1, k2, k3, k4, z, dev_value);
+
+cudaFree(dev_vars); //Free variables
+
+// Copy results to host
+CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim*npts*sizeof(double), cudaMemcpyDeviceToHost));
+
+cudaFree(dev_value); //Free values
+
+return 0; //Success :)  
+}
+
+
+__global__ void integrand_Trispectrum_3D_kernel(const double* vars, unsigned ndim, int npts, double k1, double k2, double k3, double k4, double z, double* value)
+{
+   // index of thread
+   int thread_index=blockIdx.x*blockDim.x + threadIdx.x;
+
+   //Grid-Stride loop, so I get npts evaluations
+   for(int i=thread_index; i<npts; i+=blockDim.x*gridDim.x)
+     {
+       double m=vars[i*ndim];
+       value[i]=  trispectrum_3D_integrand(m, z, k1, k2, k3, k4);       
+     }
+}
+
+
+double Trispectrum_3D(const double& k1, const double& k2, const double& k3, const double& k4, const double& z)
+{
+  TrispecContainer3D container;
+  container.k1 = k1;
+  container.k2 = k2;
+  container.k3 = k3;
+  container.k4=k4;
+  container.z =z;
+  double result, error;
+
+
+
+  double mmin=pow(10, logMmin);
+  double mmax=pow(10, logMmax);
+  double vals_min[1]={mmin};
+  double vals_max[1]={mmax};
+
+  hcubature_v(1, integrand_Trispectrum_3D, &container, 1, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+
+  return result;
 }
