@@ -293,21 +293,22 @@ __global__ void integrand_Map4_kernel(const double *vars, unsigned ndim, int npt
 {
   // index of thread
   int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
-  double deltaEll = lMax - lMin;
+  double deltaEll = log(lMax) - log(lMin);
   double deltaPhi = phiMax - phiMin;
-  double deltaM = mMax - mMin;
+  double deltaM = log(mMax) - log(mMin);
   double deltaZ = zMax - zMin;
 
+ 
   //Grid-Stride loop, so I get npts evaluations
   for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
   {
-    double l1 = vars[i * ndim]*deltaEll+lMin;
-    double l2 = vars[i * ndim + 1]*deltaEll+lMin;
-    double l3 = vars[i * ndim + 2]*deltaEll+lMin;
+    double l1 = exp(vars[i * ndim]*deltaEll)*lMin;
+    double l2 = exp(vars[i * ndim + 1]*deltaEll)*lMin;
+    double l3 = exp(vars[i * ndim + 2]*deltaEll)*lMin;
     double phi1 = vars[i * ndim + 3]*deltaPhi+phiMin;
     double phi2 = vars[i * ndim + 4]*deltaPhi+phiMin;
     double phi3 = vars[i * ndim + 5]*deltaPhi+phiMin;
-    double m = vars[i * ndim + 6]*deltaM+mMin;
+    double m = exp(vars[i * ndim + 6]*deltaM)*mMin;
     double z = vars[i*ndim+7]*deltaZ+zMin;
 
     double l4 = l1 * l1 + l2 * l2 + l3 * l3 + 2 * l1 * l2 * cos(phi2 - phi1) + 2 * l2 * l3 * cos(phi2 - phi3) + 2 * l1 * l3 * cos(phi3 - phi1);
@@ -315,13 +316,16 @@ __global__ void integrand_Map4_kernel(const double *vars, unsigned ndim, int npt
     if (l4 > 0)
     {
       l4 = sqrt(l4);
-      result = l1 * l2 * l3 * trispectrum_integrand(m, z, l1, l2, l3, l4) * uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3) * uHat(l4 * theta4);
+      result = l1 * l2 * l3 * uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3) * uHat(l4 * theta4) * trispectrum_integrand(m, z, l1, l2, l3, l4) ;
+      
+      result*=l1*l2*l3*m;
     }
     else
     {
       result=0;
     };
     
+  
     value[i]=result;
   }
 }
@@ -330,11 +334,13 @@ static int integrand_Map4(const int *ndim, const double* xx,
   const int *ncomp, double* ff, void *userdata, const int* nvec)
 {
 
-  if (*ndim != 8) //TO DO: throw exception here
-  {
-      std::cerr << "Wrong number of argument dimension in Map4 integration" << std::endl;
-      exit(1);
-  }
+  //FOR SOME REASON THIS CHECK DOESNT WORK...
+  // if (*ndim != 8);//8) //TO DO: throw exception here
+  // {
+  //     std::cerr << "Wrong number of argument dimension in Map4 integration" << std::endl;
+  //     std::cerr << "Given:"<<(*ndim)<<" Needed: 8"<<std::endl;
+  //     exit(1);
+  // }
 
   if (*ncomp != 1) //TO DO: throw exception here
   {
@@ -360,16 +366,9 @@ static int integrand_Map4(const int *ndim, const double* xx,
   double zMin=container->zMin;
   double zMax=container->zMax;
 
-  std::cerr<<lMin<<" "<<lMax<<std::endl;
-  std::cerr<<phiMin<<" "<<phiMax<<std::endl;
-  std::cerr<<mMin<<" "<<mMax<<std::endl;
-  std::cerr<<zMin<<" "<<zMax<<std::endl;
-
+  
   // Allocate memory on device for integrand values
   double *dev_value;
-
-  std::cerr<<*ncomp<<" "<<*nvec<<" "<<*ndim<<std::endl;
-
   CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value,  *ncomp* *nvec*sizeof(double)));
    
  
@@ -391,7 +390,7 @@ static int integrand_Map4(const int *ndim, const double* xx,
 
   cudaFree(dev_value); //Free values
 
-  return 0; //Success :)
+   return 0; //Success :)
 }
 
 double Map4(const std::vector<double> &thetas, const double &phiMin, const double &phiMax, const double &lMin)
@@ -405,7 +404,7 @@ double Map4(const std::vector<double> &thetas, const double &phiMin, const doubl
   container.thetas = thetas;
 
   // Set integral boundaries
-  container.lMin = lMin;
+  container.lMin = 1;;
   container.lMax = lMax;
   container.phiMin = 0;
   container.phiMax = 2 * M_PI;
@@ -414,9 +413,9 @@ double Map4(const std::vector<double> &thetas, const double &phiMin, const doubl
   container.zMin = 0;
   container.zMax = z_max;
 
-  double deltaEll = container.lMax - container.lMin;
+  double deltaEll = log(container.lMax) - log(container.lMin);
   double deltaPhi = container.phiMax - container.phiMin;
-  double deltaM = container.mMax - container.mMin;
+  double deltaM = log(container.mMax) - log(container.mMin);
   double deltaZ = container.zMax - container.zMin;
 
   // allocate necessary variables
@@ -424,17 +423,17 @@ double Map4(const std::vector<double> &thetas, const double &phiMin, const doubl
   double integral[1], error[1], prob[1];
 
   // Internal parameters of the integration
-  int NDIM = 8;  // dimensions of integration parameters
+  int NDIM = 8; // dimensions of integration parameters
   int NCOMP = 1; // dimensions of function
 
   int NVEC = 1048576; // maximum value of parallel executions (adjust so that GPU memory can not overload)
   // now: 2^20
 
-  double EPSREL = 1e-4; // accuracy parameters
+  double EPSREL = 1e-2; // accuracy parameters
   double EPSABS = 0;
 
   int VERBOSE = 2; // verbosity
-  int LAST = 4;    // WHAT IS THAT?
+  int LAST = 4;   
 
   int SEED = 0;             // random seed. =0: Sobol quasi-random number, >0 pseudo-random numbers
   int MINEVAL = 1000;       // minimum number of evaluations
@@ -447,8 +446,7 @@ double Map4(const std::vector<double> &thetas, const double &phiMin, const doubl
   const char *STATEFILE = NULL; // possibility to save integration and resume at later stage
   void *SPIN = NULL;            // something to do with the parallel processes, only necessary if parallelized manually
 
-  //cubacores(0,0);
-  //cubaaccel(0,0);
+
 
   // GO!
   Suave(NDIM, NCOMP, (integrand_t)integrand_Map4, &container, NVEC,

@@ -4,6 +4,8 @@
 #include "cuda_helpers.cuh"
 #include "helpers.cuh"
 #include "halomodel.cuh"
+#include "apertureStatisticsCovariance.cuh"
+#include "cuba.h"
 
 #include <fstream>
 #include <iostream>
@@ -79,6 +81,12 @@ Example:
   std::cerr << "Using thetas in " << thetasfn << std::endl;
   std::cerr << "Writing to:" << outfn << std::endl;
 
+ 
+  int ncores=0;
+  int pcores=0;
+  cubacores(&ncores , &pcores);
+  cubaaccel(&ncores, &pcores);
+
   // Initialize Bispectrum
 
   copyConstants();
@@ -96,7 +104,7 @@ Example:
   //thetas={2, 4, 8};
   //N=thetas.size();
   // Set up vector for aperture statistics
-  int Ntotal = N;//factorial(N+3)/factorial(N-1)/24; // Total number of bins that need to be calculated, = (N+4+1) ncr 3
+  int Ntotal = factorial(N+3)/factorial(N-1)/24; // Total number of bins that need to be calculated, = (N+4+1) ncr 3
   //int Ntotal=N;
   std::vector<double> Map4s;
 
@@ -104,23 +112,22 @@ Example:
 
   int step = 0;
 
-
-
-  // Calculate <MapMapMap>(theta1, theta2, theta3) in three loops
-  // Calculation only for theta1<=theta2<=theta3
+  
+  //Calculate <MapMapMap>(theta1, theta2, theta3) in three loops
+  //Calculation only for theta1<=theta2<=theta3
   for (int i = 0; i < N; i++) 
   {
     double theta1 = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
 
-    for (int j = i; j < i+1; j++) 
+    for (int j = i; j < N; j++) 
     {
       double theta2 = convert_angle_to_rad(thetas.at(j));
 
-      for (int k = j; k < i+1; k++) 
+      for (int k = j; k < N; k++) 
       {
 
         double theta3 = convert_angle_to_rad(thetas.at(k));
-        for (int l = k; l < i+1; l++) 
+        for (int l = k; l < N; l++) 
         {
 
           double theta4 = convert_angle_to_rad(thetas.at(l));
@@ -144,9 +151,9 @@ Example:
   // Output
   step = 0;
   for (int i = 0; i < N; i++) {
-    for (int j = i; j < i+1; j++) {
-      for (int k = j; k < i+1; k++) {
-        for (int l=k; l<i+1; l++){
+    for (int j = i; j < N; j++) {
+      for (int k = j; k < N; k++) {
+        for (int l=k; l<N; l++){
         out << thetas[i] << " " << thetas[j] << " " << thetas[k] << " " << thetas[l] << " "
             << Map4s.at(step) << " " << std::endl;
         step++;
