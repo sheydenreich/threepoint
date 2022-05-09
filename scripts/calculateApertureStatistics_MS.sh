@@ -6,12 +6,12 @@ FILE_NZ=../necessary_files/nz_MR.dat
 
 FILE_THETAS=../necessary_files/Our_thetas.dat
 
-export CUDA_VISIBLE_DEVICES=$(nvidia-smi --query-gpu=memory.free,index --format=csv,nounits,noheader | sort -nr | head -1 | awk '{ print $NF }')
+export CUDA_VISIBLE_DEVICES=1 #$(nvidia-smi --query-gpu=memory.free,index --format=csv,nounits,noheader | sort -nr | head -1 | awk '{ print $NF }')
 echo Using GPU $CUDA_VISIBLE_DEVICES
 
 #$DIR_BIN/calculateApertureStatistics.x ../necessary_files/MR_cosmo.dat $FILE_THETAS  $DIR_RESULTS/MapMapMap_bispec.dat 1 $FILE_NZ
 
-taskset --cpu-list 1 $DIR_BIN/calculateMap4.x ../necessary_files/MR_cosmo.dat $FILE_THETAS $DIR_RESULTS/Map4_trispec_diag_newCode 1 $FILE_NZ
+$DIR_BIN/calculateMap4.x ../necessary_files/MR_cosmo.dat $FILE_THETAS $DIR_RESULTS/Map4_trispec_diag_newCode 1 $FILE_NZ
 
 #$DIR_BIN/calculateMap6.x ../necessary_files/MR_cosmo.dat $FILE_THETAS $DIR_RESULTS/Map6_trispec 1 $FILE_NZ
 
