@@ -183,10 +183,24 @@ __global__ void integrand_Map4_kernel(const double* vars, unsigned ndim, int npt
 static int integrand_Map4(const int *ndim, const double* xx,
   const int *ncomp, double* ff, void *userdata, const int* nvec);
 
-__global__ void integrand_Map6_kernel(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double* value);
+__global__ void integrand_Map6_kernel(const double* vars, unsigned ndim, int npts, 
+  double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double* value,
+  double lMin, double lMax, double phiMin, double phiMax, 
+  double mMin, double mMax, double zMin, double zMax);
 
-int integrand_Map6(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
-
+       /**
+      * @brief Wrapper of integrand_Map6_kernel for the cuba library
+      * See http://www.feynarts.de/cuba/ for documentation
+      * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
+      * @param xx Array containing integration variables
+      * @param ncomp Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
+      * @param ff Value of integral
+      * @param userdata Pointer to ApertureStatisticsContainer instance
+      * @param nvec Number of integration points that are evaluated at the same time (automatically determined by integration)
+      * @return 0 on success
+      */     
+static int integrand_Map6(const int *ndim, const double* xx,
+        const int *ncomp, double* ff, void *userdata, const int* nvec);
   /**
    * @brief Aperturestatistics calculated from Bispectrum
    * @warning This is NOT Eq 58 from Schneider, Kilbinger & Lombardi (2003), but a third of that, due to the bispectrum definition
@@ -198,9 +212,9 @@ int integrand_Map6(unsigned ndim, size_t npts, const double* vars, void* thisPtr
    */
 double MapMapMap(const std::vector<double>& thetas, const double& phiMin=0, const double& phiMax=6.283185307, const double& lMin=1);
   
-double Map4(const std::vector<double>& thetas, const double& phiMin=0, const double& phiMax=6.283185307, const double& lMin=0);
+double Map4(const std::vector<double>& thetas, const double& phiMin=0, const double& phiMax=6.283185307, const double& lMin=1);
 
-double Map6(const std::vector<double>& thetas, const double& phiMin=0, const double& phiMax=6.283185307, const double& lMin=0);
+double Map6(const std::vector<double>& thetas, const double& phiMin=0, const double& phiMax=6.283185307, const double& lMin=1);
 
 struct ApertureStatisticsContainer
 {

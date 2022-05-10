@@ -89,32 +89,42 @@ Example:
   
   double lmin=log10(150);
   double lmax=log10(40000);
-  int Nbins=5;//13;//100;
+  int Nbins=5;//100;
   double lbin=(lmax-lmin)/Nbins;
 
   for( int i=0; i<Nbins; i++)
   {
     double l1=pow(10, lmin+i*lbin);
-//    double l=pow(10, lmin+(i+0.5)*lbin);
-    for(int j=0; j<Nbins; j++)
+    for (int j=0; j<Nbins; j++)
     {
-      double l2=pow(10, lmin+j*lbin);
-      for(int k=0; k<Nbins; k++)
+    double l2=pow(10, lmin+j*lbin);
+      for (int k=0; k<Nbins; k++)
       {
         double l3=pow(10, lmin+k*lbin);
-        for(int l=0; l<Nbins; l++)
+        for (int l=0; l<Nbins; l++)
         {
           double l4=pow(10, lmin+l*lbin);
-          double T=Trispectrum(l1,l2,l3,l4);
-          out<<l1<<" "
-          <<l2<<" "
-          <<l3<<" "
-          <<l4<<" "
-          <<T<<std::endl;
+          for(int m=0; m<Nbins; m++)
+          {
+            double l5=pow(10, lmin+m*lbin);
+
+            for(int n=0; n<Nbins; n++)
+            {
+              double l6=pow(10, lmin+n*lbin);
+              double P=Pentaspectrum(l1,l2,l3,l4,l5, l6);
+              out<<l1<<" "
+              <<l2<<" "
+              <<l3<<" "
+              <<l4<<" "
+              <<l5<<" "
+              <<l6<<" "
+              <<P<<std::endl;
+            }
+          }
         }
       }
+    }
 
-    };
   }
 
 

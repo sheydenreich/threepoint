@@ -4,6 +4,7 @@
 #include "cuda_helpers.cuh"
 #include "helpers.cuh"
 #include "halomodel.cuh"
+#include "cuba.h"
 
 #include <fstream>
 #include <iostream>
@@ -78,6 +79,11 @@ Example:
   std::cerr << "Using thetas in " << thetasfn << std::endl;
   std::cerr << "Writing to:" << outfn << std::endl;
 
+  int ncores=0;
+  int pcores=0;
+  cubacores(&ncores , &pcores);
+  cubaaccel(&ncores, &pcores);
+
   // Initialize Bispectrum
 
   copyConstants();
@@ -92,10 +98,9 @@ Example:
   };
 
   initHalomodel();
-  thetas={2, 4};
-  N=thetas.size();
+
   // Set up vector for aperture statistics
-  int Ntotal = factorial(N+5)/factorial(N-1)/720; // Total number of bins that need to be calculated, = (N+6+1) ncr 3
+  int Ntotal = N;//factorial(N+5)/factorial(N-1)/720; // Total number of bins that need to be calculated, = (N+6+1) ncr 3
   std::vector<double> Map6s;
 
   // Needed for monitoring
@@ -110,22 +115,22 @@ Example:
   {
     double theta1 = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
 
-    for (int j = i; j < N; j++) 
+    for (int j = i; j < i+1; j++) 
     {
       double theta2 = convert_angle_to_rad(thetas.at(j));
 
-      for (int k = j; k < N; k++) 
+      for (int k = j; k < i+1; k++) 
       {
 
         double theta3 = convert_angle_to_rad(thetas.at(k));
-        for (int l = k; l < N; l++) 
+        for (int l = k; l < i+1; l++) 
         {
 
           double theta4 = convert_angle_to_rad(thetas.at(l));
-          for(int m=l; m<N; m++)
+          for(int m=l; m<i+1; m++)
           {
             double theta5 = convert_angle_to_rad(thetas.at(m));
-            for(int n=m; n<N; n++)
+            for(int n=m; n<i+1; n++)
             {
               double theta6 = convert_angle_to_rad(thetas.at(n));
 
@@ -151,12 +156,12 @@ Example:
 
   // Output
   step = 0;
-  for (int i = 0; i < N; i++) {
-    for (int j = i; j < N; j++) {
-      for (int k = j; k < N; k++) {
-        for (int l=k; l<N; l++){
-          for(int m=l; m<N; m++){
-            for(int n=m; n<N; n++){
+  for (int i = 0; i < i+1; i++) {
+    for (int j = i; j < i+1; j++) {
+      for (int k = j; k < i+1; k++) {
+        for (int l=k; l<i+1; l++){
+          for(int m=l; m<i+1; m++){
+            for(int n=m; n<i+1; n++){
               out << thetas[i] << " " << thetas[j] << " " << thetas[k] << " " << thetas[l] << " " << thetas[m] << " " <<thetas[n] <<" "
               << Map6s.at(step) << " " << std::endl;
               step++;

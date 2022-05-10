@@ -17,7 +17,7 @@
 
 int main()
 {
-    std::cout << dummy_T7(0.5,0.5,0.5,0.5,0.5,0.5) << std::endl;
+    //std::cout << dummy_T7(0.5,0.5,0.5,0.5,0.5,0.5) << std::endl;
 }
 
 // double testfunc(double r, double phi)

@@ -404,7 +404,7 @@ double Map4(const std::vector<double> &thetas, const double &phiMin, const doubl
   container.thetas = thetas;
 
   // Set integral boundaries
-  container.lMin = 1;;
+  container.lMin = lMin;
   container.lMax = lMax;
   container.phiMin = 0;
   container.phiMax = 2 * M_PI;
@@ -482,25 +482,34 @@ double Map4(const std::vector<double> &thetas, const double &phiMin, const doubl
 
 }
 
-__global__ void integrand_Map6_kernel(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double *value)
+__global__ void integrand_Map6_kernel(const double* vars, unsigned ndim, int npts, 
+  double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double* value,
+  double lMin, double lMax, double phiMin, double phiMax, 
+  double mMin, double mMax, double zMin, double zMax)
 {
   // index of thread
   int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+  double deltaEll = log(lMax) - log(lMin);
+  double deltaPhi = phiMax - phiMin;
+  double deltaM = log(mMax) - log(mMin);
+  double deltaZ = zMax - zMin;
 
   //Grid-Stride loop, so I get npts evaluations
   for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
   {
-    double l1 = vars[i * ndim];
-    double l2 = vars[i * ndim + 1];
-    double l3 = vars[i * ndim + 2];
-    double l4 = vars[i * ndim + 3];
-    double l5 = vars[i * ndim + 4];
-    double phi1 = vars[i * ndim + 5];
-    double phi2 = vars[i * ndim + 6];
-    double phi3 = vars[i * ndim + 7];
-    double phi4 = vars[i * ndim + 8];
-    double phi5 = vars[i * ndim + 9];
-    double m = vars[i * ndim + 10];
+
+    double l1 = exp(vars[i * ndim]*deltaEll)*lMin;
+    double l2 = exp(vars[i * ndim + 1]*deltaEll)*lMin;
+    double l3 = exp(vars[i * ndim + 2]*deltaEll)*lMin;
+    double l4 = exp(vars[i * ndim + 3]*deltaEll)*lMin;
+    double l5 = exp(vars[i * ndim + 4]*deltaEll)*lMin;
+    double phi1 = vars[i * ndim + 5]*deltaPhi+phiMin;
+    double phi2 = vars[i * ndim + 6]*deltaPhi+phiMin;
+    double phi3 = vars[i * ndim + 7]*deltaPhi+phiMin;
+    double phi4 = vars[i * ndim + 8]*deltaPhi+phiMin;
+    double phi5 = vars[i * ndim + 9]*deltaPhi+phiMin;
+    double m = exp(vars[i * ndim + 10]*deltaM)*mMin;
+    double z = vars[i*ndim+11]*deltaZ+zMin;
 
     double l6 = l1 * l1 + l2 * l2 + l3 * l3 + l4 * l4 + l5 * l5;
     l6 += 2 * l1 * l2 * cos(phi2 - phi1) + 2 * l1 * l3 * cos(phi3 - phi1) + 2 * l1 * l4 * cos(phi4 - phi1);
@@ -508,42 +517,58 @@ __global__ void integrand_Map6_kernel(const double *vars, unsigned ndim, int npt
     l6 += 2 * l2 * l5 * cos(phi5 - phi2) + 2 * l3 * l4 * cos(phi4 - phi3) + 2 * l3 * l5 * cos(phi5 - phi3);
     l6 += 2 * l4 * l5 * cos(phi5 - phi4);
 
+    double result;
     if (l6 > 0)
     {
       l6 = sqrt(l6);
+      result= l1 * l2 * l3 * l4 * l5 * pentaspectrum_integrand(m, z,  l1, l2, l3, l4, l5, l6);
+      result*= uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3) ;
+      result *= uHat(l4 * theta4) * uHat(l5 * theta5) * uHat(l6 * theta6);
+
+      // result *= exp(-0.5*l1*l1*theta1*theta1);
+      // result *= exp(-0.5*l2*l2*theta2*theta2);
+      // result *= exp(-0.5*l3*l3*theta3*theta3);
+      // result *= exp(-0.5*l4*l4*theta4*theta4);
+      // result *= exp(-0.5*l5*l5*theta5*theta5);
+      // result *= exp(-0.5*l6*l6*theta6*theta6);
+
+      //result*=l1*l1*l2*l2*l3*l3*l4*l4*l5*l5*l6*l6;
+
+      result*=l1*l2*l3*l4*l5*m;
+
     }
     else
     {
-      l6 = 0;
+      result=0;
     };
-    //printf("zmax: %lf", dev_z_max);
-    if (l6 <= 0)
-    {
-      value[i] = 0;
-    }
-    else
-    {
-      value[i] = l1 * l2 * l3 * l4 * l5 * pentaspectrum_limber_integrated(0, dev_z_max, m, l1, l2, l3, l4, l5, l6) * uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3) * uHat(l4 * theta4) * uHat(l5 * theta5) * uHat(l6 * theta6);
-    };
+    //printf("%e %e %e %e %e %e %e %e \n", vars[i*ndim], vars[i*ndim+1], vars[i*ndim+2], vars[i*ndim+3], vars[i*ndim+4], vars[i*ndim+5],vars[i*ndim+6],  result);
+    //printf("%e %e %e %e %e %e %e %e \n", l1, l2, l3, l4, l5, m, z,  result);
+    
+    
+    value[i]=result;
   }
 }
 
-int integrand_Map6(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value)
-{
-  if (fdim != 1)
+static int integrand_Map6(const int *ndim, const double* xx,
+  const int *ncomp, double* ff, void *userdata, const int* nvec)
   {
-    std::cerr << "integrand: Wrong number of function dimensions" << std::endl;
+
+  if (*ndim != 12)
+  {
+    std::cerr << "Wrong number of argument dimension in Map6 integration" << std::endl;
+    std::cerr << "Given:"<<*ndim<<" Needed:12"<<std::endl;
     exit(1);
   };
-  // Read data for integration
-  ApertureStatisticsContainer *container = (ApertureStatisticsContainer *)thisPtr;
-  printf("%d\n", npts);
 
-  if (npts > 5e7)
+  if (*ncomp != 1) //TO DO: throw exception here
   {
-    std::cerr << "WARNING: Large number of points: " << npts << std::endl;
-    return 1;
-  };
+      std::cerr << "Wrong number of function dimensions in Map4 integration" << std::endl;
+      exit(1);
+  }
+  
+  // Read data for integration
+  ApertureStatisticsContainer *container = (ApertureStatisticsContainer *)userdata;
+
 
   double theta1 = container->thetas.at(0);
   double theta2 = container->thetas.at(1);
@@ -551,23 +576,34 @@ int integrand_Map6(unsigned ndim, size_t npts, const double *vars, void *thisPtr
   double theta4 = container->thetas.at(3);
   double theta5 = container->thetas.at(4);
   double theta6 = container->thetas.at(5);
+  double lMin = container->lMin;
+  double lMax = container->lMax;
+  double phiMin=container->phiMin;
+  double phiMax=container->phiMax;
+  double mMin=container->mMin;
+  double mMax=container->mMax;
+  double zMin=container->zMin;
+  double zMax=container->zMax;
+
 
   // Allocate memory on device for integrand values
   double *dev_value;
-  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value, fdim * npts * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value, *ncomp* *nvec * sizeof(double)));
 
   // Copy integration variables to device
   double *dev_vars;
-  CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim * npts * sizeof(double)));                              //alocate memory
-  CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); //copying
+  CUDA_SAFE_CALL(cudaMalloc(&dev_vars, *ndim * *nvec * sizeof(double)));                              //alocate memory
+  CUDA_SAFE_CALL(cudaMemcpy(dev_vars, xx, *ndim * *nvec * sizeof(double), cudaMemcpyHostToDevice)); //copying
 
   // Calculate values
-  integrand_Map6_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, theta1, theta2, theta3, theta4, theta5, theta6, dev_value);
+  integrand_Map6_kernel<<<BLOCKS, THREADS>>>(dev_vars, *ndim, *nvec, 
+    theta1, theta2, theta3, theta4, theta5, theta6, dev_value,
+  lMin, lMax, phiMin, phiMax, mMin, mMax, zMin, zMax);
 
   cudaFree(dev_vars); //Free variables
 
   // Copy results to host
-  CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
+  CUDA_SAFE_CALL(cudaMemcpy(ff, dev_value, *ncomp * *nvec * sizeof(double), cudaMemcpyDeviceToHost));
 
   cudaFree(dev_value); //Free values
 
@@ -580,16 +616,86 @@ double Map6(const std::vector<double> &thetas, const double &phiMin, const doubl
   double thetaMin = std::min({thetas[0], thetas[1], thetas[2], thetas[3], thetas[4], thetas[5]});
   double lMax = 10. / thetaMin;
 
-  ApertureStatisticsContainer container;
-  container.thetas = thetas;
-  double result, error;
+    // Create container
+    ApertureStatisticsContainer container;
+    container.thetas = thetas;
+  
+    // Set integral boundaries
+    container.lMin = lMin;
+    container.lMax = lMax;
+    container.phiMin = 0;
+    container.phiMax = 2 * M_PI;
+    container.mMin = pow(10, logMmin);
+    container.mMax = pow(10, logMmax);
+    container.zMin = 0;
+    container.zMax = z_max;
+  
+    double deltaEll = log(container.lMax) - log(container.lMin);
+    double deltaPhi = container.phiMax - container.phiMin;
+    double deltaM = log(container.mMax) - log(container.mMin);
+    double deltaZ = container.zMax - container.zMin;
+  
+  // allocate necessary variables
+  int neval, fail, nregions;
+  double integral[1], error[1], prob[1];
 
-  double mmin = pow(10, logMmin);
-  double mmax = pow(10, logMmax);
-  double vals_min[11] = {lMin, lMin, lMin, lMin, lMin, phiMin, phiMin, phiMin, phiMin, phiMin, mmin};
-  double vals_max[11] = {lMax, lMax, lMax, lMax, lMax, phiMax, phiMax, phiMax, phiMax, phiMax, mmax};
+  // Internal parameters of the integration
+  int NDIM = 12; // dimensions of integration parameters
+  int NCOMP = 1; // dimensions of function
 
-  hcubature_v(1, integrand_Map6, &container, 11, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+  int NVEC = 1048576; // maximum value of parallel executions (adjust so that GPU memory can not overload)
+  // now: 2^vars[i*ndim]
 
-  return result / pow(2 * M_PI, 10); //Divided by (2*pi)^10
+  double EPSREL = 1e-2; // accuracy parameters
+  double EPSABS = 0;
+
+  int VERBOSE = 2; // verbosity
+  int LAST = 4;   
+
+  int SEED = 0;             // random seed. =0: Sobol quasi-random number, >0 pseudo-random numbers
+  int MINEVAL = 1000;       // minimum number of evaluations
+  int MAXEVAL = 1000000000; // maximum number of evaluations, if integral is not converged by then it throws an error
+
+  int NNEW = 1000;
+  int NMIN = 2;
+  double FLATNESS =25;// 25; // describes the "flatness" of integration function in the unit cube. try different values, see what happens
+
+  const char *STATEFILE = NULL; // possibility to save integration and resume at later stage
+  void *SPIN = NULL;            // something to do with the parallel processes, only necessary if parallelized manually
+
+
+ // GO!
+ Suave(NDIM, NCOMP, (integrand_t)integrand_Map6, &container, NVEC,
+ EPSREL, EPSABS, VERBOSE | LAST, SEED,
+ MINEVAL, MAXEVAL, NNEW, NMIN, FLATNESS,
+ STATEFILE, SPIN,
+ &nregions, &neval, &fail, integral, error, prob);
+
+if (VERBOSE)
+{
+printf("SUAVE RESULT:\tnregions %d\tneval %d\tfail %d\n",
+    nregions, neval, fail);
+
+for (int comp = 0; comp < NCOMP; comp++)
+printf("SUAVE RESULT:\t%.8f +- %.8f\t (ratio:%.3f) p = %.3f\n", integral[comp], error[comp], error[comp]/integral[comp], prob[comp]);
+}
+
+if (fail != 0) //TO DO: These should throw exceptions
+{
+if (fail > 0)
+{
+std::cerr << "Integral did not converge after " << neval << "evaluations." << std::endl;
+exit(1); // program is cancelled if integration does not converge. alternative: return 0 or nan
+}
+if (fail < 0)
+{
+std::cerr << "An error occured in the integration." << std::endl;
+exit(1);
+}
+}
+
+return integral[0] * (pow(deltaEll, 5)*pow(deltaPhi,5)*deltaM*deltaZ) / pow(2 * M_PI, 10); //Divided by (2*pi)^6 and adjust for variable transform.
+
+
+ 
 }

@@ -125,6 +125,13 @@ __global__ void integrand_Trispectrum_3D_kernel(const double* vars, unsigned ndi
 double Trispectrum_3D(const double& k1, const double& k2, const double& k3, const double& k4, const double& z);
 
 
+double Pentaspectrum(const double& l1, const double& l2, const double& l3, const double& l4, const double& l5, const double& l6);
+
+
+int integrand_Pentaspectrum(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value);
+
+
+__global__ void integrand_Pentaspectrum_kernel(const double* vars, unsigned ndim, int npts, double l1, double l2, double l3, double l4, double l5, double l6, double* value);
 
 
     struct SigmaContainer
@@ -155,4 +162,14 @@ struct TrispecContainer3D
   double k3;
   double k4;
   double z;
+};
+
+struct PentaspecContainer
+{
+  double l1;
+  double l2;
+  double l3;
+  double l4;
+  double l5;
+  double l6;
 };

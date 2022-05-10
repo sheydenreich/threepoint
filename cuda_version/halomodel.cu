@@ -504,15 +504,13 @@ __device__ double pentaspectrum_integrand(double m, double z, double l1, double 
 
     double result=hmf(m, z)*pow(g, 6)/pow(chi, 4);
     result*=dev_c_over_H0/dev_E(z);
-    result*=u_NFW(l1/chi, m, z)*u_NFW(l2/chi, m, z)*u_NFW(l3/chi, m, z)*u_NFW(l4/chi, m, z)*u_NFW(l5/chi, m, z)*u_NFW(l6/chi, m, z);
+    result*=u_NFW(l1/chi, m, z)*u_NFW(l2/chi, m, z)*u_NFW(l3/chi, m, z);
+    result*=u_NFW(l4/chi, m, z)*u_NFW(l5/chi, m, z)*u_NFW(l6/chi, m, z);
     result*=pow(m/rhobar, 6);
-    result*=pow(1.5*dev_om/dev_c_over_H0/dev_c_over_H0, 7); //Prefactor in h^8
+    result*=pow(1.5*dev_om/dev_c_over_H0/dev_c_over_H0, 6); 
     result*=pow(1+z, 6);
-    if(!isfinite(result))
-    {
-      printf("%e %e %e %e %e %e %e\n", u_NFW(l1/chi, m, z),
-      u_NFW(l2/chi, m, z), u_NFW(l3/chi, m, z), u_NFW(l4/chi, m, z) ,l4, chi,result);
-    }
+
+    // printf("%e %e %e %e %e %e %e\n", l1, l2, l3, l4, l5, l6, result);
 
     return result;
 }
@@ -737,38 +735,38 @@ int integrand_Trispectrum_3D(unsigned ndim, size_t npts, const double* vars, voi
   // Read data for integration
   TrispecContainer3D* container = (TrispecContainer3D*) thisPtr;
 
-if (npts > 1e8)
-{
+  if (npts > 1e8)
+  {
     std::cerr << "WARNING: Large number of points: " << npts << std::endl;
     return 1;
-};
+  };
 
-double k1 = container-> k1;
-double k2 = container-> k2;
-double k3 = container-> k3;
-double k4 = container-> k4;
-double z = container->z;
+  double k1 = container-> k1;
+  double k2 = container-> k2;
+  double k3 = container-> k3;
+  double k4 = container-> k4;
+  double z = container->z;
 
-// Allocate memory on device for integrand values
-double* dev_value;
-CUDA_SAFE_CALL(cudaMalloc((void**)&dev_value, fdim*npts*sizeof(double)));
+  // Allocate memory on device for integrand values
+  double* dev_value;
+  CUDA_SAFE_CALL(cudaMalloc((void**)&dev_value, fdim*npts*sizeof(double)));
 
-// Copy integration variables to device
-double* dev_vars;
-CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim*npts*sizeof(double))); //alocate memory
-CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim*npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+  // Copy integration variables to device
+  double* dev_vars;
+  CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim*npts*sizeof(double))); //alocate memory
+  CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim*npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
 
-// Calculate values
-integrand_Trispectrum_3D_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, k1, k2, k3, k4, z, dev_value);
+  // Calculate values
+  integrand_Trispectrum_3D_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, k1, k2, k3, k4, z, dev_value);
 
-cudaFree(dev_vars); //Free variables
+  cudaFree(dev_vars); //Free variables
 
-// Copy results to host
-CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim*npts*sizeof(double), cudaMemcpyDeviceToHost));
+  // Copy results to host
+  CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim*npts*sizeof(double), cudaMemcpyDeviceToHost));
 
-cudaFree(dev_value); //Free values
+  cudaFree(dev_value); //Free values
 
-return 0; //Success :)  
+  return 0; //Success :)  
 }
 
 
@@ -806,4 +804,92 @@ double Trispectrum_3D(const double& k1, const double& k2, const double& k3, cons
   hcubature_v(1, integrand_Trispectrum_3D, &container, 1, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
 
   return result;
+}
+
+
+double Pentaspectrum(const double& l1, const double& l2, const double& l3, const double& l4, const double& l5, const double& l6)
+{
+  PentaspecContainer container;
+  container.l1 = l1;
+  container.l2 = l2;
+  container.l3 = l3;
+  container.l4=l4;
+  container.l5=l5;
+  container.l6=l6;
+
+  double result, error;
+
+  double mmin=log(pow(10, logMmin));
+  double mmax=log(pow(10, logMmax));
+  double zmin=0;
+  double zmax=z_max;
+  double vals_min[2]={mmin, zmin};
+  double vals_max[2]={mmax, zmax};
+
+  hcubature_v(1, integrand_Pentaspectrum, &container, 2, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
+
+  return result;
+}
+
+
+int integrand_Pentaspectrum(unsigned ndim, size_t npts, const double* vars, void* thisPtr, unsigned fdim, double* value)
+{
+  if(fdim != 1)
+  {
+    std::cerr<<"integrand: Wrong number of function dimensions"<<std::endl;
+    exit(1);
+  };
+  // Read data for integration
+  PentaspecContainer* container = (PentaspecContainer*) thisPtr;
+
+  if (npts > 1e8)
+  {
+    std::cerr << "WARNING: Large number of points: " << npts << std::endl;
+    return 1;
+  };
+
+  double l1 = container-> l1;
+  double l2 = container-> l2;
+  double l3 = container-> l3;
+  double l4 = container-> l4;
+  double l5 = container-> l5;
+  double l6 = container-> l6;
+
+
+  // Allocate memory on device for integrand values
+  double* dev_value;
+  CUDA_SAFE_CALL(cudaMalloc((void**)&dev_value, fdim*npts*sizeof(double)));
+
+  // Copy integration variables to device
+  double* dev_vars;
+  CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim*npts*sizeof(double))); //alocate memory
+  CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim*npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+
+  // Calculate values
+  integrand_Pentaspectrum_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, l1, l2, l3, l4, l5, l6, dev_value);
+
+  cudaFree(dev_vars); //Free variables
+
+  // Copy results to host
+  CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim*npts*sizeof(double), cudaMemcpyDeviceToHost));
+
+  cudaFree(dev_value); //Free values
+
+  return 0; //Success :)  
+}
+
+
+__global__ void integrand_Pentaspectrum_kernel(const double* vars, unsigned ndim, int npts, double l1, double l2, double l3, 
+  double l4, double l5, double l6, double* value)
+{
+   // index of thread
+   int thread_index=blockIdx.x*blockDim.x + threadIdx.x;
+
+   //Grid-Stride loop, so I get npts evaluations
+   for(int i=thread_index; i<npts; i+=blockDim.x*gridDim.x)
+     {
+       double m=exp(vars[i*ndim]);
+       double z=vars[i*ndim+1];
+       value[i]= m* pentaspectrum_integrand(m, z, l1, l2, l3, l4, l5, l6);       
+     }
 }
