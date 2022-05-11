@@ -502,15 +502,22 @@ __device__ double pentaspectrum_integrand(double m, double z, double l1, double 
     rhobar*=dev_om;
 
 
-    double result=hmf(m, z)*pow(g, 6)/pow(chi, 4);
+    double result=1;
+
+    result*=pow(g,6);
+    result/=pow(chi,4); // THIS IS THE PROBLEM FOR THE INTEGRATION!!!
+
+    //printf("%e %e %e\n", z, chi, pow(chi,4));
+
     result*=dev_c_over_H0/dev_E(z);
     result*=u_NFW(l1/chi, m, z)*u_NFW(l2/chi, m, z)*u_NFW(l3/chi, m, z);
     result*=u_NFW(l4/chi, m, z)*u_NFW(l5/chi, m, z)*u_NFW(l6/chi, m, z);
-    result*=pow(m/rhobar, 6);
+    result*=pow(m/rhobar, 6)*hmf(m, z);
     result*=pow(1.5*dev_om/dev_c_over_H0/dev_c_over_H0, 6); 
+    //printf("%e %e %e\n", dev_om, dev_c_over_H0, result);
     result*=pow(1+z, 6);
 
-    // printf("%e %e %e %e %e %e %e\n", l1, l2, l3, l4, l5, l6, result);
+    //printf("%e %e %e %e %e %e %e\n", l1, l2, l3, l4, l5, l6, result);
 
     return result;
 }

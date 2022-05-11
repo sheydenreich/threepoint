@@ -4,6 +4,7 @@
 #include "helpers.cuh"
 #include "cuda_helpers.cuh"
 #include "halomodel.cuh"
+#include "cuba.h"
 
 #include <iostream>
 #include <chrono>
@@ -119,6 +120,15 @@ Argument 12: Survey geometry, either circle, square, or infinite
   if(calculate_T5 || calculate_T6 || calculate_T7)
   {
     initHalomodel();
+  }
+
+  if(calculate_T7) //Turn of CPU parallelisation of CUBA
+  {
+    int ncores=0;
+    int pcores=0;
+    cubacores(&ncores , &pcores);
+    cubaaccel(&ncores, &pcores);
+  
   }
 
 

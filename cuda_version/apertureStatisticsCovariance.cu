@@ -1113,7 +1113,7 @@ double T7(const double &theta1, const double &theta2, const double &theta3, cons
     ApertureStatisticsCovarianceContainer container;
     container.thetas_123 = std::vector<double>{theta1, theta2, theta3};
     container.thetas_456 = std::vector<double>{theta4, theta5, theta6};
-    container.lMin=lMin;
+    container.lMin=1;//lMin;
     container.lMax=lMax;
     container.phiMin=0;
     container.phiMax=2*M_PI;
@@ -1172,7 +1172,7 @@ double T7(const double &theta1, const double &theta2, const double &theta3, cons
         throw std::logic_error("T7: Wrong survey geometry, only coded for infinite survey");
     };
 
-    return integral[0]* (pow(deltaEll, 3)*pow(deltaPhi,3)*deltaM*deltaZ); //Adjust for variable transform.    ;
+    return integral[0]* (pow(deltaEll, 4)*pow(deltaPhi,2)*deltaM*deltaZ); //Adjust for variable transform.    ;
 }
 /*
 double dummy_T7(const double &theta1, const double &theta2, const double &theta3,
@@ -2027,7 +2027,7 @@ __global__ void integrand_T7_infinite(const double *vars, unsigned ndim, int npt
         double l1 = exp(vars[i * ndim]*deltaEll)*lMin;
         double l2 = exp(vars[i * ndim + 1]*deltaEll)*lMin;
         double l4 = exp(vars[i * ndim + 2]*deltaEll)*lMin;
-        double l5 = vars[i * ndim + 3]*deltaPhi+phiMin;
+        double l5 = exp(vars[i * ndim + 3]*deltaEll)*lMin;
         double phi1 = vars[i * ndim + 4]*deltaPhi+phiMin;
         double phi2 = vars[i * ndim + 5]*deltaPhi+phiMin;
         double m = exp(vars[i * ndim + 6]*deltaM)*mMin;
@@ -2037,7 +2037,7 @@ __global__ void integrand_T7_infinite(const double *vars, unsigned ndim, int npt
         double l3 = sqrt(l1 * l1 + l2 * l2 + 2 * l1 * l2 * cos(phi1));
         double l6 = sqrt(l1 * l1 + l5 * l5 + 2 * l1 * l5 * cos(phi2));
 
-        if (l1 <= dev_lMin || l2 <= dev_lMin || l3 <= dev_lMin || l4 <= dev_lMin || l5 <= dev_lMin || l6 <= dev_lMin || l3 > dev_lMax || l6 > dev_lMax)
+        if (l1 <= lMin || l2 <= lMin || l3 <= lMin || l4 <= lMin || l5 <= lMin || l6 <= lMin || l3 > lMax || l6 > lMax)
         {
             value[i] = 0;
         }
@@ -2049,8 +2049,7 @@ __global__ void integrand_T7_infinite(const double *vars, unsigned ndim, int npt
             double pentaspec = pentaspectrum_integrand(m, z, l1, l2, l3, l4, l5, l6);
             result *= pentaspec;
             result *= l1 * l2 * l4 * l5;
-
-            //printf("%e %f %e %e %e %e %.2e \n", m, z, l2, l3, l5, l6, trispectrum_integrand(m, z, l2, l3, l5, l6));
+            result *= l1 * l2 * l4 *l5*m;
             value[i] = result;
         }
     }
