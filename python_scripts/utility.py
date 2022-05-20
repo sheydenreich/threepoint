@@ -515,6 +515,13 @@ def extract_aperture_masses(Xs,Ys,shear_catalogue,npix,thetas,fieldsize,compute_
     save_map=save_map,same_fieldsize_for_all_theta=same_fieldsize_for_all_theta,use_polynomial_filter=use_polynomial_filter)
     return result
 
+def extract_M3(Xs,Ys,shear_catalogue,npix,thetas,fieldsize,rs, save_map=None,same_fieldsize_for_all_theta=True,use_polynomial_filter=False):
+    ac = aperture_mass_computer(npix,1.,fieldsize,use_polynomial_filter=use_polynomial_filter)
+    shears,norm = ac.normalize_shear(Xs,Ys,shear_catalogue)
+    result = extract_M3_of_field(shears,npix,thetas,rs,fieldsize,norm=norm,ac=ac,
+    save_map=save_map,same_fieldsize_for_all_theta=same_fieldsize_for_all_theta,use_polynomial_filter=use_polynomial_filter)
+    return result
+
 def extract_both_aperture_masses(Xs,Ys,shear_catalogue,npix,thetas,fieldsize,compute_mcross=False,save_map=None,same_fieldsize_for_all_theta=False,use_polynomial_filter=False):
     ac = aperture_mass_computer(npix,1.,fieldsize,use_polynomial_filter=use_polynomial_filter)
     shears,norm = ac.normalize_shear(Xs,Ys,shear_catalogue)
@@ -661,6 +668,77 @@ def extract_aperture_masses_of_field(shears,npix,thetas,fieldsize,norm=None,ac=N
                 counter += 1
 
     return result
+
+
+
+def extract_M3_of_field(shears,npix,thetas,fieldsize, rs, norm=None,ac=None,
+    save_map=None,same_fieldsize_for_all_theta=True,use_polynomial_filter=False):
+    n_thetas = len(thetas)
+    n_rs=len(rs)
+    delta_r=np.max(rs)/n_rs
+    maxtheta = np.max(thetas)
+    pixsize=fieldsize/npix
+    pixmax=int(np.max(rs)/pixsize)
+    if ac is None:
+        ac = aperture_mass_computer(npix,1.,fieldsize,use_polynomial_filter=use_polynomial_filter)
+
+ 
+    result = np.zeros((n_thetas, n_thetas, n_thetas, n_rs))
+    weight = np.zeros((n_thetas, n_thetas, n_thetas, n_rs))
+
+    aperture_mass_fields = np.zeros((npix,npix,n_thetas))
+
+    print("Calculating Map maps")
+    for x,theta in enumerate(thetas):
+        ac.change_theta_ap(theta)
+        print(x)
+        map = ac.Map_fft(shears,norm=norm,return_mcross=False,periodic_boundary=False)
+
+        aperture_mass_fields[:,:,x] = map
+
+    if(save_map is not None):
+        np.save(save_map,aperture_mass_fields)
+
+    print("Calculating M3")
+    counter = 0
+    for i in range(n_thetas):
+        field1 = aperture_mass_fields[:,:,i]
+        for j in range(n_thetas):
+            field2 = aperture_mass_fields[:,:,j]
+            for k in range(n_thetas):                     
+                field3 = aperture_mass_fields[:,:,k]
+
+                if not same_fieldsize_for_all_theta:
+                    maxtheta = thetas[k]
+                
+                print(i,j,k)
+                if(use_polynomial_filter):
+                    factor_cutoff = 1. #polynomial filter is zero outside of theta_ap
+                else:
+                    factor_cutoff = 4. #exponential filter has 99.8 percent of its power within 4*theta_ap
+
+                index_maxtheta = int(np.round(maxtheta/(fieldsize)*npix*factor_cutoff)) #cut off boundaries
+                
+                field1_cut = field1[index_maxtheta:(npix-index_maxtheta),index_maxtheta:(npix-index_maxtheta)]
+                field2_cut = field2[index_maxtheta:npix-index_maxtheta,index_maxtheta:npix-index_maxtheta]
+                field3_cut = field3[index_maxtheta:npix-index_maxtheta,index_maxtheta:npix-index_maxtheta]
+
+                for ix in range(npix-2*index_maxtheta):
+                    for iy in range(npix-2*index_maxtheta):
+                        varth1=ix*pixsize+1j*iy*pixsize
+                        for jx in range(ix,min(ix+pixmax, npix-2*index_maxtheta)):
+                            for jy in range(iy, min(iy+pixmax, npix-2*index_maxtheta)):
+                                print(ix, iy, jx, jy)
+                                varth2=jx*pixsize+1j*jy*pixsize
+                                bin=np.int(np.abs(varth1-varth2)/delta_r)
+                                if(bin<n_rs):
+                                    res=field1_cut[ix, iy]*field2_cut[ix, iy]*field3_cut[jy, jy]
+                                    result[i,j,k,bin]+=res
+                                    weight[i,j,k,bin]+=bin
+                
+
+
+    return result, weight
 
 
 
