@@ -2488,3 +2488,235 @@ void initCovariance()
 
 //     };
 //  }
+
+
+
+__global__ void integrand_T4_testBispec_analytical(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
+    double theta4, double theta5, double theta6, double* value)
+{
+    int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
+    {
+        double l1 = vars[i * ndim];
+        double l2 = vars[i * ndim + 1];
+        double l5 = vars[i * ndim + 2];
+  
+        double l1sq=l1*l1;
+        double l2sq=l2*l2;
+        double l5sq=l5*l5;
+
+        double th1sq=theta1*theta1;
+        double th2sq=theta2*theta2;
+        double th3sq=theta3*theta3;
+        double th4sq=theta4*theta4;
+        double th5sq=theta5*theta5;
+        double th6sq=theta6*theta6;
+
+
+        double result = l1sq*l1sq*l1sq*l1sq*l1*l2sq*l2sq*l2*l5sq*l5sq*l5;
+        result *= exp(-0.5*l1sq*(th1sq+th3sq+th4sq+th6sq+8)-0.5*l2sq*(th2sq+th3sq+4)-0.5*l5sq*(th5sq+th6sq+4));
+        result *= (l1sq+l2sq)*gsl_sf_bessel_I0(l1*l2*(th3sq+2))-2*l1*l3*gsl_sf_bessel_I1(l1*l2*(th3sq+2));
+        result *= (l1sq+l5sq)*gsl_sf_bessel_I0(l1*l5*(th6sq+2))-2*l1*l5*gsl_sf_bessel_I1(l1*l5*(th6sq+2));
+
+
+        value[i] = result;
+            
+    }
+}
+
+int integrand_T4_testBispec_analytical(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
+{
+    if (fdim != 1)
+    {
+        std::cerr << "integrand_T4_testBispec_analytical: wrong function dimension" << std::endl;
+        return -1;
+    };
+
+    ApertureStatisticsCovarianceContainer *container_ = (ApertureStatisticsCovarianceContainer *)container;
+    //std::cerr<<npts<<std::endl;
+    if (npts > 1e8)
+    {
+        std::cerr << "WARNING: Large number of points: " << npts << std::endl;
+        return 1;
+    };
+
+    // Allocate memory on device for integrand values
+    double *dev_value;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value, fdim * npts * sizeof(double)));
+
+    // Copy integration variables to device
+    double *dev_vars;
+    CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim * npts * sizeof(double)));                              //alocate memory
+    CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); //copying
+
+    // Calculate values
+    if (type == 1)
+    {
+        integrand_T4_testBispec_analytical<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->thetas_123.at(0),
+                                                 container_->thetas_123.at(1), container_->thetas_123.at(2),
+                                                 container_->thetas_456.at(0), container_->thetas_456.at(1),
+                                                 container_->thetas_456.at(2), dev_value);
+    }
+    else // This should not happen
+    {
+        exit(-1);
+    };
+
+    cudaFree(dev_vars); //Free variables
+
+    // Copy results to host
+    CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
+
+    cudaFree(dev_value); //Free values
+
+    return 0; // Success :)
+}
+
+
+double T4_testBispec_analytical(const double &theta1, const double &theta2, const double &theta3,
+    const double &theta4, const double &theta5, const double &theta6)
+    {
+    // Set maximal l value such, that theta*l <= 10
+    double thetaMin_123 = std::min({theta1, theta2, theta3});
+    double thetaMin_456 = std::min({theta4, theta5, theta6});
+    double thetaMin = std::max({thetaMin_123, thetaMin_456});
+    double lMax = 10. / thetaMin;
+
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
+
+    // Create container
+    ApertureStatisticsCovarianceContainer container;
+    container.thetas_123 = std::vector<double>{theta1, theta2, theta3};
+    container.thetas_456 = std::vector<double>{theta4, theta5, theta6};
+    
+    // Do integration
+    double result, error;
+
+    double vals_min[3] = {0, 0, 0};
+    double vals_max[3] = {lMax, lMax, lMax};
+
+    hcubature_v(1, integrand_T4_testBispec_analytical, &container, 3, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
+    result /= pow(2 * M_PI, 3);
+    result *= pow(theta1* theta2*theta3*theta4*theta5*theta6, 2)/64;
+  
+  
+    return result;
+    }
+
+
+__global__ void integrand_T4_testBispec_analytical(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
+        double theta4, double theta5, double theta6, double* value)  
+    {
+        int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+        for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
+        {
+            double l1 = vars[i * ndim];
+            double l2 = vars[i * ndim + 1];
+            double l5 = vars[i * ndim + 2];
+            double phi1 = vars[i * ndim + 3];
+            double phi2 = vars[i * ndim + 4];
+    
+            double l3 = sqrt(l1 * l1 + l2 * l2 + 2 * l1 * l2 * cos(phi1));
+            double l6 = sqrt(l1 * l1 + l5 * l5 + 2 * l1 * l5 * cos(phi2));
+    
+            if (l3 > dev_lMax || l6 > dev_lMax || l3 <= 0 || l6 <= 0)
+            {
+                value[i] = 0;
+            }
+            else
+            {
+                double result = uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3) * uHat(l1 * theta4) * uHat(l5 * theta5) * uHat(l6 * theta6);
+    
+                result *= testBispec(l1, l2, l3);
+                result *= testBispec(l1, l5, l6);
+                result *= l1 * l2 * l5;
+    
+                value[i] = result;
+            }
+        }
+    }   
+
+
+int integrand_T4_testBispec(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
+{
+    if (fdim != 1)
+    {
+        std::cerr << "integrand_T1: wrong function dimension" << std::endl;
+        return -1;
+    };
+
+    ApertureStatisticsCovarianceContainer *container_ = (ApertureStatisticsCovarianceContainer *)container;
+
+    if (npts > 1e8)
+    {
+        std::cerr << "WARNING: Large number of points: " << npts << std::endl;
+        return 1;
+    };
+
+    // Allocate memory on device for integrand values
+    double *dev_value;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value, fdim * npts * sizeof(double)));
+
+    // Copy integration variables to device
+    double *dev_vars;
+    CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim * npts * sizeof(double)));                              //alocate memory
+    CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); //copying
+
+    // Calculate values
+
+    integrand_T4_infinite_testBispec<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->thetas_123.at(0),
+                                                   container_->thetas_123.at(1), container_->thetas_123.at(2),
+                                                   container_->thetas_456.at(0), container_->thetas_456.at(1),
+                                                   container_->thetas_456.at(2), dev_value);
+
+
+    cudaFree(dev_vars); //Free variables
+
+    // Copy results to host
+    CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
+
+    cudaFree(dev_value); //Free values
+
+    return 0; // Success :)
+}
+
+
+double T4_testBispec(const double &theta1, const double &theta2, const double &theta3,
+    const double &theta4, const double &theta5, const double &theta6)
+    {
+            // Set maximal l value such, that theta*l <= 10
+    double thetaMin_123 = std::min({theta1, theta2, theta3});
+    double thetaMin_456 = std::min({theta4, theta5, theta6});
+    double thetaMin = std::max({thetaMin_123, thetaMin_456});
+    double lMax = 10. / thetaMin;
+
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
+
+    // Create container
+    ApertureStatisticsCovarianceContainer container;
+    container.thetas_123 = std::vector<double>{theta1, theta2, theta3};
+    container.thetas_456 = std::vector<double>{theta4, theta5, theta6};
+    // Do integration
+    double result, error;
+
+    double vals_min[5] = {lMin, lMin, lMin, 0, 0};
+    double vals_max[5] = {lMax, lMax, lMax, 2 * M_PI, 2 * M_PI};
+
+    hcubature_v(1, integrand_T4_testBispec, &container, 5, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+    result = result / thetaMax / thetaMax * pow(2 * M_PI, 2);
+
+
+    return result;
+    } 
+
+
+
+__device__ double testBispec(double& l1, double& l2, double& l3 )
+{
+
+    double result=l1*l1*l2*l2*l3*l3;
+    result*=exp(-l1*l1-l2*l2-l3*l3);
+    return result;
+}
