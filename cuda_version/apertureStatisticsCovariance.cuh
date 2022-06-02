@@ -547,8 +547,27 @@ struct ApertureStatisticsCovarianceContainer
 
 void initCovariance();
 
+__global__ void integrand_T4_testBispec_analytical(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
+   double theta4, double theta5, double theta6, double* value);
+
+int integrand_T4_testBispec_analytical(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
 
 
+double T4_testBispec_analytical(const double &theta1, const double &theta2, const double &theta3,
+   const double &theta4, const double &theta5, const double &theta6);
+
+
+__global__ void integrand_T4_infinite_testBispec(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
+      double theta4, double theta5, double theta6, double* value);
+
+
+int integrand_T4_testBispec(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
+
+double T4_testBispec(const double &theta1, const double &theta2, const double &theta3,
+   const double &theta4, const double &theta5, const double &theta6);
+
+
+__device__ double testBispec(double& l1, double& l2, double& l3 );
 
 // /// THE FOLLOWING THINGS ARE NEEDED FOR THE SUPERSAMPLE COVARIANCE
 
