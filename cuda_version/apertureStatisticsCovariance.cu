@@ -1002,7 +1002,7 @@ double T4(const double &theta1, const double &theta2, const double &theta3, cons
         double vals_max[5] = {lMax, lMax, lMax, 2 * M_PI, 2 * M_PI};
 
         hcubature_v(1, integrand_T4, &container, 5, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
-        result = result / thetaMax / thetaMax * pow(2 * M_PI, 2);
+        result = result / thetaMax / thetaMax * pow(2 * M_PI, 3);
     }
     else if (type == 0)
     {
@@ -2705,7 +2705,7 @@ double T4_testBispec(const double &theta1, const double &theta2, const double &t
     double vals_max[5] = {lMax, lMax, lMax, 2 * M_PI, 2 * M_PI};
 
     hcubature_v(1, integrand_T4_testBispec, &container, 5, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
-    result = result / thetaMax / thetaMax * pow(2 * M_PI, 2);
+    result = result / thetaMax / thetaMax * pow(2 * M_PI, 3);
 
 
     return result;
