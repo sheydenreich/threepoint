@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <iostream>
 
+//#include <gsl/gsl_sf_bessel.h>
+
 __constant__ double dev_thetaMax;
 __constant__ double dev_lMin;
 __constant__ double dev_lMax;
@@ -1001,14 +1003,14 @@ double T4(const double &theta1, const double &theta2, const double &theta3, cons
         double vals_min[5] = {lMin, lMin, lMin, 0, 0};
         double vals_max[5] = {lMax, lMax, lMax, 2 * M_PI, 2 * M_PI};
 
-        hcubature_v(1, integrand_T4, &container, 5, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+        hcubature_v(1, integrand_T4, &container, 5, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
         result = result / thetaMax / thetaMax * pow(2 * M_PI, 3);
     }
     else if (type == 0)
     {
         double vals_min[8] = {lMin, lMin, lMin, lMin, 0, 0, 0, 0};
         double vals_max[8] = {lMax, lMax, lMax, lMax, 2 * M_PI, 2 * M_PI, 2 * M_PI, 2 * M_PI};
-        pcubature_v(1, integrand_T4, &container, 8, vals_min, vals_max, 0, 0, 0.2, ERROR_L1, &result, &error);
+        pcubature_v(1, integrand_T4, &container, 8, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
     }
     else
     {
@@ -1040,7 +1042,7 @@ double T5(const double &theta1, const double &theta2, const double &theta3, cons
         double vals_min[7] = {lMin, lMin, lMin, 0, 0, mmin, 0};
         double vals_max[7] = {lMax, lMax, lMax, 2 * M_PI, 2 * M_PI, mmax, z_max};
 
-        hcubature_v(1, integrand_T5, &container, 7, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+        hcubature_v(1, integrand_T5, &container, 7, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
         result = result / thetaMax / thetaMax * pow(2 * M_PI, 2);
     }
     else
@@ -1095,7 +1097,7 @@ double T6(const double &theta1, const double &theta2, const double &theta3, cons
     double vals_min[7] = {lMin, lMin, lMin, 0, 0, 0, mmin};
     double vals_max[7] = {lMax, lMax, lMax, 2 * M_PI, 2 * M_PI, 2 * M_PI, mmax};
 
-    hcubature_v(1, integrand_T6, &container, 7, vals_min, vals_max, 1e8, 0, 1e-1, ERROR_L1, &result, &error);
+    hcubature_v(1, integrand_T6, &container, 7, vals_min, vals_max, 1e8, 0, 1e-2, ERROR_L1, &result, &error);
 
     std::cerr << result_A1 << " " << result << std::endl;
     return result_A1 * result;
@@ -1419,7 +1421,7 @@ int integrand_T4(unsigned ndim, size_t npts, const double *vars, void *container
 
     ApertureStatisticsCovarianceContainer *container_ = (ApertureStatisticsCovarianceContainer *)container;
 
-    if (npts > 1e8)
+    if (npts > 1e7)
     {
         std::cerr << "WARNING: Large number of points: " << npts << std::endl;
         return 1;
@@ -2513,12 +2515,22 @@ __global__ void integrand_T4_testBispec_analytical(const double* vars, unsigned 
         double th5sq=theta5*theta5;
         double th6sq=theta6*theta6;
 
+        double alpha=1e6;
 
         double result = l1sq*l1sq*l1sq*l1sq*l1*l2sq*l2sq*l2*l5sq*l5sq*l5;
-        result *= exp(-0.5*l1sq*(th1sq+th3sq+th4sq+th6sq+8)-0.5*l2sq*(th2sq+th3sq+4)-0.5*l5sq*(th5sq+th6sq+4));
-        result *= (l1sq+l2sq)*gsl_sf_bessel_I0(l1*l2*(th3sq+2))-2*l1*l3*gsl_sf_bessel_I1(l1*l2*(th3sq+2));
-        result *= (l1sq+l5sq)*gsl_sf_bessel_I0(l1*l5*(th6sq+2))-2*l1*l5*gsl_sf_bessel_I1(l1*l5*(th6sq+2));
-
+        double tmp=-0.5*l1sq*(th1sq+th3sq+th4sq+th6sq+8/alpha)-0.5*l2sq*(th2sq+th3sq+4/alpha)-0.5*l5sq*(th5sq+th6sq+4/alpha);
+  
+        double tmp2=cyl_bessel_i0(l1*l2*(th3sq+2/alpha));
+        result *= exp(tmp);
+        if(result!=0)
+        {
+        result *= (l1sq+l2sq)*cyl_bessel_i0(l1*l2*(th3sq+2/alpha))-2*l1*l2*cyl_bessel_i1(l1*l2*(th3sq+2/alpha));
+        result *= (l1sq+l5sq)*cyl_bessel_i0(l1*l5*(th6sq+2/alpha))-2*l1*l5*cyl_bessel_i1(l1*l5*(th6sq+2/alpha));
+        };
+       if(!isfinite(result))
+       {
+        printf("%e, %e, %e, %e, %e, %e, %e\n", l1, l2, l5,result, tmp, exp(tmp), tmp2);
+       };
 
         value[i] = result;
             
@@ -2551,17 +2563,12 @@ int integrand_T4_testBispec_analytical(unsigned ndim, size_t npts, const double 
     CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); //copying
 
     // Calculate values
-    if (type == 1)
-    {
+
         integrand_T4_testBispec_analytical<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->thetas_123.at(0),
                                                  container_->thetas_123.at(1), container_->thetas_123.at(2),
                                                  container_->thetas_456.at(0), container_->thetas_456.at(1),
                                                  container_->thetas_456.at(2), dev_value);
-    }
-    else // This should not happen
-    {
-        exit(-1);
-    };
+
 
     cudaFree(dev_vars); //Free variables
 
@@ -2580,8 +2587,9 @@ double T4_testBispec_analytical(const double &theta1, const double &theta2, cons
     // Set maximal l value such, that theta*l <= 10
     double thetaMin_123 = std::min({theta1, theta2, theta3});
     double thetaMin_456 = std::min({theta4, theta5, theta6});
-    double thetaMin = std::max({thetaMin_123, thetaMin_456});
+    double thetaMin = std::min({thetaMin_123, thetaMin_456});
     double lMax = 10. / thetaMin;
+
 
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
 
@@ -2605,7 +2613,7 @@ double T4_testBispec_analytical(const double &theta1, const double &theta2, cons
     }
 
 
-__global__ void integrand_T4_testBispec_analytical(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
+__global__ void integrand_T4_infinite_testBispec(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
         double theta4, double theta5, double theta6, double* value)  
     {
         int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -2704,7 +2712,7 @@ double T4_testBispec(const double &theta1, const double &theta2, const double &t
     double vals_min[5] = {lMin, lMin, lMin, 0, 0};
     double vals_max[5] = {lMax, lMax, lMax, 2 * M_PI, 2 * M_PI};
 
-    hcubature_v(1, integrand_T4_testBispec, &container, 5, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+    hcubature_v(1, integrand_T4_testBispec, &container, 5, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
     result = result / thetaMax / thetaMax * pow(2 * M_PI, 3);
 
 
@@ -2715,8 +2723,8 @@ double T4_testBispec(const double &theta1, const double &theta2, const double &t
 
 __device__ double testBispec(double& l1, double& l2, double& l3 )
 {
-
-    double result=l1*l1*l2*l2*l3*l3;
-    result*=exp(-l1*l1-l2*l2-l3*l3);
+    double alpha=1e6;
+    double result=l1*l1*l2*l2;
+    result*=exp((-l1*l1-l2*l2-l3*l3)/alpha);
     return result;
 }
