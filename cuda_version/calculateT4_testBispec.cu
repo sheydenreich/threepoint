@@ -119,7 +119,6 @@ Argument 5: Filename for covariance parameters (ASCII, see necessary_files/cov_p
       }
     }
   }
-
   int N_ind = theta_combis.size(); // Number of independent theta-combinations
   int N_total = N_ind * (N_ind+1) / 2;
 
@@ -128,13 +127,15 @@ Argument 5: Filename for covariance parameters (ASCII, see necessary_files/cov_p
   auto begin = std::chrono::high_resolution_clock::now(); // Begin time measurement
   for (int i = 0; i < N_ind; i++)
   {
-    for (int j=i; j<N_ind; j++)
+    for (int j=0; j<N_ind; j++)
     {
+
       try
       {
         
-        double term4 = T4_testBispec(theta_combis.at(i), theta_combis.at(j));
-        std::cerr<<"T4:"<<term4<<std::endl;
+        double term4 = T4_testBispec(theta_combis.at(i).at(0), theta_combis.at(i).at(1), theta_combis.at(i).at(2), theta_combis.at(j).at(0), theta_combis.at(j).at(1), theta_combis.at(j).at(2));
+        term4/=pow(2*M_PI, 8);
+        std::cout<<term4<<std::endl;
         Cov_term4s.push_back(term4);
         
       }
@@ -149,25 +150,26 @@ Argument 5: Filename for covariance parameters (ASCII, see necessary_files/cov_p
       completed_steps++;
       double progress = (completed_steps * 1.) / (N_total);
       
-      fprintf(stderr, "\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step. Last thetas: (%.2f, %.2f, %.2f, %.2f, %.2f, %.2f) [%s]",
-                            static_cast<int>(progress * 100),
-                            elapsed.count() * 1e-9 / 3600,
-                            (N_total - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
-                            elapsed.count() * 1e-9 / completed_steps,
-                            convert_rad_to_angle(theta_combis.at(i).at(0)), convert_rad_to_angle(theta_combis.at(i).at(1)), convert_rad_to_angle(theta_combis.at(i).at(2)),
-                            convert_rad_to_angle(theta_combis.at(j).at(0)), convert_rad_to_angle(theta_combis.at(j).at(1)), convert_rad_to_angle(theta_combis.at(j).at(2)), "arcmin");
+    //   fprintf(stderr, "\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step. Last thetas: (%.2f, %.2f, %.2f, %.2f, %.2f, %.2f) [%s]",
+    //                         static_cast<int>(progress * 100),
+    //                         elapsed.count() * 1e-9 / 3600,
+    //                         (N_total - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
+    //                         elapsed.count() * 1e-9 / completed_steps,
+    //                         convert_rad_to_angle(theta_combis.at(i).at(0)), convert_rad_to_angle(theta_combis.at(i).at(1)), convert_rad_to_angle(theta_combis.at(i).at(2)),
+    //                         convert_rad_to_angle(theta_combis.at(j).at(0)), convert_rad_to_angle(theta_combis.at(j).at(1)), convert_rad_to_angle(theta_combis.at(j).at(2)), "arcmin");
+    // 
     }
+    
   }
 
   // Output
 
-  char filename[255];
-  double n_deg = n / convert_rad_to_angle(1, "deg") / convert_rad_to_angle(1, "deg");
-  double thetaMax_deg = convert_rad_to_angle(thetaMax, "deg");
+  // char filename[255];
+  // double n_deg = n / convert_rad_to_angle(1, "deg") / convert_rad_to_angle(1, "deg");
+  // double thetaMax_deg = convert_rad_to_angle(thetaMax, "deg");
 
-  sprintf(filename, "Test_bispec_cov_%s_term4Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
-            type_str.c_str(), sigma, n_deg, thetaMax_deg);
+  // sprintf(filename, "Test_bispec_cov_term4Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat", sigma, n_deg, thetaMax_deg);
 
-    writeCov(Cov_term4s, N_ind, out_folder + filename);
+  //   writeCov(Cov_term4s, N_ind, out_folder + filename);
   return 0;
 }
