@@ -505,32 +505,30 @@ __device__ double pentaspectrum_integrand(double m, double z, double l1, double 
     double result=1;
 
     result*=pow(g,6);
-    result/=pow(chi,4); // THIS IS THE PROBLEM FOR THE INTEGRATION!!!
-
-    //printf("%e %e %e\n", z, chi, pow(chi,4));
+    result/=pow(chi,4);
 
     result*=dev_c_over_H0/dev_E(z);
     result*=u_NFW(l1/chi, m, z)*u_NFW(l2/chi, m, z)*u_NFW(l3/chi, m, z);
     result*=u_NFW(l4/chi, m, z)*u_NFW(l5/chi, m, z)*u_NFW(l6/chi, m, z);
     result*=pow(m/rhobar, 6)*hmf(m, z);
     result*=pow(1.5*dev_om/dev_c_over_H0/dev_c_over_H0, 6); 
-    //printf("%e %e %e\n", dev_om, dev_c_over_H0, result);
     result*=pow(1+z, 6);
 
-    //printf("%e %e %e %e %e %e %e\n", l1, l2, l3, l4, l5, l6, result);
 
     return result;
 }
 
 __device__ double pentaspectrum_limber_integrated(double a, double b, double m, double l1, double l2, double l3, double l4, double l5, double l6)
 {
-  int i;
   double cx, dx, q;
   cx = (a + b) / 2;
   dx = (b - a) / 2;
   q = 0;
-  for (i = 0; i < 48; i++)
+  for (int i = 0; i < 48; i++)
+  //  printf("%d %e %e %e %e\n", i, cx - dx * dev_A96[i], dev_A96[i], cx, dx);
     q += dev_W96[i] * (pentaspectrum_integrand(m, cx - dx * dev_A96[i], l1, l2, l3, l4, l5, l6) + pentaspectrum_integrand(m, cx + dx * dev_A96[i], l1, l2, l3, l4, l5, l6));
+  
+  printf("%e %e %e %e %e %e %e %e\n", m, l1, l2, l3, l4, l5, l6, q*dx);
   return (q * dx);
 }
 

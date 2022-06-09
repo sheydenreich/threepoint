@@ -163,6 +163,9 @@ Argument 12: Survey geometry, either circle, square, or infinite
     }
   }
 
+  // std::vector<double> thetas_123={convert_angle_to_rad(2), convert_angle_to_rad(16), convert_angle_to_rad(16)};
+  // theta_combis.push_back(thetas_123);
+
   int N_ind = theta_combis.size(); // Number of independent theta-combinations
   int N_total = N_ind * (N_ind+1) / 2;
 
