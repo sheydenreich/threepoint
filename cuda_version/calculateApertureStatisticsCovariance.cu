@@ -130,8 +130,6 @@ Argument 12: Survey geometry, either circle, square, or infinite
     cubaaccel(&ncores, &pcores);
   
   }
-
-
   std::cerr<<"Finished copying constants"<<std::endl;
 
   std::cerr << "Using n(z) from " << nzfn << std::endl;
@@ -163,8 +161,6 @@ Argument 12: Survey geometry, either circle, square, or infinite
     }
   }
 
-  // std::vector<double> thetas_123={convert_angle_to_rad(2), convert_angle_to_rad(16), convert_angle_to_rad(16)};
-  // theta_combis.push_back(thetas_123);
 
   int N_ind = theta_combis.size(); // Number of independent theta-combinations
   int N_total = N_ind * (N_ind+1) / 2;
@@ -174,7 +170,7 @@ Argument 12: Survey geometry, either circle, square, or infinite
   auto begin = std::chrono::high_resolution_clock::now(); // Begin time measurement
   for (int i = 0; i < N_ind; i++)
   {
-    for (int j=i; j<N_ind; j++)
+    for (int j=i; j<N_ind; j++)   
     {
       try
       {
@@ -209,7 +205,7 @@ Argument 12: Survey geometry, either circle, square, or infinite
         if (calculate_T7)
         {
           double term7 = T7_total(theta_combis.at(i), theta_combis.at(j));
-          std::cerr<<"T7:"<<term7<<std::endl;
+          printf("T7:%e\n", term7);
           Cov_term7s.push_back(term7);
         }
       }

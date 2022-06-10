@@ -60,9 +60,6 @@ __host__ __device__ double hmf(const double& m, const double& z)
 
     double result=-rho_mean/m/sigma2*dsigma2*A*(1+pow(q*nu, -p))*sqrt(q*nu/2/M_PI)*exp(-0.5*q*nu);
 
-
-   //printf("%e %e %e\n", m, z, result);
-
     /*
      * \f $n(m,z)=-\frac{\bar{\rho}}{m \sigma} \dv{\sigma}{m} A \sqrt{2q/pi} (1+(\frac{\sigma^2}{q\delta_c^2})^p) \frac{\delta_c}{\sigma} \exp(-\frac{q\delta_c^2}{2\sigma^2})$ \f
      */
@@ -164,7 +161,6 @@ double c=concentration(m, z);
 double arg1=k*r_200(m,z)/c;
 double arg2=arg1*(1+c);
 
-//printf("%f %f %f\n", r_200(m, z), m ,z);
 
 double si1, ci1, si2, ci2;
 SiCi(arg1, si1, ci1);
@@ -175,7 +171,6 @@ double term2=cos(arg1)*(ci2-ci1);
 double term3=-sin(arg1*c)/arg2;
 double F=std::log(1.+c)-c/(1.+c);
 
-//printf("%f %f %f %f\n", term1, term2, term3, F);
 
 double result=(term1+term2+term3)/F;
 return result;
@@ -255,7 +250,7 @@ void setSigma2()
             sigma2_array[i]=sigma;
     }
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma2_array, &sigma2_array, n_mbins*sizeof(double)));
-    std::cerr<<"Finished precalculating sigma2(m)"<<std::endl;
+    if(VERBOSE)   std::cerr<<"Finished precalculating sigma2(m)"<<std::endl;
 }
 
 
@@ -329,7 +324,6 @@ void setdSigma2dm()
             double m=pow(10, logMmin+i*deltaM);
         
             dSigma2dm_array[i] = dSigma2dm(m);
-            //std::cerr<<i<<" "<<dSigma2dm_[i]<<std::endl;
 
     }
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_dSigma2dm_array, &dSigma2dm_array, n_mbins*sizeof(double)));
@@ -470,7 +464,6 @@ __device__ double trispectrum_integrand(double m, double z, double l1, double l2
     result*=m*m*m*m/rhobar/rhobar/rhobar/rhobar;
     result*=pow(1.5*dev_om/dev_c_over_H0/dev_c_over_H0, 4); //Prefactor in h^8
     result*=pow(1+z, 4);
-    //printf("%e %e %e %e %e %e %e %e %e\n", m, z, l1, l2, l3, l4, result, hmf(m, z), g);
     return result;
 }
 
@@ -525,10 +518,27 @@ __device__ double pentaspectrum_limber_integrated(double a, double b, double m, 
   dx = (b - a) / 2;
   q = 0;
   for (int i = 0; i < 48; i++)
-  //  printf("%d %e %e %e %e\n", i, cx - dx * dev_A96[i], dev_A96[i], cx, dx);
+  {
     q += dev_W96[i] * (pentaspectrum_integrand(m, cx - dx * dev_A96[i], l1, l2, l3, l4, l5, l6) + pentaspectrum_integrand(m, cx + dx * dev_A96[i], l1, l2, l3, l4, l5, l6));
-  
-  printf("%e %e %e %e %e %e %e %e\n", m, l1, l2, l3, l4, l5, l6, q*dx);
+  }
+
+  return (q * dx);
+}
+
+__device__ double pentaspectrum_limber_mass_integrated(double zmin, double zmax, double logMmin, double logMmax, double l1, double l2, double l3, double l4, double l5, double l6)
+{
+  double cx, dx, q;
+  cx = (logMmin + logMmax) / 2;
+  dx = (logMmax - logMmin) / 2;
+  q = 0;
+  for (int i = 0; i < 48; i++)
+  {
+    double m1=exp(cx - dx * dev_A96[i]);
+    double m2=exp(cx + dx * dev_A96[i]);
+
+    q += dev_W96[i] *( m1*pentaspectrum_limber_integrated(zmin, zmax, m1, l1, l2, l3, l4, l5, l6) + m2*pentaspectrum_limber_integrated(zmin, zmax, m2, l1, l2, l3, l4, l5, l6));
+  }
+
   return (q * dx);
 }
 
