@@ -17,8 +17,8 @@ extern double thetaMax;
 extern __constant__ double dev_lMin;
 extern double lMin;
 
-extern __constant__ double dev_sigmaW;
-extern double sigmaW, VW, chiMax;
+// extern __constant__ double dev_sigmaW;
+// extern double sigmaW, VW, chiMax;
 
     /**
      * @brief Writes a covariance matrix (or one part of it) to a file
@@ -116,8 +116,7 @@ extern double sigmaW, VW, chiMax;
       * @param theta5 Aperture radius [rad]
       * @param theta6 Aperture radius [rad]
       */
-     double T1(const double &theta1, const double &theta2, const double &theta3,
-               const double &theta4, const double &theta5, const double &theta6);
+     double T1(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
  
      /**
       * @brief Second Term of Gaussian Covariance for one permutation
@@ -129,8 +128,7 @@ extern double sigmaW, VW, chiMax;
       * @param theta5 Aperture radius [rad]
       * @param theta6 Aperture radius [rad]
       */
-     double T2(const double &theta1, const double &theta2, const double &theta3,
-               const double &theta4, const double &theta5, const double &theta6);
+     double T2(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
  
      /**
       * @brief First Term of NonGaussian Covariance for one permutation
@@ -142,8 +140,7 @@ extern double sigmaW, VW, chiMax;
       * @param theta5 Aperture radius [rad]
       * @param theta6 Aperture radius [rad]
       */
-     double T4(const double &theta1, const double &theta2, const double &theta3,
-               const double &theta4, const double &theta5, const double &theta6);
+     double T4(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
 
  
 
@@ -157,8 +154,7 @@ extern double sigmaW, VW, chiMax;
       * @param theta5 Aperture radius [rad]
       * @param theta6 Aperture radius [rad]
       */
-      double T5(const double &theta1, const double &theta2, const double &theta3,
-         const double &theta4, const double &theta5, const double &theta6);
+      double T5(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
 
      /**
       * @brief Third Term of NonGaussian Covariance for one permutation
@@ -170,8 +166,7 @@ extern double sigmaW, VW, chiMax;
       * @param theta5 Aperture radius [rad]
       * @param theta6 Aperture radius [rad]
       */
-      double T6(const double &theta1, const double &theta2, const double &theta3,
-         const double &theta4, const double &theta5, const double &theta6);
+      double T6(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
 
 
               /**
@@ -184,8 +179,7 @@ extern double sigmaW, VW, chiMax;
       * @param theta5 Aperture radius [rad]
       * @param theta6 Aperture radius [rad]
       */
-      double T7(const double &theta1, const double &theta2, const double &theta3,
-         const double &theta4, const double &theta5, const double &theta6);
+      double T7(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
 
     /**
      * @brief Wrapper of integrand_T1 for the cubature library
@@ -283,10 +277,11 @@ extern double sigmaW, VW, chiMax;
 
 
     
-      static int integrand_T7(const int *ndim, const double* xx,
-         const int *ncomp, double* ff, void *userdata, const int* nvec);
+      // static int integrand_T7(const int *ndim, const double* xx,
+      //    const int *ncomp, double* ff, void *userdata, const int* nvec);
 
-
+      int integrand_T7(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
+;
 
 /**
  * @brief Integrand of Term1 for circular survey
@@ -302,8 +297,7 @@ extern double sigmaW, VW, chiMax;
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T1_circle(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
-                                    double theta4, double theta5, double theta6, double* value);
+__global__ void integrand_T1_circle(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double* value);
 
 
                                     /**
@@ -320,8 +314,7 @@ __global__ void integrand_T1_circle(const double* vars, unsigned ndim, int npts,
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T1_square(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
-    double theta4, double theta5, double theta6, double* value);
+__global__ void integrand_T1_square(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double* value);
 
     /**
  * @brief Integrand of Term1 for infinite survey
@@ -337,8 +330,7 @@ __global__ void integrand_T1_square(const double* vars, unsigned ndim, int npts,
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T1_infinite(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
-    double theta4, double theta5, double theta6, double* value);
+__global__ void integrand_T1_infinite(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double* value);
 
 
 /**
@@ -407,8 +399,7 @@ __global__ void integrand_T1_infinite(const double* vars, unsigned ndim, int npt
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
- __global__ void integrand_T4_circle(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
-    double theta4, double theta5, double theta6, double* value);
+// __global__ void integrand_T4_circle(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double* value);
     
     /**
  * @brief Integrand for Term 4 for infinite survey
@@ -481,39 +472,9 @@ __global__ void integrand_T1_infinite(const double* vars, unsigned ndim, int npt
  * @param value Value of integral
  */
  __global__ void integrand_T7_infinite(const double* vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, 
-   double theta4, double theta5, double theta6, double* value,
-double lMin, double lMax, double phiMin, double phiMax, double mMin, double mMax, double zMin, double zMax);
+   double theta4, double theta5, double theta6, double* value, double mMin, double mMax);
+//double lMin, double lMax, double phiMin, double phiMax, double mMin, double mMax, double zMin, double zMax);
 
-   // /**
-   // * @brief Placeholder for integrand for Term 7 for infinite survey
-   // * 
-   // * @param vars Integration parameters (5 D)
-   // * @param ndim Number of integration dimensions
-   // * @param npts Number of integration points
-   // * @param theta1 Aperture radius [rad]
-   // * @param theta2 Aperture radius [rad]
-   // * @param theta3 Aperture radius [rad]
-   // * @param theta4 Aperture radius [rad]
-   // * @param theta5 Aperture radius [rad]
-   // * @param theta6 Aperture radius [rad]
-   // * @param lMin minimum ell-mode of integration
-   // * @param lMax maximum ell-mode of integration
-   // * @param phiMin minimum phi-mode of integration
-   // * @param phiMax maximum phi-mode of integration
-   // * @param value Value of integral
-   // */
-
-   //  __global__ void dummy_integrand_T7_inf(const double* vars, unsigned ndim, int npts, 
-   //    double theta1, double theta2, double theta3, 
-   //    double theta4, double theta5, double theta6, 
-   //    double* value, double lMin, double lMax, double phiMin, double phiMax);
-  
-   // /**
-   //    * @brief Placeholder for function to be integrated for T7
-   //    * param r, phi some arbitrary parameters
-   // */
-   // __device__ double dummy_testfunc(double r, double phi);
-   
 
     /**
      * @brief Geometric factor for circular survey
@@ -569,82 +530,6 @@ double T4_testBispec(const double &theta1, const double &theta2, const double &t
 
 __device__ double testBispec(double& l1, double& l2, double& l3 );
 
-// /// THE FOLLOWING THINGS ARE NEEDED FOR THE SUPERSAMPLE COVARIANCE
 
-//    /**
-//      * @brief Calculate the super sample covariance for one aperture radii combination.
-//      *
-//      * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
-//      * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
-//      */
-//      double Cov_SSC(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
-
-
-//      /**
-//       * @brief Redshift integrand of Cov_SSC
-//       * 
-//       */
-//      double integrand_Cov_SSC(const double& z, const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
-
-
-//      double f(const double& z, const std::vector<double> &thetas_123, const double& chi);
-
-//      int integrand_f(unsigned ndim, size_t npts, const double* vars, void* container, unsigned fdim, double* value);
-
-//      __global__ void integrand_f(const double* vars, unsigned ndim, int npts, double* value,  double theta1, double theta2, double theta3, double z, double chi);
-
-
-//    __device__ double halobias(const double& m, const double& z);
-
-//    __device__ double dev_rhobar(const double& z);
-
-//    double rhobar(const double& z);
-
-
-
-
-
-
-
-
-
-   
-
-//    void setSurveyVolume();
-
-//    void setSigmaW();
-
-//    double WindowSurvey(const double& k1, const double& k2, const double& k3);
-
-
-//    int integrand_SigmaW(unsigned ndim, size_t npts, const double* k, void* thisPtr, unsigned fdim, double* value);
-   
-
-// struct ApertureStatisticsSSCContainer
-// {
-//            // aperture radii [rad]
-//            std::vector<double> thetas_123;
-
-//            double z; //redshift
-//            double chi; //Comoving distance
-
-//            double ell1, ell2, ell3;
-// };
-
-
-
-
-// void initSSC();
-
-
-// double Cov_Bispec_SSC(const double& ell);
-
-// double integrand_Cov_Bispec_SSC(const double& z, const double& ell);
-
-// double I3(const double& ell1, const double& ell2, const double& ell3, const double& z, const double& chi);
-
-// int integrand_I3(unsigned ndim, size_t npts, const double* vars, void* container, unsigned fdim, double* value);
-
-// __global__ void integrand_I3(const double* vars, unsigned ndim, int npts, double* value, double ell1, double ell2, double ell3, double z, double chi);
 
 #endif //APERTURESTATISTICSCOVARIANCE_CUH
