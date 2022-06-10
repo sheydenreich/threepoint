@@ -6,7 +6,7 @@ NVCC = nvcc -std=c++11 -rdc=true -Xcompiler -fopenmp -O3
 GCC = g++
 
 # define various compiler flags
-CFLAGS = -std=c++17 -fopenmp -W -Wall -Wpointer-arith -Wformat-nonliteral -Winit-self -g -fPIC
+CFLAGS = -std=c++17 -fopenmp -W -Wall -Wpointer-arith -Wformat-nonliteral -Winit-self -g -fPIC 
 
 NVCCFLAGS = -g -Xcompiler -fPIC
 
@@ -24,7 +24,8 @@ SRCS_CU = $(wildcard *.cu)
 SRCS_CPP = $(wildcard *.cpp)
 
 # define the CUDA executables (ADD ALL HERE)
-EXECS_CU = calculateApertureStatisticsCovariance.x calculateGamma_input_fisher.x calculatePowerspectrum.x calculateApertureStatistics.x  calculateGamma_varyingCosmos.x  calculatePowerspectrum_halomodel.x calculateHMF.x calculatePowerspectrum_varyingcosmos.x calculateApertureStatistics_varyingCosmos.x  calculateMap4.x  calculateSecondOrderAperturestatistics.x calculateDerivativeApertureStatistics.x calculateMap6.x  calculateTrispectrum3D_halomodel.x calculateGamma.x  calculateNFW.x calculateTrispectrum_halomodel.x TEST_cuba_monte_carlo_integration.x testGamma.x testHalomodel.x testPowerspectrum.x calculatePentaspectrum_halomodel.x calculateT4.x calculateT4_testBispec_analytical.x calculateT4_testBispec.x
+EXECS_CU = calculateApertureStatistics_varyingCosmos.x calculateApertureStatistics.x calculateApertureStatisticsCovariance.x calculateDerivativeApertureStatistics.x calculateGamma_input_fisher.x calculateGamma_varyingCosmos.x calculateGamma.x calculateHMF.x calculateMap4.x calculateMap6.x calculateNFW.x calculatePentaspectrum_halomodel.x calculatePowerspectrum_halomodel.x calculatePowerspectrum_varyingcosmos.x calculatePowerspectrum.x calculateSecondOrderAperturestatistics.x calculateT4_testBispec_analytical.x calculateT4_testBispec.x calculateTrispectrum_halomodel.x calculateTrispectrum3D_halomodel.x TEST_cuba_monte_carlo_integration.x
+
 
 # define cpp object files
 OBJS_CPP = $(SRCS_CPP:.cpp=.o)
