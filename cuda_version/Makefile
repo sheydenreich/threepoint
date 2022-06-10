@@ -1,5 +1,6 @@
 # define the Compiler to use
-NVCC = /usr/local/cuda-11.6/bin/nvcc -std=c++17 -rdc=true -Xcompiler -fopenmp -O3 -arch=sm_86
+#NVCC = /usr/local/cuda-11.6/bin/nvcc -std=c++17 -rdc=true -Xcompiler -fopenmp -O3 -arch=sm_86
+NVCC = nvcc -std=c++11 -rdc=true -Xcompiler -fopenmp -O3
 
 # define the C++ compiler to use
 GCC = g++
@@ -10,7 +11,8 @@ CFLAGS = -std=c++17 -fopenmp -W -Wall -Wpointer-arith -Wformat-nonliteral -Winit
 NVCCFLAGS = -g -Xcompiler -fPIC
 
 # define library paths in addition to /usr/lib
-LFLAGS= -L /vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/ -Xcompiler \"-Wl,-R,/vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/\"  -L /usr/local/lib/ -L ../Cuba-4.2.2/
+#LFLAGS= -L /vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/ -Xcompiler \"-Wl,-R,/vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/\"  -L /usr/local/lib/ -L ../Cuba-4.2.2/
+LFLAGS= -L /home/laila/cosmosis/cosmosis/datablock/ -Xcompiler \"-Wl,-R,/home/laila/cosmosis/cosmosis/datablock/\"  -L /usr/local/lib/ -L ../Cuba-4.2.2/
 
 # define any libraries
 LIBS = -lm -lgsl -lgslcblas -lcosmosis -lcuba
@@ -22,7 +24,8 @@ SRCS_CU = $(wildcard *.cu)
 SRCS_CPP = $(wildcard *.cpp)
 
 # define the CUDA executables (ADD ALL HERE)
-EXECS_CU = calculateApertureStatisticsCovariance.x calculateGamma_input_fisher.x calculatePowerspectrum.x calculateApertureStatistics.x  calculateGamma_varyingCosmos.x  calculatePowerspectrum_halomodel.x calculateHMF.x calculatePowerspectrum_varyingcosmos.x calculateApertureStatistics_varyingCosmos.x  calculateMap4.x  calculateSecondOrderAperturestatistics.x calculateDerivativeApertureStatistics.x calculateMap6.x  calculateTrispectrum3D_halomodel.x calculateGamma.x  calculateNFW.x calculateTrispectrum_halomodel.x TEST_cuba_monte_carlo_integration.x testGamma.x testHalomodel.x testPowerspectrum.x calculatePentaspectrum_halomodel.x calculateT4_testBispec_analytical.x calculateT4_testBispec.x
+EXECS_CU = calculateApertureStatisticsCovariance.x calculateGamma_input_fisher.x calculatePowerspectrum.x calculateApertureStatistics.x  calculateGamma_varyingCosmos.x  calculatePowerspectrum_halomodel.x calculateHMF.x calculatePowerspectrum_varyingcosmos.x calculateApertureStatistics_varyingCosmos.x  calculateMap4.x  calculateSecondOrderAperturestatistics.x calculateDerivativeApertureStatistics.x calculateMap6.x  calculateTrispectrum3D_halomodel.x calculateGamma.x  calculateNFW.x calculateTrispectrum_halomodel.x TEST_cuba_monte_carlo_integration.x testGamma.x testHalomodel.x testPowerspectrum.x calculatePentaspectrum_halomodel.x calculateT4.x calculateT4_testBispec_analytical.x calculateT4_testBispec.x
+
 # define cpp object files
 OBJS_CPP = $(SRCS_CPP:.cpp=.o)
 
