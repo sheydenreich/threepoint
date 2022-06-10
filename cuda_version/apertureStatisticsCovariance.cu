@@ -7,6 +7,7 @@
 #include "cubature.h"
 #include "cuba.h"
 
+#include <math.h>
 #include <algorithm>
 #include <iostream>
 
@@ -1018,13 +1019,13 @@ double T6(const double &theta1, const double &theta2, const double &theta3, cons
     double vals_min1[1] = {lMin};
     double vals_max1[1] = {lMax};
     hcubature_v(1, integrand_T2_part1, &container, 1, vals_min1, vals_max1, 0, 0, 1e-4, ERROR_L1, &result_A1, &error_A1);
-    result_A1 /= (2 * M_PI)
+    result_A1 /= (2 * M_PI);
 
-                 // Integral over ell3 to ell5
+    // Integral over ell3 to ell5
 
-                 // Create container
+    // Create container
 
-                 container.thetas_123 = std::vector<double>{theta1, theta2, theta3};
+    container.thetas_123 = std::vector<double>{theta1, theta2, theta3};
     container.thetas_456 = std::vector<double>{theta4, theta5, theta6};
 
     // Do integration
@@ -1038,7 +1039,8 @@ double T6(const double &theta1, const double &theta2, const double &theta3, cons
 
     hcubature_v(1, integrand_T6, &container, 7, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
 
-    result /= pow(2 * M_PI, 6) return result_A1 * result;
+    result /= pow(2 * M_PI, 6);
+    return result_A1 * result;
 }
 
 double T7(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6)

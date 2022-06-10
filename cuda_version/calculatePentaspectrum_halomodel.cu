@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <math.h>
 /**
  * @file calculateApertureStatistics.cu
  * This executable calculates <MapMapMap> from the
@@ -18,7 +19,8 @@
  * https://github.com/stevengj/cubature for documentation)
  * @author Laila Linke
  */
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   // Read in command line
 
   const char *message = R"( 
@@ -45,7 +47,8 @@ Example:
   cosmo_paramfile = argv[1];
   outfn = argv[2];
   nz_from_file = std::stoi(argv[3]);
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     nzfn = argv[4];
   };
 
@@ -54,18 +57,19 @@ Example:
 
   // Read in n_z
   std::vector<double> nz;
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
   };
 
   // Check if output file can be opened
   std::ofstream out;
   out.open(outfn.c_str());
-  if (!out.is_open()) {
+  if (!out.is_open())
+  {
     std::cerr << "Couldn't open " << outfn << std::endl;
     exit(1);
   };
-
 
   // User output
   std::cerr << "Using cosmology from " << cosmo_paramfile << ":" << std::endl;
@@ -76,57 +80,56 @@ Example:
 
   copyConstants();
 
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     std::cerr << "Using n(z) from " << nzfn << std::endl;
     set_cosmology(cosmo, &nz);
-  } 
-  else 
+  }
+  else
   {
     set_cosmology(cosmo);
   };
 
   initHalomodel();
-  
-  double lmin=log10(150);
-  double lmax=log10(40000);
-  int Nbins=5;//100;
-  double lbin=(lmax-lmin)/Nbins;
 
-  for( int i=0; i<Nbins; i++)
+  double lmin = log10(150);
+  double lmax = log10(40000);
+  int Nbins = 5; // 100;
+  double lbin = (lmax - lmin) / Nbins;
+
+  for (int i = 0; i < Nbins; i++)
   {
-    double l1=pow(10, lmin+i*lbin);
-    for (int j=0; j<Nbins; j++)
+    double l1 = pow(10, lmin + i * lbin);
+    for (int j = 0; j < Nbins; j++)
     {
-    double l2=pow(10, lmin+j*lbin);
-      for (int k=0; k<Nbins; k++)
+      double l2 = pow(10, lmin + j * lbin);
+      for (int k = 0; k < Nbins; k++)
       {
-        double l3=pow(10, lmin+k*lbin);
-        for (int l=0; l<Nbins; l++)
+        double l3 = pow(10, lmin + k * lbin);
+        for (int l = 0; l < Nbins; l++)
         {
-          double l4=pow(10, lmin+l*lbin);
-          for(int m=0; m<Nbins; m++)
+          double l4 = pow(10, lmin + l * lbin);
+          for (int m = 0; m < Nbins; m++)
           {
-            double l5=pow(10, lmin+m*lbin);
+            double l5 = pow(10, lmin + m * lbin);
 
-            for(int n=0; n<Nbins; n++)
+            for (int n = 0; n < Nbins; n++)
             {
-              double l6=pow(10, lmin+n*lbin);
-              double P=Pentaspectrum(l1,l2,l3,l4,l5, l6);
-              out<<l1<<" "
-              <<l2<<" "
-              <<l3<<" "
-              <<l4<<" "
-              <<l5<<" "
-              <<l6<<" "
-              <<P<<std::endl;
+              double l6 = pow(10, lmin + n * lbin);
+              double P = Pentaspectrum(l1, l2, l3, l4, l5, l6);
+              out << l1 << " "
+                  << l2 << " "
+                  << l3 << " "
+                  << l4 << " "
+                  << l5 << " "
+                  << l6 << " "
+                  << P << std::endl;
             }
           }
         }
       }
     }
-
   }
-
 
   return 0;
 }
