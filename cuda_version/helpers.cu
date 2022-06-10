@@ -4,10 +4,11 @@
 #include <fstream>
 #include <sstream>
 #include <numeric>
+#include <math.h>
 
 void read_n_of_z(const std::string &fn, const int &n_bins, const double &zMax, std::vector<double> &nz)
 {
-    //Open file
+    // Open file
     std::ifstream input(fn.c_str());
     if (input.fail())
     {
@@ -34,9 +35,9 @@ void read_n_of_z(const std::string &fn, const int &n_bins, const double &zMax, s
     };
 
     // Casting in our used bins
-    int n_bins_file = zs.size();   //Number of z bins in file
-    double zmin_file = zs.front(); //Minimal z in file
-    double zmax_file = zs.back();  //Maximal z in file
+    int n_bins_file = zs.size();   // Number of z bins in file
+    double zmin_file = zs.front(); // Minimal z in file
+    double zmax_file = zs.back();  // Maximal z in file
 
     double dz_file = (zmax_file - zmin_file) / (n_bins_file - 1);
     double dz = zMax / n_bins;
@@ -47,11 +48,11 @@ void read_n_of_z(const std::string &fn, const int &n_bins, const double &zMax, s
         double dix_file = (z - zmin_file) / dz_file - ix_file;
         double n_of_z = 0;
 
-        if (ix_file >= 0 && ix_file < n_bins_file - 1) //Interpolate between closest bins
+        if (ix_file >= 0 && ix_file < n_bins_file - 1) // Interpolate between closest bins
         {
             n_of_z = n_of_zs.at(ix_file + 1) * dix_file + n_of_zs.at(ix_file) * (1 - dix_file);
         };
-        if (ix_file == n_bins_file - 1) //If at end of vector, don't interpolate
+        if (ix_file == n_bins_file - 1) // If at end of vector, don't interpolate
         {
             n_of_z = n_of_zs.at(n_bins_file - 1);
         };
@@ -72,10 +73,9 @@ void read_n_of_z(const std::string &fn, const int &n_bins, const double &zMax, s
     };
 }
 
-
 double convert_angle_to_rad(const double &value, const std::string &unit)
 {
-    //Conversion factor
+    // Conversion factor
     double conversion;
 
     if (unit == "arcmin")
@@ -100,7 +100,7 @@ double convert_angle_to_rad(const double &value, const std::string &unit)
 
 double convert_rad_to_angle(const double &value, const std::string &unit)
 {
-    //Conversion factor
+    // Conversion factor
     double conversion;
 
     if (unit == "arcmin")
@@ -119,59 +119,59 @@ double convert_rad_to_angle(const double &value, const std::string &unit)
     return conversion * value;
 }
 
-void read_thetas(const std::string& fn, std::vector<double>& thetas)
+void read_thetas(const std::string &fn, std::vector<double> &thetas)
 {
-  // Open file
-  std::ifstream input(fn.c_str());
-  if(input.fail())
+    // Open file
+    std::ifstream input(fn.c_str());
+    if (input.fail())
     {
-      std::cout<<"read_thetas: Could not open "<<fn<<std::endl;
-      return;
+        std::cout << "read_thetas: Could not open " << fn << std::endl;
+        return;
     };
-  
-  
-  // Read in file
-  if(input.is_open())
+
+    // Read in file
+    if (input.is_open())
     {
-      std::string line;
-      while(std::getline(input, line))
-	{
-	  if(line[0]=='#' || line.empty()) continue;
-	  double theta;
-	  std::istringstream iss(line);
-	  iss>>theta;
-	  thetas.push_back(theta);
-	};
+        std::string line;
+        while (std::getline(input, line))
+        {
+            if (line[0] == '#' || line.empty())
+                continue;
+            double theta;
+            std::istringstream iss(line);
+            iss >> theta;
+            thetas.push_back(theta);
+        };
     };
 }
 
-void convert_Pk(const std::map<double, double>& Pk_given, const int& n_bins, double& kMin, double& kMax, double& dk, std::vector<double>& Pk)
+void convert_Pk(const std::map<double, double> &Pk_given, const int &n_bins, double &kMin, double &kMax, double &dk, std::vector<double> &Pk)
 {
-    kMin=Pk_given.begin()->first;
-    kMax=Pk_given.rbegin()->first;
+    kMin = Pk_given.begin()->first;
+    kMax = Pk_given.rbegin()->first;
 
-    dk=log(kMax/kMin)/n_bins;
+    dk = log(kMax / kMin) / n_bins;
 
-    for(int i=0;i<n_bins; i++)
+    for (int i = 0; i < n_bins; i++)
     {
-        double k= exp(log(kMin)+dk*i);
+        double k = exp(log(kMin) + dk * i);
         Pk.push_back(valueMap(Pk_given, k));
     };
 }
 
-double valueMap(const std::map<double, double>& map, double value)
+double valueMap(const std::map<double, double> &map, double value)
 {
-    auto ix = map.upper_bound(value); //Upper index limit
-    if (ix == map.end()) 
+    auto ix = map.upper_bound(value); // Upper index limit
+    if (ix == map.end())
     {
-    double p = (--ix)->second;
-    return p;
+        double p = (--ix)->second;
+        return p;
     };
 
     if (ix == map.begin())
     {
-    double p = (ix)->second;
-    return p;
+        double p = (ix)->second;
+        return p;
     };
     auto ix_lower = ix;
     --ix_lower;
@@ -180,8 +180,7 @@ double valueMap(const std::map<double, double>& map, double value)
     return diff * ix->second + (1 - diff) * ix_lower->second;
 }
 
-
 int factorial(int n)
 {
-  return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;
+    return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;
 }

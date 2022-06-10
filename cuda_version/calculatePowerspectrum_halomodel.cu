@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <math.h>
 /**
  * @file calculateApertureStatistics.cu
  * This executable calculates <MapMapMap> from the

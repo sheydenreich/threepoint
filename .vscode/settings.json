@@ -54,6 +54,8 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "map": "cpp",
-        "*.cu": "cuda",
-    }
+        "*.cu": "cpp",
+        "*.cuh": "cpp",
+    },
+    "python.pythonPath": "/home/laila/anaconda3/bin/python"
 }

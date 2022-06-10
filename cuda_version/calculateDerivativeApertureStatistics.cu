@@ -12,8 +12,8 @@
 /**
  * @file calculateDerivativeApertureStatistics.cpp
  * This executable calculates the derivative of <MapMapMap> wrt to
- * the cosmological parameters \f$h$\f, \f$\sigma_8$\f, \f$\Omega_b$\f, 
- * \f$n_s$\f, \f$w$\f, \f$\Omega_m$\f, and \f$\Omega_\Lambda$\f 
+ * the cosmological parameters \f$h$\f, \f$\sigma_8$\f, \f$\Omega_b$\f,
+ * \f$n_s$\f, \f$w$\f, \f$\Omega_m$\f, and \f$\Omega_\Lambda$\f
  * from the Takahashi+ Bispectrum
  * Uses either 3 or 5-point stencil with stepsize h
  * Aperture radii and cosmology are read from file
@@ -61,7 +61,7 @@ Example:
   };
 
   // Read in cosmology
-  cosmology cosmo(cosmo_paramfile);                   ///<cosmology at which derivative is calculated
+  cosmology cosmo(cosmo_paramfile); ///< cosmology at which derivative is calculated
 
   // Read in n_z
   std::vector<double> nz;
@@ -108,8 +108,8 @@ Example:
   // Set up cosmologies at which Map^3 is calculated
   // This can probably be done smarter
 
-  std::vector<cosmology> cosmos;             ///<container for all cosmologies
-  std::vector<double> derivative_parameters; //parameters the derivatives are taken in (Why do we need this?)
+  std::vector<cosmology> cosmos;             ///< container for all cosmologies
+  std::vector<double> derivative_parameters; // parameters the derivatives are taken in (Why do we need this?)
 
   cosmology newCosmo = cosmo;
 
@@ -238,36 +238,36 @@ Example:
   {
     newCosmo.ow = cosmo.ow * (1 - 2 * h);
     newCosmo.om = 1 - newCosmo.ow;
-    newCosmo.omc = newCosmo.om-newCosmo.omb;
+    newCosmo.omc = newCosmo.om - newCosmo.omb;
     cosmos.push_back(newCosmo);
   };
 
   newCosmo.ow = cosmo.ow * (1 - h);
   newCosmo.om = 1 - newCosmo.ow;
-  newCosmo.omc = newCosmo.om-newCosmo.omb;
+  newCosmo.omc = newCosmo.om - newCosmo.omb;
   cosmos.push_back(newCosmo);
   newCosmo.ow = cosmo.ow * (1 + h);
   newCosmo.om = 1 - newCosmo.ow;
-  newCosmo.omc = newCosmo.om-newCosmo.omb;
+  newCosmo.omc = newCosmo.om - newCosmo.omb;
   cosmos.push_back(newCosmo);
   if (five_point)
   {
     newCosmo.ow = cosmo.ow * (1 + 2 * h);
     newCosmo.om = 1 - newCosmo.ow;
-    newCosmo.omc = newCosmo.om-newCosmo.omb;
+    newCosmo.omc = newCosmo.om - newCosmo.omb;
     cosmos.push_back(newCosmo);
   };
   derivative_parameters.push_back(cosmo.ow);
 
-  int Ncosmos = cosmos.size(); ///<Number of cosmologies
+  int Ncosmos = cosmos.size(); ///< Number of cosmologies
 
   // Calculation of Map^3
-  int Ntotal = N * (N + 1) * (N + 2) / 6.;     //Total number of bins that need to be calculated, = (N+3-1) ncr 3
+  int Ntotal = N * (N + 1) * (N + 2) / 6.;     // Total number of bins that need to be calculated, = (N+3-1) ncr 3
   std::vector<std::vector<double>> MapMapMaps; //<Array which will contain MapMapMap calculated
   for (int i = 0; i < Ncosmos; i++)
   {
     std::cout << "Doing calculations for cosmology " << i << " of " << Ncosmos << std::endl;
-    auto begin = std::chrono::high_resolution_clock::now(); //Begin time measurement
+    auto begin = std::chrono::high_resolution_clock::now(); // Begin time measurement
     // Initialize Bispectrum
     if (nz_from_file)
     {
@@ -278,16 +278,16 @@ Example:
       set_cosmology(cosmos[i]);
     };
 
-    //Needed for monitoring
+    // Needed for monitoring
     int step = 0;
 
     std::vector<double> MapMapMap_thiscosmo;
 
-    //Calculate <MapMapMap>(theta1, theta2, theta3) in three loops
-    // Calculation only for theta1<=theta2<=theta3, other combinations are assigned
+    // Calculate <MapMapMap>(theta1, theta2, theta3) in three loops
+    //  Calculation only for theta1<=theta2<=theta3, other combinations are assigned
     for (int j = 0; j < N; j++)
     {
-      double theta1 = convert_angle_to_rad(thetas.at(j)); //Conversion to rad
+      double theta1 = convert_angle_to_rad(thetas.at(j)); // Conversion to rad
       for (int k = j; k < N; k++)
       {
         double theta2 = convert_angle_to_rad(thetas.at(k));
@@ -295,12 +295,12 @@ Example:
         {
           double theta3 = convert_angle_to_rad(thetas.at(l));
           std::vector<double> thetas_calc = {theta1, theta2, theta3};
-          //Progress for the impatient user (Thetas in arcmin)
+          // Progress for the impatient user (Thetas in arcmin)
           step += 1;
           std::cout << step << "/" << Ntotal << ": Thetas:" << thetas.at(j) << " " << thetas.at(k) << " " << thetas.at(l) << " \r"; //\r is so that only one line is shown
           std::cout.flush();
 
-          double Map3 = MapMapMap(thetas_calc, phiMin, phiMax, lMin); //Do calculation
+          double Map3 = MapMapMap(thetas_calc, phiMin, phiMax, lMin); // Do calculation
 
           MapMapMap_thiscosmo.push_back(Map3);
         };
@@ -319,8 +319,8 @@ Example:
   // Calculation of Derivatives
   int Nderivs = int(Ncosmos / 2);
   if (five_point)
-    Nderivs = int(Ncosmos / 4);                 ///<Number of derivatives
-  double derivs_MapMapMaps[Nderivs][Ntotal]; ///<Array which will contain MapMapMap calculated
+    Nderivs = int(Ncosmos / 4);              ///< Number of derivatives
+  double derivs_MapMapMaps[Nderivs][Ntotal]; ///< Array which will contain MapMapMap calculated
 
 #pragma omp parallel for collapse(2)
   for (int i = 0; i < Nderivs; i++)

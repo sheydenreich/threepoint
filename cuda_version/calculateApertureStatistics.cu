@@ -17,7 +17,8 @@
  * https://github.com/stevengj/cubature for documentation)
  * @author Laila Linke
  */
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   // Read in command line
 
   const char *message = R"( 
@@ -42,10 +43,11 @@ Example:
   bool nz_from_file = false;
 
   cosmo_paramfile = argv[1];
-   thetasfn = argv[2];
+  thetasfn = argv[2];
   outfn = argv[3];
   nz_from_file = std::stoi(argv[4]);
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     nzfn = argv[5];
   };
 
@@ -54,14 +56,16 @@ Example:
 
   // Read in n_z
   std::vector<double> nz;
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
   };
 
   // Check if output file can be opened
   std::ofstream out;
   out.open(outfn.c_str());
-  if (!out.is_open()) {
+  if (!out.is_open())
+  {
     std::cerr << "Couldn't open " << outfn << std::endl;
     exit(1);
   };
@@ -81,17 +85,18 @@ Example:
 
   copyConstants();
 
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     std::cerr << "Using n(z) from " << nzfn << std::endl;
     set_cosmology(cosmo, &nz);
-  } 
-  else 
+  }
+  else
   {
     set_cosmology(cosmo);
   };
 
   // Set up vector for aperture statistics
-  int Ntotal =  N * (N + 1) * (N + 2) / 6.; // Total number of bins that need to be calculated, = (N+3+1) ncr 3
+  int Ntotal = N * (N + 1) * (N + 2) / 6.; // Total number of bins that need to be calculated, = (N+3+1) ncr 3
   std::vector<double> MapMapMaps;
 
   // Needed for monitoring
@@ -100,13 +105,16 @@ Example:
 
   // Calculate <MapMapMap>(theta1, theta2, theta3) in three loops
   // Calculation only for theta1<=theta2<=theta3
-  for (int i = 0; i < N; i++) {
+  for (int i = 0; i < N; i++)
+  {
     double theta1 = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
 
-    for (int j = i; j < N; j++) {
+    for (int j = i; j < N; j++)
+    {
       double theta2 = convert_angle_to_rad(thetas.at(j));
 
-      for (int k = j; k < N; k++) {
+      for (int k = j; k < N; k++)
+      {
 
         double theta3 = convert_angle_to_rad(thetas.at(k));
         std::vector<double> thetas_calc = {theta1, theta2, theta3};
@@ -124,9 +132,12 @@ Example:
 
   // Output
   step = 0;
-  for (int i = 0; i < N; i++) {
-    for (int j = i; j < N; j++) {
-      for (int k = j; k < N; k++) {
+  for (int i = 0; i < N; i++)
+  {
+    for (int j = i; j < N; j++)
+    {
+      for (int k = j; k < N; k++)
+      {
         out << thetas[i] << " " << thetas[j] << " " << thetas[k] << " "
             << MapMapMaps.at(step) << " " << std::endl;
         step++;

@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <math.h>
 /**
  * @file calculateApertureStatistics.cu
  * This executable calculates <MapMapMap> from the
@@ -18,7 +19,8 @@
  * https://github.com/stevengj/cubature for documentation)
  * @author Laila Linke
  */
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   // Read in command line
 
   const char *message = R"( 
@@ -45,7 +47,8 @@ Example:
   cosmo_paramfile = argv[1];
   outfn = argv[2];
   nz_from_file = std::stoi(argv[3]);
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     nzfn = argv[4];
   };
 
@@ -54,18 +57,19 @@ Example:
 
   // Read in n_z
   std::vector<double> nz;
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
   };
 
   // Check if output file can be opened
   std::ofstream out;
   out.open(outfn.c_str());
-  if (!out.is_open()) {
+  if (!out.is_open())
+  {
     std::cerr << "Couldn't open " << outfn << std::endl;
     exit(1);
   };
-
 
   // User output
   std::cerr << "Using cosmology from " << cosmo_paramfile << ":" << std::endl;
@@ -76,30 +80,30 @@ Example:
 
   copyConstants();
 
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     std::cerr << "Using n(z) from " << nzfn << std::endl;
     set_cosmology(cosmo, &nz);
-  } 
-  else 
+  }
+  else
   {
     set_cosmology(cosmo);
   };
 
   initHalomodel();
-  
-  double kmin=-3;
-  double kmax=5;
-  int Nbins=100;
-  double z=1.0;
-  double kbin=(kmax-kmin)/Nbins;
 
-  for( int i=0; i<Nbins; i++)
+  double kmin = -3;
+  double kmax = 5;
+  int Nbins = 100;
+  double z = 1.0;
+  double kbin = (kmax - kmin) / Nbins;
+
+  for (int i = 0; i < Nbins; i++)
   {
-    double k=pow(10, kmin+(i+0.5)*kbin);
-    double T=Trispectrum_3D(k,k,k,k, z);
-    out<<k<<" "<<T<<std::endl;
+    double k = pow(10, kmin + (i + 0.5) * kbin);
+    double T = Trispectrum_3D(k, k, k, k, z);
+    out << k << " " << T << std::endl;
   }
-
 
   return 0;
 }

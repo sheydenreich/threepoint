@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <math.h>
 /**
  * @file calculateApertureStatistics.cu
  * This executable calculates <MapMapMap> from the
@@ -17,7 +18,8 @@
  * https://github.com/stevengj/cubature for documentation)
  * @author Laila Linke
  */
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   // Read in command line
 
   const char *message = R"( 
@@ -47,27 +49,28 @@ Example:
   thetasfn = argv[3];
   outfn = argv[4];
   nz_from_file = std::stoi(argv[5]);
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     nzfn = argv[7];
   };
 
   covarianceParameters covPar(covariance_paramfile);
-  constant_powerspectrum=covPar.shapenoiseOnly;
+  constant_powerspectrum = covPar.shapenoiseOnly;
 
-  if(constant_powerspectrum)
+  if (constant_powerspectrum)
   {
-  std::cerr << "WARNING: Uses shape noise only powerspectrum" << std::endl;
-  };  
+    std::cerr << "WARNING: Uses shape noise only powerspectrum" << std::endl;
+  };
   sigma = covPar.shapenoise_sigma;
   n = covPar.galaxy_density;
-
 
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);
 
   // Read in n_z
   std::vector<double> nz;
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     try
     {
       read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
@@ -79,13 +82,11 @@ Example:
     }
   };
 
-
-  
-
   // Check if output file can be opened
   std::ofstream out;
   out.open(outfn.c_str());
-  if (!out.is_open()) {
+  if (!out.is_open())
+  {
     std::cerr << "Couldn't open " << outfn << std::endl;
     exit(1);
   };
@@ -101,8 +102,8 @@ Example:
   std::cerr << "Using thetas in " << thetasfn << std::endl;
   std::cerr << "Covariance from " << covariance_paramfile << ":" << std::endl;
   std::cerr << covPar;
-  if(sigma!=0)
-    std::cerr << "Calculating Power Spectrum WITH shapenoise, sigma=" <<sigma<< std::endl;
+  if (sigma != 0)
+    std::cerr << "Calculating Power Spectrum WITH shapenoise, sigma=" << sigma << std::endl;
   else
     std::cerr << "Calculating Power Spectrum WITHOUT shapenoise" << std::endl;
   std::cerr << "Writing to:" << outfn << std::endl;
@@ -113,10 +114,13 @@ Example:
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma, &sigma, sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n, &n, sizeof(double)));
 
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     std::cerr << "Using n(z) from " << nzfn << std::endl;
     set_cosmology(cosmo, &nz);
-  } else {
+  }
+  else
+  {
     set_cosmology(cosmo);
   };
 
@@ -127,25 +131,25 @@ Example:
 
   int step = 0;
 
-  // Calculate <MapMap>(theta) 
-    for (int i = 0; i < N; i++) 
-    {
-        double theta = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
+  // Calculate <MapMap>(theta)
+  for (int i = 0; i < N; i++)
+  {
+    double theta = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
 
-        std::cout << step << "/" << N << ": Theta:" << thetas.at(i) << " \r";
-        std::cout.flush();
+    std::cout << step << "/" << N << ": Theta:" << thetas.at(i) << " \r";
+    std::cout.flush();
 
-        double Map2_here =
-            Map2(theta); // Do calculation
-        MapMaps.push_back(Map2_here);
-    };
-
+    double Map2_here =
+        Map2(theta); // Do calculation
+    MapMaps.push_back(Map2_here);
+  };
 
   // Output
-  for (int i = 0; i < N; i++) {
-        out << thetas[i] << " "
-            << MapMaps.at(i) << " " << std::endl;
-      }
+  for (int i = 0; i < N; i++)
+  {
+    out << thetas[i] << " "
+        << MapMaps.at(i) << " " << std::endl;
+  }
 
   return 0;
 }
