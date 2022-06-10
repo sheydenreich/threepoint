@@ -19,7 +19,8 @@
  * https://github.com/stevengj/cubature for documentation)
  * @author Laila Linke
  */
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   // Read in command line
 
   const char *message = R"( 
@@ -47,7 +48,8 @@ Example:
   thetasfn = argv[2];
   outfn = argv[3];
   nz_from_file = std::stoi(argv[4]);
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     nzfn = argv[5];
   };
 
@@ -56,14 +58,16 @@ Example:
 
   // Read in n_z
   std::vector<double> nz;
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
   };
 
   // Check if output file can be opened
   std::ofstream out;
   out.open(outfn.c_str());
-  if (!out.is_open()) {
+  if (!out.is_open())
+  {
     std::cerr << "Couldn't open " << outfn << std::endl;
     exit(1);
   };
@@ -79,20 +83,21 @@ Example:
   std::cerr << "Using thetas in " << thetasfn << std::endl;
   std::cerr << "Writing to:" << outfn << std::endl;
 
-  int ncores=0;
-  int pcores=0;
-  cubacores(&ncores , &pcores);
+  int ncores = 0;
+  int pcores = 0;
+  cubacores(&ncores, &pcores);
   cubaaccel(&ncores, &pcores);
 
   // Initialize Bispectrum
 
   copyConstants();
 
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     std::cerr << "Using n(z) from " << nzfn << std::endl;
     set_cosmology(cosmo, &nz);
-  } 
-  else 
+  }
+  else
   {
     set_cosmology(cosmo);
   };
@@ -100,51 +105,49 @@ Example:
   initHalomodel();
 
   // Set up vector for aperture statistics
-  int Ntotal = N;//factorial(N+5)/factorial(N-1)/720; // Total number of bins that need to be calculated, = (N+6+1) ncr 3
+  int Ntotal = N; // factorial(N+5)/factorial(N-1)/720; // Total number of bins that need to be calculated, = (N+6+1) ncr 3
   std::vector<double> Map6s;
 
   // Needed for monitoring
 
   int step = 0;
 
-
-
   // Calculate <MapMapMap>(theta1, theta2, theta3) in three loops
   // Calculation only for theta1<=theta2<=theta3
-  for (int i = 0; i < N; i++) 
+  for (int i = 0; i < N; i++)
   {
     double theta1 = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
 
-    for (int j = i; j < i+1; j++) 
+    for (int j = i; j < i + 1; j++)
     {
       double theta2 = convert_angle_to_rad(thetas.at(j));
 
-      for (int k = j; k < i+1; k++) 
+      for (int k = j; k < i + 1; k++)
       {
 
         double theta3 = convert_angle_to_rad(thetas.at(k));
-        for (int l = k; l < i+1; l++) 
+        for (int l = k; l < i + 1; l++)
         {
 
           double theta4 = convert_angle_to_rad(thetas.at(l));
-          for(int m=l; m<i+1; m++)
+          for (int m = l; m < i + 1; m++)
           {
             double theta5 = convert_angle_to_rad(thetas.at(m));
-            for(int n=m; n<i+1; n++)
+            for (int n = m; n < i + 1; n++)
             {
               double theta6 = convert_angle_to_rad(thetas.at(n));
 
               std::vector<double> thetas_calc = {theta1, theta2, theta3, theta4, theta5, theta6};
               // Progress for the impatient user (Thetas in arcmin)
               step += 1;
-              //std::cout<<step<<std::endl;
+              // std::cout<<step<<std::endl;
               std::cout << step << "/" << Ntotal << ": Thetas:" << thetas.at(i) << " "
-                        << thetas.at(j) << " " << thetas.at(k) << " "<< thetas.at(l) << " "
-                        << thetas.at(m)<< " " <<thetas.at(n) <<std::endl;// " \r";
-              //std::cout.flush();
+                        << thetas.at(j) << " " << thetas.at(k) << " " << thetas.at(l) << " "
+                        << thetas.at(m) << " " << thetas.at(n) << std::endl; // " \r";
+              // std::cout.flush();
 
               double Map6_ = Map6(thetas_calc); // Do calculation
-              std::cerr<<Map6_<<std::endl;
+              std::cerr << Map6_ << std::endl;
 
               Map6s.push_back(Map6_);
             };
@@ -156,14 +159,20 @@ Example:
 
   // Output
   step = 0;
-  for (int i = 0; i < i+1; i++) {
-    for (int j = i; j < i+1; j++) {
-      for (int k = j; k < i+1; k++) {
-        for (int l=k; l<i+1; l++){
-          for(int m=l; m<i+1; m++){
-            for(int n=m; n<i+1; n++){
-              out << thetas[i] << " " << thetas[j] << " " << thetas[k] << " " << thetas[l] << " " << thetas[m] << " " <<thetas[n] <<" "
-              << Map6s.at(step) << " " << std::endl;
+  for (int i = 0; i < i + 1; i++)
+  {
+    for (int j = i; j < i + 1; j++)
+    {
+      for (int k = j; k < i + 1; k++)
+      {
+        for (int l = k; l < i + 1; l++)
+        {
+          for (int m = l; m < i + 1; m++)
+          {
+            for (int n = m; n < i + 1; n++)
+            {
+              out << thetas[i] << " " << thetas[j] << " " << thetas[k] << " " << thetas[l] << " " << thetas[m] << " " << thetas[n] << " "
+                  << Map6s.at(step) << " " << std::endl;
               step++;
             };
           };

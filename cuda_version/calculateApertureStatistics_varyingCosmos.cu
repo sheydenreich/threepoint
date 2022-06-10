@@ -98,7 +98,7 @@ Example:
     set_cosmology(cosmo);
   };
 
-    // Borders of integral
+  // Borders of integral
   double phiMin = 0.0;
   double phiMax = 6.28319;
   double lMin = 1;
@@ -156,10 +156,9 @@ Example:
     newCosmo = cosmo;
     newCosmo.ow = cosmo.ow * fac;
     newCosmo.om = 1 - newCosmo.ow;
-    newCosmo.omc = newCosmo.om-newCosmo.omb;
+    newCosmo.omc = newCosmo.om - newCosmo.omb;
     cosmos.at(i + 6 * N_cosmo) = newCosmo;
   }
-
 
   for (int i = 0; i < N_cosmo * 7; i++)
   {

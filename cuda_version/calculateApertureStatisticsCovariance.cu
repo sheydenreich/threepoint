@@ -51,22 +51,21 @@ Argument 12: Survey geometry, either circle, square, or infinite
   std::cerr << "Using thetas from " << thetasfn << std::endl;
   std::cerr << "Using n(z) from " << nzfn << std::endl;
   std::cerr << "Results are written to " << out_folder << std::endl;
-  std::cerr << "Using covariance parameters from" <<covariance_paramfile<<std::endl;
-
+  std::cerr << "Using covariance parameters from" << covariance_paramfile << std::endl;
 
   // Initializations
   covarianceParameters covPar(covariance_paramfile);
-  constant_powerspectrum=covPar.shapenoiseOnly;
+  constant_powerspectrum = covPar.shapenoiseOnly;
 
-  if(constant_powerspectrum)
+  if (constant_powerspectrum)
   {
-  std::cerr << "WARNING: Uses constant powerspectrum" << std::endl;
-  };  
+    std::cerr << "WARNING: Uses constant powerspectrum" << std::endl;
+  };
 
   thetaMax = covPar.thetaMax;
   sigma = covPar.shapenoise_sigma;
   n = covPar.galaxy_density;
-  lMin = 0; //2*M_PI/thetaMax;
+  lMin = 0; // 2*M_PI/thetaMax;
 
   cosmology cosmo(cosmo_paramfile);
 
@@ -81,26 +80,25 @@ Argument 12: Survey geometry, either circle, square, or infinite
     return -1;
   }
 
-  if(type_str=="circle")
+  if (type_str == "circle")
   {
-    type=0;
+    type = 0;
   }
-  else if(type_str=="square")
+  else if (type_str == "square")
   {
-    type=1;
+    type = 1;
   }
-  else if(type_str=="infinite")
+  else if (type_str == "infinite")
   {
-    type=2;
+    type = 2;
   }
   else
   {
-    std::cerr<<"Cov type not correctly specified"<<std::endl;
+    std::cerr << "Cov type not correctly specified" << std::endl;
     exit(-1);
   };
 
   set_cosmology(cosmo, &nz);
-
 
   std::vector<double> thetas;
 
@@ -117,35 +115,32 @@ Argument 12: Survey geometry, either circle, square, or infinite
   // Initialize Covariance
   initCovariance();
 
-  if(calculate_T5 || calculate_T6 || calculate_T7)
+  if (calculate_T5 || calculate_T6 || calculate_T7)
   {
     initHalomodel();
   }
 
-  if(calculate_T7) //Turn of CPU parallelisation of CUBA
+  if (calculate_T7) // Turn of CPU parallelisation of CUBA
   {
-    int ncores=0;
-    int pcores=0;
-    cubacores(&ncores , &pcores);
+    int ncores = 0;
+    int pcores = 0;
+    cubacores(&ncores, &pcores);
     cubaaccel(&ncores, &pcores);
-  
   }
-  std::cerr<<"Finished copying constants"<<std::endl;
+  std::cerr << "Finished copying constants" << std::endl;
 
   std::cerr << "Using n(z) from " << nzfn << std::endl;
- 
- 
-    std::cerr<<"Finished initializations"<<std::endl;
+
+  std::cerr << "Finished initializations" << std::endl;
 
   // Calculations
 
   int N = thetas.size();
 
-
   std::vector<double> Cov_term1s, Cov_term2s, Cov_term4s, Cov_term5s, Cov_term6s, Cov_term7s;
 
   std::vector<std::vector<double>> theta_combis;
-  for (int i=0; i<N; i++)
+  for (int i = 0; i < N; i++)
   {
     double theta1 = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
     for (int j = i; j < N; j++)
@@ -161,16 +156,15 @@ Argument 12: Survey geometry, either circle, square, or infinite
     }
   }
 
-
   int N_ind = theta_combis.size(); // Number of independent theta-combinations
-  int N_total = N_ind * (N_ind+1) / 2;
+  int N_total = N_ind * (N_ind + 1) / 2;
 
   int completed_steps = 0;
 
   auto begin = std::chrono::high_resolution_clock::now(); // Begin time measurement
   for (int i = 0; i < N_ind; i++)
   {
-    for (int j=i; j<N_ind; j++)   
+    for (int j = i; j < N_ind; j++)
     {
       try
       {
@@ -187,19 +181,19 @@ Argument 12: Survey geometry, either circle, square, or infinite
         if (calculate_T4)
         {
           double term4 = T4_total(theta_combis.at(i), theta_combis.at(j));
-          std::cerr<<"T4:"<<term4<<std::endl;
+          std::cerr << "T4:" << term4 << std::endl;
           Cov_term4s.push_back(term4);
         };
         if (calculate_T5)
         {
           double term5 = T5_total(theta_combis.at(i), theta_combis.at(j));
-          std::cerr<<"T5:"<<term5<<std::endl;
+          std::cerr << "T5:" << term5 << std::endl;
           Cov_term5s.push_back(term5);
         }
         if (calculate_T6)
         {
           double term6 = T6_total(theta_combis.at(i), theta_combis.at(j));
-          std::cerr<<"T6:"<<term6<<std::endl;
+          std::cerr << "T6:" << term6 << std::endl;
           Cov_term6s.push_back(term6);
         }
         if (calculate_T7)
@@ -219,14 +213,14 @@ Argument 12: Survey geometry, either circle, square, or infinite
       auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
       completed_steps++;
       double progress = (completed_steps * 1.) / (N_total);
-      
+
       fprintf(stderr, "\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step. Last thetas: (%.2f, %.2f, %.2f, %.2f, %.2f, %.2f) [%s]",
-                            static_cast<int>(progress * 100),
-                            elapsed.count() * 1e-9 / 3600,
-                            (N_total - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
-                            elapsed.count() * 1e-9 / completed_steps,
-                            convert_rad_to_angle(theta_combis.at(i).at(0)), convert_rad_to_angle(theta_combis.at(i).at(1)), convert_rad_to_angle(theta_combis.at(i).at(2)),
-                            convert_rad_to_angle(theta_combis.at(j).at(0)), convert_rad_to_angle(theta_combis.at(j).at(1)), convert_rad_to_angle(theta_combis.at(j).at(2)), "arcmin");
+              static_cast<int>(progress * 100),
+              elapsed.count() * 1e-9 / 3600,
+              (N_total - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
+              elapsed.count() * 1e-9 / completed_steps,
+              convert_rad_to_angle(theta_combis.at(i).at(0)), convert_rad_to_angle(theta_combis.at(i).at(1)), convert_rad_to_angle(theta_combis.at(i).at(2)),
+              convert_rad_to_angle(theta_combis.at(j).at(0)), convert_rad_to_angle(theta_combis.at(j).at(1)), convert_rad_to_angle(theta_combis.at(j).at(2)), "arcmin");
     }
   }
 
@@ -240,7 +234,7 @@ Argument 12: Survey geometry, either circle, square, or infinite
   {
     sprintf(filename, "cov_%s_term1Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
             type_str.c_str(), sigma, n_deg, thetaMax_deg);
-    std::cerr<<"Writing Term1 to "<<out_folder+filename<<std::endl;
+    std::cerr << "Writing Term1 to " << out_folder + filename << std::endl;
     try
     {
       writeCov(Cov_term1s, N_ind, out_folder + filename);
@@ -257,7 +251,7 @@ Argument 12: Survey geometry, either circle, square, or infinite
   {
     sprintf(filename, "cov_%s_term2Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
             type_str.c_str(), sigma, n_deg, thetaMax_deg);
-    std::cerr<<"Writing Term2 to "<<out_folder+filename<<std::endl;
+    std::cerr << "Writing Term2 to " << out_folder + filename << std::endl;
 
     try
     {
@@ -321,7 +315,6 @@ Argument 12: Survey geometry, either circle, square, or infinite
       writeCov(Cov_term6s, N_ind, filename);
     }
   };
-
 
   if (calculate_T7)
   {
