@@ -1,7 +1,7 @@
 # Cosmology of Takahashi simulation
 h 0.7
 sigma_8 0.82
-Omega_b 0.046
+Omega_b 0.0473
 n_s 0.97
 w -1
 Omega_m 0.279
