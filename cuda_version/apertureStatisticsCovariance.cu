@@ -1064,10 +1064,10 @@ double T7(const double &theta1, const double &theta2, const double &theta3, cons
     {
         double mmin = pow(10, logMmin);
         double mmax = pow(10, logMmax);
-        double vals_min[6] = {log(lMin), log(lMin), log(lMin), log(lMin), 0, 0};
-        double vals_max[6] = {log(lMax), log(lMax), log(lMax), log(lMax), 2 * M_PI, 2 * M_PI};
+        double vals_min[7] = {log(lMin), log(lMin), log(lMin), log(lMin), 0, 0, mmin};
+        double vals_max[7] = {log(lMax), log(lMax), log(lMax), log(lMax), 2 * M_PI, 2 * M_PI, mmax};
 
-        hcubature_v(1, integrand_T7, &container, 6, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
+        hcubature_v(1, integrand_T7, &container, 7, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
         result = result / thetaMax / thetaMax / pow(2 * M_PI, 6);
     }
     else
@@ -1817,6 +1817,7 @@ __global__ void integrand_T7_infinite(const double *vars, unsigned ndim, int npt
         double l5 = exp(vars[i * ndim + 3]);
         double phi1 = vars[i * ndim + 4];
         double phi2 = vars[i * ndim + 5];
+        double m = vars[i * ndim + 6];
 
         double l3 = (l1 * l1 + l2 * l2 + 2 * l1 * l2 * cos(phi1));
         double l6 = (l4 * l4 + l5 * l5 + 2 * l4 * l5 * cos(phi2));
@@ -1831,7 +1832,7 @@ __global__ void integrand_T7_infinite(const double *vars, unsigned ndim, int npt
             l6 = sqrt(l6);
             double result = uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3) * uHat(l4 * theta4) * uHat(l5 * theta5) * uHat(l6 * theta6);
 
-            double pentaspec = pentaspectrum_limber_mass_integrated(0, dev_z_max, log(mMin), log(mMax), l1, l2, l3, l4, l5, l6);
+            double pentaspec = pentaspectrum_limber_integrated(0, dev_z_max, m, l1, l2, l3, l4, l5, l6);
             result *= pentaspec;
             result *= l1 * l2 * l4 * l5;
             result *= l1 * l2 * l4 * l5;
