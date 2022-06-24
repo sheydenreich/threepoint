@@ -2090,7 +2090,7 @@ double T4_testBispec(const double &theta1, const double &theta2, const double &t
     double vals_min[5] = {lMin, lMin, lMin, 0, 0};
     double vals_max[5] = {lMax, lMax, lMax, 2 * M_PI, 2 * M_PI};
 
-    hcubature_v(1, integrand_T4_testBispec, &container, 5, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
+    hcubature_v(1, integrand_T4_testBispec, &container, 5, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
     result = result / thetaMax / thetaMax * pow(2 * M_PI, 3);
 
     return result;
