@@ -5,16 +5,23 @@
 #include <vector>
 
 #include "cuda_helpers.cuh"
-extern int type; // defines survey geometry, can be 0, 1, or 2, corresponding to: 'circle', 'square', 'infinite'
+extern int type; // defines survey geometry, can be 0, 1, 2, 3, corresponding to: 'circle', 'square', 'infinite', 'rectangle'
 
 /**
  * @brief Gives extent of survey [rad].
  * if type = 'circular', this is the radius.
  * if type = 'square', this is the side length.
  * if type = 'infinite', this is sqrt(A).
+ * if type = 'rectangle', this is the longer side
  */
 extern __constant__ double dev_thetaMax;
 extern double thetaMax;
+extern double area;
+
+// if type='rectangle", this is the smaller side [rad]
+extern __constant__ double dev_thetaMax_smaller;
+extern double thetaMax_smaller;
+
 extern __constant__ double dev_lMin;
 extern double lMin;
 
@@ -95,7 +102,7 @@ double T1(const double &theta1, const double &theta2, const double &theta3, cons
 
 /**
  * @brief Second Term of Gaussian Covariance for one permutation
- * Throws exception if type is not "square"
+ * Throws exception if type is not "circle", "square" or "rectangle"
  *
  * @param theta1 Aperture radius [rad]
  * @param theta2 Aperture radius [rad]
@@ -134,7 +141,7 @@ double T5(const double &theta1, const double &theta2, const double &theta3, cons
 
 /**
  * @brief Third Term of NonGaussian Covariance for one permutation
- * Throws exception if type is not "infinite"
+ * Throws exception if type is not "square" or "rectangle"
  *
  * @param theta1 Aperture radius [rad]
  * @param theta2 Aperture radius [rad]
@@ -298,6 +305,22 @@ __global__ void integrand_T1_square(const double *vars, unsigned ndim, int npts,
 __global__ void integrand_T1_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double *value);
 
 /**
+ * @brief Integrand of Term1 for rectangular survey
+ *
+ * @param vars Integration parameters (6 D)
+ * @param ndim Number of integration dimensions
+ * @param npts Number of integration points
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param theta3 Aperture radius [rad]
+ * @param theta4 Aperture radius [rad]
+ * @param theta5 Aperture radius [rad]
+ * @param theta6 Aperture radius [rad]
+ * @param value Value of integral
+ */
+__global__ void integrand_T1_rectangle(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double *value);
+
+/**
  * @brief Integrand for first part of Term2, applicable to both circular and square survey
  *
  * @param vars Integration parameters (1 D)
@@ -344,6 +367,23 @@ __global__ void integrand_T2_part2_circle(const double *vars, unsigned ndim, int
  * @param value Value of integral
  */
 __global__ void integrand_T2_part2_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+
+
+/**
+ * @brief Integrand for second part of Term2 for rectangular survey
+ *
+ * @param vars Integration parameters (2 D)
+ * @param ndim Number of integration dimensions
+ * @param npts Number of integration points
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param theta3 Aperture radius [rad]
+ * @param theta4 Aperture radius [rad]
+ * @param theta5 Aperture radius [rad]
+ * @param theta6 Aperture radius [rad]
+ * @param value Value of integral
+ */
+__global__ void integrand_T2_part2_rectangle(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
 
 /**
  * @brief Integrand for Term 4 for infinite survey
@@ -396,6 +436,24 @@ __global__ void integrand_T5_infinite(const double *vars, unsigned ndim, int npt
 __global__ void integrand_T6_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
                                     double theta4, double theta5, double theta6, double *value);
 
+
+   /**
+ * @brief Integrand for Term 6 for rectangular survey
+ *
+ * @param vars Integration parameters (7 D)
+ * @param ndim Number of integration dimensions
+ * @param npts Number of integration points
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param theta3 Aperture radius [rad]
+ * @param theta4 Aperture radius [rad]
+ * @param theta5 Aperture radius [rad]
+ * @param theta6 Aperture radius [rad]
+ * @param value Value of integral
+ */
+__global__ void integrand_T6_rectangle(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
+                                    double theta4, double theta5, double theta6, double *value);
+
 /**
  * @brief Integrand for Term 7 for infinite survey
  *
@@ -427,6 +485,15 @@ __device__ double G_circle(const double &ell);
  * @param ellY ell_y
  */
 __device__ double G_square(const double &ellX, const double &ellY);
+
+
+/**
+ * @brief Geometric factor for rectangular survey
+ *
+ * @param ellX ell_x
+ * @param ellY ell_y
+ */
+__device__ double G_rectangle(const double &ellX, const double &ellY);
 
 struct ApertureStatisticsCovarianceContainer
 {

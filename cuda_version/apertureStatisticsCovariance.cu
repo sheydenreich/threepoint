@@ -12,10 +12,14 @@
 #include <iostream>
 
 __constant__ double dev_thetaMax;
+__constant__ double dev_thetaMax_smaller;
+
 __constant__ double dev_lMin;
 __constant__ double dev_lMax;
 double lMin;
 double thetaMax;
+double thetaMax_smaller;
+double area;
 int type; // 0: circle, 1: square, 2: infinite
 
 void writeCov(const std::vector<double> &values, const int &N, const std::string &filename)
@@ -851,10 +855,10 @@ double T1(const double &theta1, const double &theta2, const double &theta3, cons
         double vals_max[3] = {lMax, lMax, M_PI}; // use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
 
         hcubature_v(1, integrand_T1, &container, 3, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
-
-        result *= 2 / thetaMax / thetaMax / pow(2 * M_PI, 3); // Factors: 2 because phi integral goes from 0 to Pi, 1/thetaMax² because division by area, (2pi)^-3 because 3 integrals in ell-space
+        std::cerr<<area<<" "<<thetaMax*thetaMax<<std::endl;
+        result *= 2 / area / pow(2 * M_PI, 3); // Factors: 2 because phi integral goes from 0 to Pi, 1/area because division by area, (2pi)^-3 because 3 integrals in ell-space
     }
-    else if (type == 0 || type == 1)
+    else if (type == 0 || type == 1 || type == 3)
     {
         double vMax = lMax;
         double vals_min[6] = {-vMax, -vMax, -lMax, -lMax, -lMax, -lMax};
@@ -914,7 +918,7 @@ double T2(const double &theta1, const double &theta2, const double &theta3, cons
         hcubature_v(1, integrand_T2_part2, &container, 1, vals_min1, vals_max1, 0, 0, 1e-4, ERROR_L1, &result_B, &error_B);
         result_B /= 2 * M_PI; // Division by 2pi because 1 integral in ell-space
     }
-    else if (type == 1)
+    else if (type == 1 || type==3)
     {
         double vals_min2[2] = {-lMax, -lMax};
         double vals_max2[2] = {lMax, lMax};
@@ -952,7 +956,7 @@ double T4(const double &theta1, const double &theta2, const double &theta3, cons
         double vals_max[5] = {log(lMax), log(lMax), log(lMax), 2 * M_PI, 2 * M_PI};
 
         hcubature_v(1, integrand_T4, &container, 5, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
-        result = result / thetaMax / thetaMax / pow(2 * M_PI, 5);
+        result = result / area / pow(2 * M_PI, 5);
     }
     else
     {
@@ -986,7 +990,7 @@ double T5(const double &theta1, const double &theta2, const double &theta3, cons
         double vals_max[6] = {log(lMax), log(lMax), log(lMax), 2 * M_PI, 2 * M_PI, mmax};
 
         hcubature_v(1, integrand_T5, &container, 6, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
-        result = result / thetaMax / thetaMax / pow(2 * M_PI, 5);
+        result = result / area / pow(2 * M_PI, 5);
     }
     else
     {
@@ -998,9 +1002,9 @@ double T5(const double &theta1, const double &theta2, const double &theta3, cons
 
 double T6(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6)
 {
-    if (type != 1)
+    if (type != 1 || type != 3)
     {
-        throw std::logic_error("T6: Wrong survey geometry, only coded for square survey");
+        throw std::logic_error("T6: Wrong survey geometry, only coded for square and rectangular survey");
     };
     // Set maximal l value such, that theta*l <= 10
     double thetaMin_123 = std::min({theta1, theta2, theta3});
@@ -1068,7 +1072,7 @@ double T7(const double &theta1, const double &theta2, const double &theta3, cons
         double vals_max[7] = {log(lMax), log(lMax), log(lMax), log(lMax), 2 * M_PI, 2 * M_PI, mmax};
 
         hcubature_v(1, integrand_T7, &container, 7, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
-        result = result / thetaMax / thetaMax / pow(2 * M_PI, 6);
+        result = result / area / pow(2 * M_PI, 6);
     }
     else
     {
@@ -1115,6 +1119,13 @@ int integrand_T1(unsigned ndim, size_t npts, const double *vars, void *container
     else if (type == 2)
     {
         integrand_T1_infinite<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->thetas_123.at(0),
+                                                   container_->thetas_123.at(1), container_->thetas_123.at(2),
+                                                   container_->thetas_456.at(0), container_->thetas_456.at(1),
+                                                   container_->thetas_456.at(2), dev_value);
+    }
+    else if (type == 3)
+    {
+        integrand_T1_rectangle<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->thetas_123.at(0),
                                                    container_->thetas_123.at(1), container_->thetas_123.at(2),
                                                    container_->thetas_456.at(0), container_->thetas_456.at(1),
                                                    container_->thetas_456.at(2), dev_value);
@@ -1203,6 +1214,11 @@ int integrand_T2_part2(unsigned ndim, size_t npts, const double *vars, void *con
     else if (type == 1)
     {
         integrand_T2_part2_square<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->thetas_123.at(0),
+                                                       container_->thetas_123.at(1), dev_value);
+    }
+    else if (type == 3)
+    {
+        integrand_T2_part2_rectangle<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->thetas_123.at(0),
                                                        container_->thetas_123.at(1), dev_value);
     }
     else // This should not happen
@@ -1420,6 +1436,13 @@ int integrand_T6(unsigned ndim, size_t npts, const double *vars, void *container
                                                      container_->thetas_456.at(0), container_->thetas_456.at(1),
                                                      container_->thetas_456.at(2), dev_value_iter);
         }
+        else if (type == 3)
+        {
+            integrand_T6_rectangle<<<BLOCKS, THREADS>>>(dev_vars_iter, ndim, npts_iter, container_->thetas_123.at(0),
+                                                     container_->thetas_123.at(1), container_->thetas_123.at(2),
+                                                     container_->thetas_456.at(0), container_->thetas_456.at(1),
+                                                     container_->thetas_456.at(2), dev_value_iter);
+        }
         else // This should not happen
         {
             std::cerr << "Something went wrong in integrand_T6" << std::endl;
@@ -1618,6 +1641,42 @@ __global__ void integrand_T1_infinite(const double *vars, unsigned ndim, int npt
     }
 }
 
+__global__ void integrand_T1_rectangle(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double *value)
+{
+    int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
+    {
+        double a = vars[i * ndim];
+        double b = vars[i * ndim + 1];
+        double c = vars[i * ndim + 2];
+        double d = vars[i * ndim + 3];
+        double e = vars[i * ndim + 4];
+        double f = vars[i * ndim + 5];
+
+        double Gfactor = G_rectangle(a, b);
+
+        double ell1 = sqrt((a - c - e) * (a - c - e) + (b - d - f) * (b - d - f));
+        double ell2 = sqrt(c * c + d * d);
+        double ell3 = sqrt(e * e + f * f);
+
+        if (ell1 <= 0 || ell2 <= 0 || ell3 <= 0 || ell3 > dev_lMax)
+        {
+            value[i] = 0;
+        }
+        else
+        {
+            double result = dev_Pell(ell1) * dev_Pell(ell2) * dev_Pell(ell3);
+            result *= uHat(ell1 * theta1) * uHat(ell2 * theta2) * uHat(ell3 * theta3);
+            result *= uHat(ell1 * theta4) * uHat(ell2 * theta5) * uHat(ell3 * theta6);
+            result *= Gfactor;
+
+            value[i] = result;
+        };
+    }
+}
+
+
 __global__ void integrand_T2_part1(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value)
 {
     int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1689,6 +1748,34 @@ __global__ void integrand_T2_part2_square(const double *vars, unsigned ndim, int
         };
     }
 }
+
+__global__ void integrand_T2_part2_rectangle(const double *vars, unsigned ndim, int npts, double theta1, double theta2,
+                                          double *value)
+{
+    int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
+    {
+        double ellX = vars[i * ndim];
+        double ellY = vars[i * ndim + 1];
+
+        double Gfactor = G_rectangle(ellX, ellY);
+        double ell = sqrt(ellX * ellX + ellY * ellY);
+
+        if (ell < dev_lMin)
+        {
+            value[i] = 0;
+        }
+        else
+        {
+            double result = dev_Pell(ell);
+            result *= uHat(ell * theta1) * uHat(ell * theta2);
+            result *= Gfactor;
+            value[i] = result;
+        };
+    }
+}
+
 
 __global__ void integrand_T4_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double *value)
 {
@@ -1805,6 +1892,53 @@ __global__ void integrand_T6_square(const double *vars, unsigned ndim, int npts,
     }
 }
 
+
+__global__ void integrand_T6_rectangle(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double *value)
+{
+    int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
+    {
+        double l3 = exp(vars[i * ndim]);
+        double l4 = exp(vars[i * ndim + 1]);
+        double l5 = exp(vars[i * ndim + 2]);
+        double phi3 = vars[i * ndim + 3];
+        double phi4 = vars[i * ndim + 4];
+        double phi5 = vars[i * ndim + 5];
+        double m = vars[i * ndim + 6];
+
+        double l3x = l3 * cos(phi3);
+        double l3y = l3 * sin(phi3);
+        double l6 = l3 * l3 + l4 * l4 + l5 * l5 + 2 * (l3 * l4 * cos(phi3 - phi4) - l3 * l5 * cos(phi3 - phi5) - l4 * l5 * cos(phi4 - phi5));
+        if (l6 > 0)
+        {
+            l6 = sqrt(l6);
+        }
+        else
+        {
+            l6 = 0;
+        }
+
+        if (l3 <= dev_lMin || l4 <= dev_lMin || l5 <= dev_lMin || l6 <= dev_lMin || l6 > dev_lMax)
+        {
+            value[i] = 0;
+        }
+        else
+        {
+            double Gfactor = G_rectangle(l3x, l3y);
+            double result = uHat(l3 * theta3) * uHat(l4 * theta4) * uHat(l5 * theta5) * uHat(l6 * theta6);
+
+            double trispec = trispectrum_limber_integrated(0, dev_z_max, m, l3, l4, l5, l6);
+            result *= trispec;
+            result *= l3 * l4 * l5;
+            result *= l3 * l4 * l5;
+            result *= Gfactor;
+
+            value[i] = result;
+        }
+    }
+}
+
 __global__ void integrand_T7_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double *value, double mMin, double mMax)
 {
     int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1870,6 +2004,25 @@ __device__ double G_square(const double &ellX, const double &ellY)
     return j01 * j01 * j02 * j02;
 };
 
+__device__ double G_rectangle(const double &ellX, const double &ellY)
+{
+    double tmp1 = 0.5 * ellX * dev_thetaMax;
+    double tmp2 = 0.5 * ellY * dev_thetaMax_smaller;
+
+    double j01, j02;
+    if (abs(tmp1) <= 1e-6)
+        j01 = 1;
+    else
+        j01 = sin(tmp1) / tmp1;
+
+    if (abs(tmp2) <= 1e-6)
+        j02 = 1;
+    else
+        j02 = sin(tmp2) / tmp2;
+
+    return j01 * j01 * j02 * j02;
+};
+
 void initCovariance()
 {
     copyConstants();
@@ -1878,6 +2031,10 @@ void initCovariance()
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n, &n, sizeof(double)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMin, &lMin, sizeof(double)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_constant_powerspectrum, &constant_powerspectrum, sizeof(bool)));
+    if(type == 3)
+    {
+        CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_thetaMax_smaller, &thetaMax_smaller, sizeof(double)));
+    };
 };
 
 __global__ void integrand_T4_testBispec_analytical(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,

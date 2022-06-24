@@ -37,6 +37,8 @@ public:
   double shapenoise_sigma;
   double galaxy_density; // rad^-2
   bool shapenoiseOnly;
+  double thetaMax_smaller; // [rad]
+  double area;
 
   covarianceParameters(){};                    // Empty constructor
   covarianceParameters(const std::string &fn); // Constructor from filename (reads in)

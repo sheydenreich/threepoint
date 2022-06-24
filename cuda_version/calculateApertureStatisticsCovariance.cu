@@ -25,7 +25,7 @@ Argument 8: Calculate T4? (0 or 1)
 Argument 9: Calculate T5? (0 or 1)
 Argument 10: Calculate T6? (0 or 1)
 Argument 11: Calculate T7? (0 or 1)
-Argument 12: Survey geometry, either circle, square, or infinite
+Argument 12: Survey geometry, either circle, square, infinite, or rectangular
 )";
 
   if (argc != 13)
@@ -66,6 +66,8 @@ Argument 12: Survey geometry, either circle, square, or infinite
   sigma = covPar.shapenoise_sigma;
   n = covPar.galaxy_density;
   lMin = 0; // 2*M_PI/thetaMax;
+  thetaMax_smaller=covPar.thetaMax_smaller;
+  area=covPar.area;
 
   cosmology cosmo(cosmo_paramfile);
 
@@ -91,6 +93,10 @@ Argument 12: Survey geometry, either circle, square, or infinite
   else if (type_str == "infinite")
   {
     type = 2;
+  }
+  else if (type_str == "rectangular")
+  {
+    type = 3;
   }
   else
   {

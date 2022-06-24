@@ -127,6 +127,10 @@ covarianceParameters::covarianceParameters(const std::string &fn)
     {
       thetaMax = std::stod(parameterValues.at(i));
     }
+    else if (parameterNames.at(i) == "thetaMax_smaller")
+    {
+      thetaMax_smaller = std::stod(parameterValues.at(i));
+    }
     else if (parameterNames.at(i) == "shapenoise_sigma")
     {
       shapenoise_sigma = std::stod(parameterValues.at(i));
@@ -143,6 +147,10 @@ covarianceParameters::covarianceParameters(const std::string &fn)
     {
       shapenoiseOnly = std::stoi(parameterValues.at(i));
     }
+    else if (parameterNames.at(i)=="area")
+    {
+      area = std::stod(parameterValues.at(i));
+    }
     else
     {
       std::cout << "covarianceParameters::Parameter file is not in the right format"
@@ -153,6 +161,11 @@ covarianceParameters::covarianceParameters(const std::string &fn)
 
   // Convert thetaMax and galaxy density to radians
   thetaMax = convert_angle_to_rad(thetaMax, unit);
+  thetaMax_smaller = convert_angle_to_rad(thetaMax_smaller, unit);
+
+  area = area*convert_angle_to_rad(1, unit)*convert_angle_to_rad(1, unit);
+
+
   galaxy_density = galaxy_density / convert_angle_to_rad(1, unit) / convert_angle_to_rad(1, unit);
 }
 
