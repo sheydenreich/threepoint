@@ -506,6 +506,13 @@ struct ApertureStatisticsCovarianceContainer
    double lMin, lMax, phiMin, phiMax, mMin, mMax, zMin, zMax;
 };
 
+struct CovMap2Container
+{
+   double theta1, theta2; //[rad]
+
+   double lMin, lMax;
+};
+
 /**
  * @brief Initialization for covariance
  * Copies thetaMax, sigma, n, lMin and whether powerspec is constant from host to device
@@ -531,5 +538,18 @@ double T4_testBispec(const double &theta1, const double &theta2, const double &t
                      const double &theta4, const double &theta5, const double &theta6);
 
 __device__ double testBispec(double &l1, double &l2, double &l3);
+
+
+
+//// THE FOLLOWING IS FOR THE MAP2 COVARIANCE
+
+double Cov_Map2_Gauss(const double& theta1, const double& theta2);
+
+int integrand_Cov_Map2_Gauss(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
+
+__global__ void integrand_Cov_Map2_Gauss_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+
+__global__ void integrand_Cov_Map2_Gauss_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+
 
 #endif // APERTURESTATISTICSCOVARIANCE_CUH

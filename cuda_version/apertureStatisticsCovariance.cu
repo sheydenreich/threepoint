@@ -855,7 +855,6 @@ double T1(const double &theta1, const double &theta2, const double &theta3, cons
         double vals_max[3] = {lMax, lMax, M_PI}; // use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
 
         hcubature_v(1, integrand_T1, &container, 3, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
-        std::cerr<<area<<" "<<thetaMax*thetaMax<<std::endl;
         result *= 2 / area / pow(2 * M_PI, 3); // Factors: 2 because phi integral goes from 0 to Pi, 1/area because division by area, (2pi)^-3 because 3 integrals in ell-space
     }
     else if (type == 0 || type == 1 || type == 3)
@@ -918,7 +917,7 @@ double T2(const double &theta1, const double &theta2, const double &theta3, cons
         hcubature_v(1, integrand_T2_part2, &container, 1, vals_min1, vals_max1, 0, 0, 1e-4, ERROR_L1, &result_B, &error_B);
         result_B /= 2 * M_PI; // Division by 2pi because 1 integral in ell-space
     }
-    else if (type == 1 || type==3)
+    else if (type == 1 || type == 3)
     {
         double vals_min2[2] = {-lMax, -lMax};
         double vals_max2[2] = {lMax, lMax};
@@ -1126,9 +1125,9 @@ int integrand_T1(unsigned ndim, size_t npts, const double *vars, void *container
     else if (type == 3)
     {
         integrand_T1_rectangle<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->thetas_123.at(0),
-                                                   container_->thetas_123.at(1), container_->thetas_123.at(2),
-                                                   container_->thetas_456.at(0), container_->thetas_456.at(1),
-                                                   container_->thetas_456.at(2), dev_value);
+                                                    container_->thetas_123.at(1), container_->thetas_123.at(2),
+                                                    container_->thetas_456.at(0), container_->thetas_456.at(1),
+                                                    container_->thetas_456.at(2), dev_value);
     }
     else // This should not happen
     {
@@ -1219,7 +1218,7 @@ int integrand_T2_part2(unsigned ndim, size_t npts, const double *vars, void *con
     else if (type == 3)
     {
         integrand_T2_part2_rectangle<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->thetas_123.at(0),
-                                                       container_->thetas_123.at(1), dev_value);
+                                                          container_->thetas_123.at(1), dev_value);
     }
     else // This should not happen
     {
@@ -1439,9 +1438,9 @@ int integrand_T6(unsigned ndim, size_t npts, const double *vars, void *container
         else if (type == 3)
         {
             integrand_T6_rectangle<<<BLOCKS, THREADS>>>(dev_vars_iter, ndim, npts_iter, container_->thetas_123.at(0),
-                                                     container_->thetas_123.at(1), container_->thetas_123.at(2),
-                                                     container_->thetas_456.at(0), container_->thetas_456.at(1),
-                                                     container_->thetas_456.at(2), dev_value_iter);
+                                                        container_->thetas_123.at(1), container_->thetas_123.at(2),
+                                                        container_->thetas_456.at(0), container_->thetas_456.at(1),
+                                                        container_->thetas_456.at(2), dev_value_iter);
         }
         else // This should not happen
         {
@@ -1676,7 +1675,6 @@ __global__ void integrand_T1_rectangle(const double *vars, unsigned ndim, int np
     }
 }
 
-
 __global__ void integrand_T2_part1(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value)
 {
     int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1750,7 +1748,7 @@ __global__ void integrand_T2_part2_square(const double *vars, unsigned ndim, int
 }
 
 __global__ void integrand_T2_part2_rectangle(const double *vars, unsigned ndim, int npts, double theta1, double theta2,
-                                          double *value)
+                                             double *value)
 {
     int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -1775,7 +1773,6 @@ __global__ void integrand_T2_part2_rectangle(const double *vars, unsigned ndim, 
         };
     }
 }
-
 
 __global__ void integrand_T4_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double *value)
 {
@@ -1891,7 +1888,6 @@ __global__ void integrand_T6_square(const double *vars, unsigned ndim, int npts,
         }
     }
 }
-
 
 __global__ void integrand_T6_rectangle(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double *value)
 {
@@ -2031,7 +2027,7 @@ void initCovariance()
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n, &n, sizeof(double)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMin, &lMin, sizeof(double)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_constant_powerspectrum, &constant_powerspectrum, sizeof(bool)));
-    if(type == 3)
+    if (type == 3)
     {
         CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_thetaMax_smaller, &thetaMax_smaller, sizeof(double)));
     };
@@ -2259,4 +2255,124 @@ __device__ double testBispec(double &l1, double &l2, double &l3)
     double result = l1 * l1 * l2 * l2;
     result *= exp((-l1 * l1 - l2 * l2 - l3 * l3) / alpha);
     return result;
+}
+
+double Cov_Map2_Gauss(const double &theta1, const double &theta2)
+{
+    double thetaMin = std::min({theta1, theta2});
+
+    double lMax = 10. / thetaMin;
+
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
+
+    CovMap2Container container;
+    container.theta1 = theta1;
+    container.theta2 = theta2;
+
+    double result, error;
+    if (type == 2)
+    {
+        double vals_min[1] = {lMin};
+        double vals_max[1] = {lMax};
+
+        hcubature_v(1, integrand_Cov_Map2_Gauss, &container, 1, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
+        result /= (2 * M_PI)*area;
+    }
+    else if (type == 1)
+    {
+        double vals_min[4] = {-1.01*lMax, -1.01*lMax, -1.01*lMax, -1.01*lMax};
+        double vals_max[4] = {lMax, lMax, lMax, lMax};
+        hcubature_v(1, integrand_Cov_Map2_Gauss, &container, 4, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
+        result /= pow(2*M_PI, 4);
+        std::cerr<<result<<std::endl;
+    }
+    else
+    {
+        throw std::logic_error("Cov_Map2_Gauss: Wrong survey geometry");
+    };
+
+    return result;
+}
+
+int integrand_Cov_Map2_Gauss(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
+{
+    if (fdim != 1)
+    {
+        std::cerr << "integrand_Cov_Map2_Gauss: Wrong functin dimension" << std::endl;
+        return -1;
+    };
+
+    CovMap2Container *container_ = (CovMap2Container *)container;
+
+    // Allocate memory on device for integrand values
+    double *dev_value;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value, fdim * npts * sizeof(double)));
+
+    // Copy integration variables to device
+    double *dev_vars;
+    CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim * npts * sizeof(double)));                              // alocate memory
+    CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); // copying
+
+    // Calculate values
+    if (type == 1)
+    {
+        integrand_Cov_Map2_Gauss_square<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->theta1,
+                                                             container_->theta2, dev_value);
+    }
+    else if (type == 2)
+    {
+        integrand_Cov_Map2_Gauss_infinite<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->theta1,
+                                                               container_->theta2, dev_value);
+    }
+    else // This should not happen
+    {
+        exit(-1);
+    };
+
+    cudaFree(dev_vars); // Free variables
+
+    // Copy results to host
+    CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
+
+    cudaFree(dev_value); // Free values
+
+    return 0; // Success :)
+}
+
+__global__ void integrand_Cov_Map2_Gauss_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value)
+{
+    int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
+    {
+        double ell = vars[i * ndim];
+        double result = dev_Pell(ell);
+        result *= uHat(ell * theta1) * uHat(ell * theta2);
+        result *= result * 2;
+
+        value[i] = result;
+    }
+}
+
+__global__ void integrand_Cov_Map2_Gauss_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value)
+{
+    int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
+    {
+        double ell1_x = vars[i * ndim];
+        double ell1_y = vars[i * ndim + 1];
+        double ell2_x = vars[i * ndim + 2];
+        double ell2_y = vars[i * ndim + 3];
+
+        double Gfactor = G_square(ell1_x + ell2_x, ell1_y + ell2_y);
+        double ell1 = sqrt(ell1_x * ell1_x + ell1_y * ell1_y);
+        double ell2 = sqrt(ell2_x * ell2_x + ell2_y * ell2_y);
+
+        double result = dev_Pell(ell1) * dev_Pell(ell2);
+        result *= uHat(ell1 * theta1) * uHat(ell1 * theta2) * uHat(ell2 * theta1) * uHat(ell2 * theta2);
+        result *= 2;
+
+        value[i] = result;
+    }
 }

@@ -75,8 +75,21 @@
 
 
 # Fourth: MS
-#DIR=/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/MS/
-#mkdir -p $DIR
+DIR=/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/MS/
+mkdir -p $DIR
+
+
+# Map2 Gauss infinity
+timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+echo $DIR/${timestamp}.log
+CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/MR_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/nz_MR.dat $DIR ../necessary_files/Covariance_MS.dat 1 0 infinite &> $DIR/${timestamp}.log
+
+# Map2 Gauss square
+timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+echo $DIR/${timestamp}.log
+CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/MR_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/nz_MR.dat $DIR ../necessary_files/Covariance_MS.dat 1 0 square &> $DIR/${timestamp}.log
+
+
 # # T_1^\infty
 #timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
 #echo $DIR/${timestamp}.log
@@ -124,51 +137,51 @@
 
 
 
-# KiDS Like SLICS
+# # KiDS Like SLICS
 
-DIR=/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/SLICS_KiDS_South/
-mkdir -p $DIR
-# T_1^\infty
-timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+# DIR=/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/SLICS_KiDS_South/
+# mkdir -p $DIR
+# # T_1^\infty
+# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
 
-CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 1 0 0 0 0 0 infinite &> $DIR/${timestamp}.log
+# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 1 0 0 0 0 0 infinite &> $DIR/${timestamp}.log
 
 
-# T_2
-timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
-CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 0 1 0 0 0 0 rectangle &> $DIR/${timestamp}.log
+# # T_2
+# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 0 1 0 0 0 0 rectangle &> $DIR/${timestamp}.log
 
-# T_1
-timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+# # T_1
+# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
 
-CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 1 0 0 0 0 0 rectangle &> $DIR/${timestamp}.log
+# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 1 0 0 0 0 0 rectangle &> $DIR/${timestamp}.log
 
-# T_4^\infty
-timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+# # T_4^\infty
+# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
 
-CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 0 0 1 0 0 0 infinite &> $DIR/${timestamp}.log
+# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 0 0 1 0 0 0 infinite &> $DIR/${timestamp}.log
 
-# T_5^\infty
-timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+# # T_5^\infty
+# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
 
-CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 0 0 0 1 0 0 infinite &> $DIR/${timestamp}.log
+# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 0 0 0 1 0 0 infinite &> $DIR/${timestamp}.log
 
-# T_6
-timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
-CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 0 0 0 0 1 0 rectangle &> $DIR/${timestamp}.log
+# # T_6
+# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 0 0 0 0 1 0 rectangle &> $DIR/${timestamp}.log
 
-# T_7^\infty
-timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+# # T_7^\infty
+# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
 
-CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 0 0 0 0 0 1 infinite &> $DIR/${timestamp}.log
+# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 0 0 0 0 0 1 infinite &> $DIR/${timestamp}.log
 
-DIR=/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/SLICS_KiDS_North/
-mkdir -p $DIR
+# DIR=/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/SLICS_KiDS_North/
+# mkdir -p $DIR
 
-# T_2
-timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
-CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 0 1 0 0 0 0 rectangle &> $DIR/${timestamp}.log
+# # T_2
+# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 0 1 0 0 0 0 rectangle &> $DIR/${timestamp}.log
 
-# T_1
-timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
-CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 1 0 0 0 0 0 rectangle &> $DIR/${timestamp}.log
+# # T_1
+# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS_KiDS_South.dat 1 0 0 0 0 0 rectangle &> $DIR/${timestamp}.log
