@@ -13,6 +13,7 @@
 
 __constant__ double dev_thetaMax;
 __constant__ double dev_thetaMax_smaller;
+__constant__ double dev_area;
 
 __constant__ double dev_lMin;
 __constant__ double dev_lMax;
@@ -848,7 +849,7 @@ double T1(const double &theta1, const double &theta2, const double &theta3, cons
 
     // Do integration
     double result, error;
-    if (type == 2)
+    if (type == 2) //Infinite
     {
 
         double vals_min[3] = {lMin, lMin, 0};
@@ -1978,6 +1979,7 @@ __device__ double G_circle(const double &ell)
     double result = j1(tmp);
     result *= result;
     result *= 4 / tmp / tmp;
+
     return result;
 }
 
@@ -1996,6 +1998,7 @@ __device__ double G_square(const double &ellX, const double &ellY)
         j02 = 1;
     else
         j02 = sin(tmp2) / tmp2;
+
 
     return j01 * j01 * j02 * j02;
 };
@@ -2022,7 +2025,10 @@ __device__ double G_rectangle(const double &ellX, const double &ellY)
 void initCovariance()
 {
     copyConstants();
+    
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_thetaMax, &thetaMax, sizeof(double)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_area, &area, sizeof(double)));
+
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma, &sigma, sizeof(double)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n, &n, sizeof(double)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMin, &lMin, sizeof(double)));
@@ -2298,7 +2304,7 @@ int integrand_Cov_Map2_Gauss(unsigned ndim, size_t npts, const double *vars, voi
 {
     if (fdim != 1)
     {
-        std::cerr << "integrand_Cov_Map2_Gauss: Wrong functin dimension" << std::endl;
+        std::cerr << "integrand_Cov_Map2_Gauss: Wrong function dimension" << std::endl;
         return -1;
     };
 
@@ -2349,7 +2355,7 @@ __global__ void integrand_Cov_Map2_Gauss_infinite(const double *vars, unsigned n
         double result = dev_Pell(ell);
         result *= uHat(ell * theta1) * uHat(ell * theta2);
         result *= result * 2;
-
+        result *= ell;
         value[i] = result;
     }
 }
@@ -2360,19 +2366,21 @@ __global__ void integrand_Cov_Map2_Gauss_square(const double *vars, unsigned ndi
 
     for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
     {
-        double ell1_x = vars[i * ndim];
-        double ell1_y = vars[i * ndim + 1];
+        double v_x = vars[i * ndim];
+        double v_y = vars[i * ndim + 1];
         double ell2_x = vars[i * ndim + 2];
         double ell2_y = vars[i * ndim + 3];
 
-        double Gfactor = G_square(ell1_x + ell2_x, ell1_y + ell2_y);
+        double Gfactor = G_square(v_x, v_y);
+
+        double ell1_x=v_x-ell2_x;
+        double ell1_y=v_y-ell2_y;
         double ell1 = sqrt(ell1_x * ell1_x + ell1_y * ell1_y);
         double ell2 = sqrt(ell2_x * ell2_x + ell2_y * ell2_y);
 
-        double result = dev_Pell(ell1) * dev_Pell(ell2);
+        double result = dev_Pell(ell1) * dev_Pell(ell2) * Gfactor;
         result *= uHat(ell1 * theta1) * uHat(ell1 * theta2) * uHat(ell2 * theta1) * uHat(ell2 * theta2);
         result *= 2;
-
         value[i] = result;
     }
 }

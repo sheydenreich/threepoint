@@ -17,6 +17,7 @@ extern int type; // defines survey geometry, can be 0, 1, 2, 3, corresponding to
 extern __constant__ double dev_thetaMax;
 extern double thetaMax;
 extern double area;
+extern __constant__ double dev_area;
 
 // if type='rectangle", this is the smaller side [rad]
 extern __constant__ double dev_thetaMax_smaller;
