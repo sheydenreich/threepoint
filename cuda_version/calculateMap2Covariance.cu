@@ -39,11 +39,11 @@ Argument 8: Survey geometry, either circle, square, infinite, or rectangular
   bool calculate_NonGauss = std::stoi(argv[7]);
   std::string type_str = argv[8];
 
-  if(calculate_NonGauss)
-  {
-    std::cerr << "Non Gauss not implemented"<<std::endl;
-    exit(-2);
-  };
+  // if(calculate_NonGauss)
+  // {
+  //   std::cerr << "Non Gauss not implemented"<<std::endl;
+  //   exit(-2);
+  // };
 
   std::cerr << "Using cosmology from " << cosmo_paramfile << std::endl;
   std::cerr << "Using thetas from " << thetasfn << std::endl;
@@ -119,6 +119,11 @@ Argument 8: Survey geometry, either circle, square, infinite, or rectangular
   // Initialize Covariance
   initCovariance();
 
+  if (calculate_NonGauss)
+  {
+    initHalomodel();
+  }
+
   std::cerr << "Finished copying constants" << std::endl;
 
   std::cerr << "Using n(z) from " << nzfn << std::endl;
@@ -155,6 +160,11 @@ Argument 8: Survey geometry, either circle, square, infinite, or rectangular
           double term1 = Cov_Map2_Gauss(theta_rad.at(i), theta_rad.at(j));
           Cov_Gauss.push_back(term1);
         };
+        if (calculate_NonGauss)
+        {
+          double term1 = Cov_Map2_NonGauss(theta_rad.at(i), theta_rad.at(j));
+          Cov_NonGauss.push_back(term1);
+        };
       }
       catch (const std::exception &e)
       {
@@ -189,6 +199,23 @@ Argument 8: Survey geometry, either circle, square, infinite, or rectangular
     try
     {
       writeCov(Cov_Gauss, N_ind, out_folder + filename);
+    }
+    catch (const std::exception &e)
+    {
+      std::cerr << e.what() << '\n';
+      std::cerr << "Writing instead to current directory!" << std::endl;
+      writeCov(Cov_Gauss, N_ind, filename);
+    }
+  };
+
+  if (calculate_NonGauss)
+  {
+    sprintf(filename, "covMap2_%s_NonGauss_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
+            type_str.c_str(), sigma, n_deg, thetaMax_deg);
+    std::cerr << "Writing Non-Gaussian term to " << out_folder + filename << std::endl;
+    try
+    {
+      writeCov(Cov_NonGauss, N_ind, out_folder + filename);
     }
     catch (const std::exception &e)
     {

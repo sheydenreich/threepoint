@@ -552,5 +552,12 @@ __global__ void integrand_Cov_Map2_Gauss_infinite(const double *vars, unsigned n
 
 __global__ void integrand_Cov_Map2_Gauss_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
 
+double Cov_Map2_NonGauss(const double& theta1, const double& theta2);
+
+int integrand_Cov_Map2_NonGauss(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
+
+__global__ void integrand_Cov_Map2_NonGauss_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+
+__global__ void integrand_Cov_Map2_NonGauss_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
 
 #endif // APERTURESTATISTICSCOVARIANCE_CUH
