@@ -32,11 +32,11 @@
 #python ../python_scripts/compute_aperture_mass_correlations_of_lognormal_fields.py --npix 4096 --fieldsize 4 --power_spectrum_filename ../necessary_files/p_ell_MS_lowLCut.dat --alpha 0.928548 --processes 6 --realisations 256 --savepath /home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/LognormalFields_MSlike_alpha_0_93_lowLCut/
 
 
-python ../python_scripts/compute_aperture_mass_correlations_of_lognormal_fields.py --npix 4096 --fieldsize 4 --power_spectrum_filename ../necessary_files/p_ell_MS.dat --alpha 0.828 --processes 6 --realisations 256 --savepath /home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/LognormalFields_MSlike_alpha_0_828/
+#python ../python_scripts/compute_aperture_mass_correlations_of_lognormal_fields.py --npix 4096 --fieldsize 4 --power_spectrum_filename ../necessary_files/p_ell_MS.dat --alpha 0.828 --processes 6 --realisations 256 --savepath /home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/LognormalFields_MSlike_alpha_0_828/
 
 
 #python ../python_scripts/compute_aperture_mass_correlations_of_random_fields.py --npix 4096 --fieldsize 4 --power_spectrum -1 --power_spectrum_filename ../necessary_files/p_ell_MS.dat --processes 6 --realisations 256 --savepath /home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_MSlike/
-python ../python_scripts/compute_aperture_mass_correlations_of_lognormal_fields.py --npix 4096 --fieldsize 4 --power_spectrum_filename ../necessary_files/p_ell_MS.dat --alpha 0.828 --processes 1 --realisations 128 --savepath /home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/LognormalFields_MSlike_alpha_0_828_cutOutFromBiggerField/ --cutOutFromBiggerField
+#python ../python_scripts/compute_aperture_mass_correlations_of_lognormal_fields.py --npix 4096 --fieldsize 4 --power_spectrum_filename ../necessary_files/p_ell_MS.dat --alpha 0.828 --processes 1 --realisations 128 --savepath /home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/LognormalFields_MSlike_alpha_0_828_cutOutFromBiggerField/ --cutOutFromBiggerField
 
-#python ../python_scripts/compute_aperture_mass_correlations_of_random_fields.py --npix 4096 --fieldsize 4 --power_spectrum -1 --power_spectrum_filename ../necessary_files/p_ell_MS.dat --processes 2 --realisations 256 --savepath /home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_MSlike_cutOutFromBiggerField/ --cutOutFromBiggerField
+python ../python_scripts/compute_second_order_aperture_mass_correlations_of_random_fields.py --npix 4096 --fieldsize 4 --power_spectrum -1 --power_spectrum_filename ../necessary_files/p_ell_MS.dat --processes 6 --realisations 256 --savepath /home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/GaussianRandomFields_MSlike/
 
