@@ -1,4 +1,5 @@
-from utility import extract_power_spectrum,bispectrum_extractor,is_triangle
+from polyspectra_extraction import bispectrum_extractor, extract_power_spectrum
+from utility import is_triangle
 import multiprocessing
 from multiprocessing import Pool
 import numpy as np

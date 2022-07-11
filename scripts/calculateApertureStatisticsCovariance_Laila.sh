@@ -41,8 +41,8 @@
 
 # Third: SLICS
 
-DIR=/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/SLICS/
-mkdir -p $DIR
+# DIR=/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/SLICS/
+# mkdir -p $DIR
 
 # # Map2 Gauss infinity
 # timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
@@ -87,30 +87,30 @@ mkdir -p $DIR
 
 
 # Map2 Gauss infinity
-timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
-echo $DIR/${timestamp}.log
-CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat  $DIR ../necessary_files/Covariance_SLICS.dat 1 0 infinite &> $DIR/${timestamp}.log
+# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+# echo $DIR/${timestamp}.log
+# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat  $DIR ../necessary_files/Covariance_SLICS.dat 1 0 infinite &> $DIR/${timestamp}.log
 
-# Map2 Gauss square
-timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
-echo $DIR/${timestamp}.log
-CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat  $DIR ../necessary_files/Covariance_SLICS.dat 1 0 square &> $DIR/${timestamp}.log
+# # Map2 Gauss square
+# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+# echo $DIR/${timestamp}.log
+# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat  $DIR ../necessary_files/Covariance_SLICS.dat 1 0 square &> $DIR/${timestamp}.log
 
-# Map2 NonGauss infinity
-timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
-echo $DIR/${timestamp}.log
-CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat  $DIR ../necessary_files/Covariance_SLICS.dat 0 1 infinite &> $DIR/${timestamp}.log
+# # Map2 NonGauss infinity
+# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+# echo $DIR/${timestamp}.log
+# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat  $DIR ../necessary_files/Covariance_SLICS.dat 0 1 infinite &> $DIR/${timestamp}.log
 
-# Map2 NonGauss square
-timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
-echo $DIR/${timestamp}.log
-CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat  $DIR ../necessary_files/Covariance_SLICS.dat 0 1 square &> $DIR/${timestamp}.log
+# # Map2 NonGauss square
+# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+# echo $DIR/${timestamp}.log
+# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat  $DIR ../necessary_files/Covariance_SLICS.dat 0 1 square &> $DIR/${timestamp}.log
 
 
 
 # Fourth: MS
-# DIR=/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/MS/
-# mkdir -p $DIR
+DIR=/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/MS/
+mkdir -p $DIR
 
 
 # # # Map2 Gauss infinity
@@ -124,26 +124,22 @@ CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_fi
 # CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/MR_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/nz_MR.dat $DIR ../necessary_files/Covariance_MS.dat 1 0 square &> $DIR/${timestamp}.log
 
 
-# # Map2 Gauss infinity
-# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
-# echo $DIR/${timestamp}.log
-# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/MR_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/nz_MR.dat $DIR ../necessary_files/Covariance_MS_KiDSlike.dat 1 0 infinite &> $DIR/${timestamp}.log
 
-# # Map2 Gauss square
-# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
-# echo $DIR/${timestamp}.log
-# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/MR_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/nz_MR.dat $DIR ../necessary_files/Covariance_MS_KiDSlike.dat 1 0 square &> $DIR/${timestamp}.log
-
-# # Map2 NonGauss infinity
-# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
-# echo $DIR/${timestamp}.log
-# CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/MR_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/nz_MR.dat $DIR ../necessary_files/Covariance_MS.dat 0 1 infinite &> $DIR/${timestamp}.log
 
 # # Map2 NonGauss square
 # timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
 # echo $DIR/${timestamp}.log
 # CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/MR_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/nz_MR.dat $DIR ../necessary_files/Covariance_MS.dat 0 1 square &> $DIR/${timestamp}.log
 
+# Map2 Gauss infinity
+timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+echo $DIR/${timestamp}.log
+CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/MR_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/nz_MR.dat $DIR ../necessary_files/Covariance_MS_shapenoise.dat 1 0 infinite &> $DIR/${timestamp}.log
+
+# Map2 NonGauss infinity
+timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+echo $DIR/${timestamp}.log
+CUDA_VISIBLE_DEVICES=0 ../cuda_version/calculateMap2Covariance.x ../necessary_files/MR_cosmo.dat ../necessary_files/Our_thetas.dat ../necessary_files/nz_MR.dat $DIR ../necessary_files/Covariance_MS_shapenoise.dat 0 1 infinite &> $DIR/${timestamp}.log
 
 
 # # T_1^\infty
