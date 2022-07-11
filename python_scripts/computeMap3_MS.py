@@ -28,7 +28,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '--savepath', default="", help="Outputpath"
+    '--savepath', default="./", help="Outputpath"
 )
 
 args = parser.parse_args()
@@ -36,18 +36,18 @@ args = parser.parse_args()
 
 if(__name__ == '__main__'):
 
-    if (args.numberdensity==0) and (args.shapenoise==0): # Without shapenoise and for pixelgrid
+    if (args.ngal==0) and (args.shapenoise==0): # Without shapenoise and for pixelgrid
         result = Map3_MS_parallelised(thetas=[2,4,8,16],n_processes=args.processes)
-    elif args.numberdensity==0: # With shapenoise but on pixel grid
+    elif args.ngal==0: # With shapenoise but on pixel grid
         result = Map3_MS_parallelised(thetas=[2,4,8,16], shapenoise=args.shapenoise, n_processes=args.processes)
     else: # Not on pixel grid
-        result = Map3_MS_parallelised(thetas=[2,4,8,16],shapenoise=args.shapenoise, numberdensity=args.numberdensity, n_processes=args.processes)
+        result = Map3_MS_parallelised(thetas=[2,4,8,16],shapenoise=args.shapenoise, numberdensity=args.ngal, n_processes=args.processes)
     
     # Save results
     savepath=args.savepath
            
     if not exists(savepath):
         makedirs(savepath)
-    savename = 'ngal_'+str(args.numberdensity)+'_shapenoise_'+str(args.shapenoise)
+    savename = 'ngal_'+str(args.ngal)+'_shapenoise_'+str(args.shapenoise)
 
     np.save(savepath+'map_cubed_'+savename,result)

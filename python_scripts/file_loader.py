@@ -11,9 +11,9 @@ def get_kappa_millennium(los):
 def get_millennium(los):
     los_no1 = los//8
     los_no2 = los%8
-    #ms_field = np.loadtxt("/home/laila/Work_Local/MS/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
+    ms_field = np.loadtxt("/home/laila/Work_Local/MS/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
 
-    ms_field = np.loadtxt("/vol/euclid2/euclid2_raid2/sven/millennium_maps/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
+    #ms_field = np.loadtxt("/vol/euclid2/euclid2_raid2/sven/millennium_maps/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
     ms_field = ms_field.reshape(4096,4096,5)
     return ms_field
 
@@ -21,8 +21,8 @@ def get_millennium(los):
 def get_millennium_downsampled(los, ngal):
     los_no1 = los//8
     los_no2 = los%8
-    #ms_field = np.loadtxt("/home/laila/Work_Local/MS/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
-    ms_field = np.loadtxt("/vol/euclid2/euclid2_raid2/sven/millennium_maps/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
+    ms_field = np.loadtxt("/home/laila/Work_Local/MS/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
+    #ms_field = np.loadtxt("/vol/euclid2/euclid2_raid2/sven/millennium_maps/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
 
     indices=np.random.choice(np.arange(len(ms_field)), ngal, replace=False)
     Xs=ms_field[indices][:,0]
@@ -34,8 +34,8 @@ def get_millennium_downsampled(los, ngal):
 def get_millennium_downsampled_shapenoise(los, ngal,shapenoise):
     los_no1 = los//8
     los_no2 = los%8
-    #ms_field = np.loadtxt("/vol/euclid2/euclid2_raid2/sven/millennium_maps/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
-    ms_field = np.loadtxt("/home/laila/Work_Local/MS/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
+    ms_field = np.loadtxt("/vol/euclid2/euclid2_raid2/sven/millennium_maps/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
+    #ms_field = np.loadtxt("/home/laila/Work_Local/MS/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
     indices=np.random.choice(np.arange(len(ms_field)), ngal, replace=False)
 
     sigma1=0

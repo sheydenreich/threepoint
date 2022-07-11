@@ -11,7 +11,7 @@ from random_fields import create_gaussian_random_field, create_lognormal_random_
 from utility import create_gamma_field
 import multiprocessing.managers
 from multiprocessing import Pool
-import tqdm
+from tqdm import tqdm
 from file_loader import get_gamma_millennium, get_gamma_millennium_shapenoise, get_millennium_downsampled_shapenoise, get_slics
 
 
@@ -657,12 +657,14 @@ def extract_Map2_Map3(Xs, Ys, shear_catalogue, npix, thetas, fieldsize, save_map
     shears, norm = ac.normalize_shear(Xs, Ys, shear_catalogue)
 
     # Do the extraction of <Map2> for the shear grid
-    map2 = extract_Map2_of_field(shears, npix, thetas, fieldsize, norm=norm, ac=ac, 
-                                   save_map=save_map, same_fieldsize_for_all_theta=same_fieldsize_for_all_theta, use_polynomial_filter=use_polynomial_filter)
+    map2 = extract_Map2_of_field(shears, npix, thetas, fieldsize, norm=None, ac=ac, 
+                          save_map=None, same_fieldsize_for_all_theta=same_fieldsize_for_all_theta, use_polynomial_filter=use_polynomial_filter)
 
         # Do the extraction of <Map3> for the shear grid
-    map3 = extract_Map2_of_field(shears, npix, thetas, fieldsize, norm=norm, ac=ac, 
+    map3 = extract_Map3_of_field(shears, npix, thetas, fieldsize, norm=norm, ac=ac, 
                                    save_map=save_map, same_fieldsize_for_all_theta=same_fieldsize_for_all_theta, use_polynomial_filter=use_polynomial_filter)
+
+
     return map2, map3
 
 
@@ -694,7 +696,7 @@ def extract_Map2_Map3_of_field(shears, npix, thetas, fieldsize, norm=None, ac=No
                                    save_map=save_map, same_fieldsize_for_all_theta=same_fieldsize_for_all_theta, use_polynomial_filter=use_polynomial_filter)
 
         # Do the extraction of <Map3> for the shear grid
-    map3 = extract_Map2_of_field(shears, npix, thetas, fieldsize, norm=norm, ac=ac, 
+    map3 = extract_Map3_of_field(shears, npix, thetas, fieldsize, norm=norm, ac=ac, 
                                    save_map=save_map, same_fieldsize_for_all_theta=same_fieldsize_for_all_theta, use_polynomial_filter=use_polynomial_filter)
     return map2, map3
 
@@ -746,7 +748,7 @@ def Map3_Gaussian_Random_Field_kernel(kwargs):
     """
     final_results, power_spectrum,thetas, npix, fieldsize, random_seed, cutOutFromBiggerField, realisation = kwargs
     result = Map3_Gaussian_Random_Field(power_spectrum,thetas, npix, fieldsize, random_seed, cutOutFromBiggerField)
-    final_results[:,:,:,:,realisation] = result
+    final_results[:,realisation] = result
 
 def Map3_Gaussian_Random_Field_parallelised(power_spectrum, thetas, npix, fieldsize, n_realisations=256, n_processes=64, cutOutFromBiggerField=False):
     """ Parallelised calculation of all Map3 for the Gaussian Random Fields
@@ -765,9 +767,9 @@ def Map3_Gaussian_Random_Field_parallelised(power_spectrum, thetas, npix, fields
     """
     m=MyManager()
     m.start()
-    n_theta = len(thetas)
+    n_thetas = len(thetas)
   
-    final_results= m.np_zeros((n_theta,n_theta,n_theta,1,n_realisations))
+    final_results= m.np_zeros((n_thetas*(n_thetas+1)*(n_thetas+2)//6,n_realisations))
 
 
     with Pool(processes=n_processes) as p:
@@ -822,7 +824,7 @@ def Map3_Lognormal_Random_Field_kernel(kwargs):
     """
     final_results, power_spectrum, alpha, thetas, npix, fieldsize, random_seed, cutOutFromBiggerField, realisation = kwargs
     result = Map3_Lognormal_Random_Field(power_spectrum, alpha, thetas, npix, fieldsize, random_seed, cutOutFromBiggerField)
-    final_results[:,:,:,:,realisation] = result
+    final_results[:,realisation] = result
 
 
 
@@ -844,9 +846,9 @@ def Map3_Lognormal_Random_Field_parallelised(power_spectrum, alpha, thetas, npix
     """
     m=MyManager()
     m.start()
-    n_theta = len(thetas)
+    n_thetas = len(thetas)
   
-    final_results= m.np_zeros((n_theta,n_theta,n_theta,1,n_realisations))
+    final_results= m.np_zeros((n_thetas*(n_thetas+1)*(n_thetas+2)//6,n_realisations))
 
 
     with Pool(processes=n_processes) as p:
@@ -897,7 +899,7 @@ def Map3_MS_kernel(kwargs):
     """
     results, los, thetas, shapenoise, numberdensity, realisation = kwargs
     map3=Map3_MS(los, thetas, shapenoise=shapenoise, numberdensity=numberdensity)
-    results[:,:,:,:,realisation]=map3
+    results[:,realisation]=map3
 
 
 def Map3_MS_parallelised(all_los=range(64), thetas=[2,4,8,16], shapenoise=None, numberdensity=None, n_processes=64):
@@ -918,7 +920,7 @@ def Map3_MS_parallelised(all_los=range(64), thetas=[2,4,8,16], shapenoise=None, 
     n_theta = len(thetas)
     n_realisations=len(all_los)
   
-    final_results= m.np_zeros((n_theta,n_theta,n_theta,1,n_realisations))
+    final_results= m.np_zeros((n_thetas*(n_thetas+1)*(n_thetas+2)//6,n_realisations))
 
 
     with Pool(processes=n_processes) as p:
@@ -958,7 +960,7 @@ def Map3_SLICS_kernel(kwargs):
     """
     results, los, thetas, realisation = kwargs
     map3=Map3_SLICS(los, thetas)
-    results[:,:,:,:,realisation]=map3
+    results[:,realisation]=map3
 
 
 def Map3_SLICS_parallelised(all_los, thetas=[2,4,8,16], n_processes=64):
@@ -977,7 +979,7 @@ def Map3_SLICS_parallelised(all_los, thetas=[2,4,8,16], n_processes=64):
     n_theta = len(thetas)
     n_realisations=len(all_los)
   
-    final_results= m.np_zeros((n_theta,n_theta,n_theta,1,n_realisations))
+    final_results= m.np_zeros((n_thetas*(n_thetas+1)*(n_thetas+2)//6,n_realisations))
 
 
     with Pool(processes=n_processes) as p:
@@ -1305,23 +1307,23 @@ def Map2Map3_MS_kernel(kwargs):
     resultsMap2, resultsMap3, los, thetas, shapenoise, numberdensity, realisation = kwargs
     Map2, Map3=Map2Map3_MS(los, thetas, shapenoise=shapenoise, numberdensity=numberdensity)
     resultsMap2[:,realisation]=Map2
-    resultsMap3[:,:,:,:,realisation]=Map3
+    resultsMap3[:,realisation]=Map3
 
 
 def Map2Map3_MS_parallelised(all_los=range(64), thetas=[2,4,8,16], shapenoise=None, numberdensity=None, n_processes=64):
     m=MyManager()
     m.start()
-    n_theta = len(thetas)
+    n_thetas = len(thetas)
     n_realisations=len(all_los)
   
-    final_results_Map2= m.np_zeros((n_theta,n_realisations))
-    final_results_Map3= m.np_zeros((n_theta,n_theta, n_theta, 1, n_realisations))
+    final_results_Map2= m.np_zeros((n_thetas,n_realisations))
+    final_results_Map3= m.np_zeros((n_thetas*(n_thetas+1)*(n_thetas+2)//6, n_realisations))
 
 
 
     with Pool(processes=n_processes) as p:
         args = [[final_results_Map2, final_results_Map3, all_los[i], thetas, shapenoise, numberdensity, i] for i in range(n_realisations)]
-        for i in tqdm(p.imap_unordered(Map2_MS_kernel,args),total=n_realisations):
+        for i in tqdm(p.imap_unordered(Map2Map3_MS_kernel,args),total=n_realisations):
             pass
 
     return final_results_Map2, final_results_Map3

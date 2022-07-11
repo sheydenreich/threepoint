@@ -28,7 +28,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '--savepath', default="", help="Outputpath"
+    '--savepath', default="./", help="Outputpath"
 )
 
 args = parser.parse_args()
@@ -36,16 +36,15 @@ args = parser.parse_args()
 
 if(__name__ == '__main__'):
 
-    if (args.numberdensity==0) and (args.shapenoise==0): # Without shapenoise and for pixelgrid
-        Map2, Map3 = Map2Map3_MS_parallelised(thetas=[2,4,8,16],n_processes=args.processes)
-    elif args.numberdensity==0: # With shapenoise but on pixel grid
-        Map2, Map3 = Map2Map3_MS_parallelised(thetas=[2,4,8,16], shapenoise=args.shapenoise, n_processes=args.processes)
-    else: # Not on pixel grid
-        Map2, Map3 = Map2Map3_MS_parallelised(thetas=[2,4,8,16],shapenoise=args.shapenoise, numberdensity=args.numberdensity, n_processes=args.processes)
-    
+    all_los=range(64)
 
-    Map2=Map2.reshape((-1, 64))
-    Map3=Map3.reshape((-1, 64))
+    if (args.ngal==0) and (args.shapenoise==0): # Without shapenoise and for pixelgrid
+        Map2, Map3 = Map2Map3_MS_parallelised(all_los=all_los, thetas=[2,4,8,16],n_processes=args.processes)
+    elif args.ngal==0: # With shapenoise but on pixel grid
+        Map2, Map3 = Map2Map3_MS_parallelised(all_los=all_los,thetas=[2,4,8,16], shapenoise=args.shapenoise, n_processes=args.processes)
+    else: # Not on pixel grid
+        Map2, Map3 = Map2Map3_MS_parallelised(all_los=all_los,thetas=[2,4,8,16],shapenoise=args.shapenoise, numberdensity=args.ngal, n_processes=args.processes)
+    
 
     result=np.vstack((Map2, Map3))
 
@@ -54,6 +53,6 @@ if(__name__ == '__main__'):
            
     if not exists(savepath):
         makedirs(savepath)
-    savename = 'ngal_'+str(args.numberdensity)+'_shapenoise_'+str(args.shapenoise)
+    savename = 'ngal_'+str(args.ngal)+'_shapenoise_'+str(args.shapenoise)
 
     np.save(savepath+'map_squared_cubed_'+savename,result)
