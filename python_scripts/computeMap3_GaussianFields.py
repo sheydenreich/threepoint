@@ -61,8 +61,8 @@ args = parser.parse_args()
 
 if(__name__ == '__main__'):
 
-    # Fieldsize in Radians
-    fieldsize_rad = args.fieldsize*np.pi/180
+    # Fieldsize in arcmin
+    fieldsize_arcmin = args.fieldsize*60
 
 
     # Decide which powerspectrum to use
@@ -78,7 +78,7 @@ if(__name__ == '__main__'):
         print("Using constant powerspectrum")
 
         def power_spectrum(x):
-            return 0.3**2/(2.*args.npix**2/fieldsize_rad**2)*np.ones(x.shape)
+            return 0.3**2/(2.*args.npix**2/fieldsize_arcmin**2)*np.ones(x.shape)
 
     if(args.power_spectrum == 1):
         print("Using (x/1e4)^2*exp(-(x/1e4)^2) powerspectrum")
@@ -93,9 +93,9 @@ if(__name__ == '__main__'):
             return x/10000*np.exp(-x/10000)
 
     # Do Calculation
-    result = Map3_Gaussian_Random_Field_parallelised(power_spectrum_array, thetas=[2, 4, 8, 16], npix=args.npix,
-                                                     fieldsize=fieldsize_rad, n_realisations=args.realisations, 
-                                                     n_processes=args.processes, cutOutFromBiggerField=args.cutOutFrOmBiggerField)
+    result = Map3_Gaussian_Random_Field_parallelised(power_spectrum, thetas=[4, 8, 16, 32], npix=args.npix,
+                                                     fieldsize=fieldsize_arcmin, n_realisations=args.realisations, 
+                                                     n_processes=args.processes, cutOutFromBiggerField=args.cutOutFromBiggerField)
 
 
     # Save results

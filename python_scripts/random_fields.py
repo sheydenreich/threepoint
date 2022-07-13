@@ -26,8 +26,8 @@ def create_gaussian_random_field(power_spectrum, n_pix=4096, fieldsize=4.*np.pi/
     """
 
     # Create array for power spectrum
-    ell_min = 0
-    two_ell_max = 2.*np.pi/fieldsize*n_pix
+    ell_min = 1./fieldsize
+    two_ell_max = 2./fieldsize*n_pix
     ell_array = np.linspace(ell_min, two_ell_max, 2*n_pix)
     psarray = power_spectrum(ell_array)
     if(np.any(psarray <= 0)):
