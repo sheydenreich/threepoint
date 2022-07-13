@@ -57,5 +57,5 @@
         "*.cu": "cpp",
         "*.cuh": "cpp",
     },
-    "python.pythonPath": "/home/laila/anaconda3/bin/python"
+    "python.pythonPath": "/users/llinke/anaconda3/bin/python"
 }
