@@ -21,24 +21,7 @@ __device__ double uHat_product(const double &l1, const double &l2, const double 
   return uHat(l1 * thetas[0]) * uHat(l2 * thetas[1]) * uHat(l3 * thetas[2]);
 }
 
-__device__ double uHat_product_permutations(const double &l1, const double &l2, const double &l3, double *thetas)
-{
-  double result;
-  result = uHat_product(l1, l2, l3, thetas);
-  result += uHat_product(l2, l3, l1, thetas);
-  result += uHat_product(l3, l1, l2, thetas);
-  result += uHat_product(l1, l3, l2, thetas);
-  result += uHat_product(l3, l2, l1, thetas);
-  result += uHat_product(l2, l1, l3, thetas);
-  return result;
-}
-
-__device__ double dev_integrand_Map2(const double &ell, const double &z, double theta)
-{
-  return ell * pow(uHat(ell * theta), 2) * (limber_integrand(ell, z) + 0.5 * dev_sigma * dev_sigma / dev_n / dev_z_max);
-}
-
-__global__ void integrand_Map2(const double *vars, unsigned ndim, int npts, double theta, double *value)
+__global__ void integrand_Map2_kernel(const double *vars, unsigned ndim, int npts, double theta, double *value)
 {
   // index of thread
   int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -49,7 +32,7 @@ __global__ void integrand_Map2(const double *vars, unsigned ndim, int npts, doub
     double ell = vars[i * ndim];
     double z = vars[i * ndim + 1];
 
-    value[i] = dev_integrand_Map2(ell, z, theta);
+    value[i] = ell * pow(uHat(ell * theta), 2) * (limber_integrand(ell, z) + 0.5 * dev_sigma * dev_sigma / dev_n / dev_z_max);
   }
 }
 
@@ -81,7 +64,7 @@ int integrand_Map2(unsigned ndim, size_t npts, const double *vars, void *thisPtr
   CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); // copying
 
   // Calculate values
-  integrand_Map2<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, theta, dev_value);
+  integrand_Map2_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, theta, dev_value);
   CudaCheckError();
 
   cudaFree(dev_vars); // Free variables
@@ -128,7 +111,6 @@ __global__ void integrand_Map3_kernel(const double *vars, unsigned ndim, int npt
 
     double l3 = sqrt(l1 * l1 + l2 * l2 + 2 * l1 * l2 * cos(phi));
     value[i] = l1 * l2 * bkappa(l1, l2, l3) * uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3);
-    //      printf("%lf, %lf, %lf, %lf\n", l1, l2, l3, bkappa(l1, l2, l3));
   }
 }
 
@@ -170,6 +152,13 @@ int integrand_Map3(unsigned ndim, size_t npts, const double *vars, void *thisPtr
 
 double MapMapMap(const std::vector<double> &thetas, const double &phiMin, const double &phiMax, const double &lMin)
 {
+  // Check if correct number of aperture radii is given
+  if (thetas.size() != 3) // To Do: This should throw an exception
+  {
+    std::cerr << "Wrong number of thetas given to MapMapMap" << std::endl;
+    exit(-1);
+  };
+
   // Set maximal l value such, that theta*l <= 10
   double thetaMin = std::min({thetas[0], thetas[1], thetas[2]});
   double lMax = 10. / thetaMin;
@@ -219,7 +208,7 @@ __global__ void integrand_Map4_kernel(const double *vars, unsigned ndim, int npt
 
       result *= l1 * l2 * l3 * m;
     }
-    else
+    else // Set the result to 0 if l4<lMin
     {
       result = 0;
     };
@@ -231,14 +220,6 @@ __global__ void integrand_Map4_kernel(const double *vars, unsigned ndim, int npt
 static int integrand_Map4(const int *ndim, const double *xx,
                           const int *ncomp, double *ff, void *userdata, const int *nvec)
 {
-
-  // FOR SOME REASON THIS CHECK DOESNT WORK...
-  //  if (*ndim != 8);//8) //TO DO: throw exception here
-  //  {
-  //      std::cerr << "Wrong number of argument dimension in Map4 integration" << std::endl;
-  //      std::cerr << "Given:"<<(*ndim)<<" Needed: 8"<<std::endl;
-  //      exit(1);
-  //  }
 
   if (*ncomp != 1) // TO DO: throw exception here
   {
@@ -288,6 +269,13 @@ static int integrand_Map4(const int *ndim, const double *xx,
 
 double Map4(const std::vector<double> &thetas, const double &phiMin, const double &phiMax, const double &lMin)
 {
+  // Check if correct number of aperture radii is given
+  if (thetas.size() != 4) // To Do: This should throw an exception
+  {
+    std::cerr << "Wrong number of thetas given to Map4" << std::endl;
+    exit(-1);
+  };
+
   // Set maximal l value such, that theta*l <= 10
   double thetaMin = std::min({thetas[0], thetas[1], thetas[2], thetas[3]});
   double lMax = 10. / thetaMin;
@@ -428,7 +416,7 @@ static int integrand_Map6(const int *ndim, const double *xx,
                           const int *ncomp, double *ff, void *userdata, const int *nvec)
 {
 
-  if (*ndim != 12)
+  if (*ndim != 12) // TO DO: throw exception here
   {
     std::cerr << "Wrong number of argument dimension in Map6 integration" << std::endl;
     std::cerr << "Given:" << *ndim << " Needed:12" << std::endl;
@@ -485,6 +473,13 @@ static int integrand_Map6(const int *ndim, const double *xx,
 
 double Map6(const std::vector<double> &thetas, const double &phiMin, const double &phiMax, const double &lMin)
 {
+  // Check number of given aperture radii
+  if (thetas.size() != 6) // To Do: This should throw an exception
+  {
+    std::cerr << "Wrong number of thetas given to Map6" << std::endl;
+    exit(-1);
+  };
+
   // Set maximal l value such, that theta*l <= 10
   double thetaMin = std::min({thetas[0], thetas[1], thetas[2], thetas[3], thetas[4], thetas[5]});
   double lMax = 10. / thetaMin;
@@ -566,5 +561,5 @@ double Map6(const std::vector<double> &thetas, const double &phiMin, const doubl
     }
   }
 
-  return integral[0] * (pow(deltaEll, 5) * pow(deltaPhi, 5) * deltaM * deltaZ) / pow(2 * M_PI, 10); // Divided by (2*pi)^6 and adjust for variable transform.
+  return integral[0] * (pow(deltaEll, 5) * pow(deltaPhi, 5) * deltaM * deltaZ) / pow(2 * M_PI, 10); // Divided by (2*pi)^10 and adjust for variable transform.
 }
