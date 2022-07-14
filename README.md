@@ -2,12 +2,10 @@
 
 <br />
 
-<h3 align="center">threepoint </h3>
+<h3 align="center">threepoint
 
 <p align="center">
-    Code for modelling the third-order aperture statistics and the shear three-point correlation function  <br />
-  </p>
-</p>
+    Code for modelling the third-order aperture statistics and the
 
 <!-- TABLE OF CONTENTS -->
 
@@ -70,10 +68,7 @@ In general, some knowledge on CUDA and how GPUs work is useful to understand the
 
 ### Installation
 
-1. Clone the repo
-   ```sh
-   git clone https://github.com/sven/threepoint.git
-   ```
+1. Download the newest release and unpack it
 2. Install missing prerequisites
 3. Go into the source directory and open Makefile
 
