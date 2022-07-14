@@ -4,11 +4,20 @@
 #include "helpers.cuh"
 #include "cuda_helpers.cuh"
 #include "halomodel.cuh"
-#include "cuba.h"
+//#include "cuba.h"
 
 #include <iostream>
 #include <chrono>
 
+/**
+ * @file calculateMap2Covariance.cpp
+ * This executable calculates the covariance of <Map²> as given by the real-space estimator
+ * Calculates Gaussian and Non-Gaussian term independently
+ * Aperture radii, cosmology, n(z), and survey properties are read from file
+ * Model uses Revised Halofit Powerspectrum, BiHalofit Bispectrum, and 1-halo term for Trispectrum
+ * Code uses CUDA and cubature library  (See https://github.com/stevengj/cubature for documentation)
+ * @author Laila Linke
+ */
 int main(int argc, char *argv[])
 {
   // Read in CLI
@@ -39,12 +48,6 @@ Argument 8: Survey geometry, either circle, square, infinite, or rectangular
   bool calculate_NonGauss = std::stoi(argv[7]);
   std::string type_str = argv[8];
 
-  // if(calculate_NonGauss)
-  // {
-  //   std::cerr << "Non Gauss not implemented"<<std::endl;
-  //   exit(-2);
-  // };
-
   std::cerr << "Using cosmology from " << cosmo_paramfile << std::endl;
   std::cerr << "Using thetas from " << thetasfn << std::endl;
   std::cerr << "Using n(z) from " << nzfn << std::endl;
@@ -63,9 +66,9 @@ Argument 8: Survey geometry, either circle, square, infinite, or rectangular
   thetaMax = covPar.thetaMax;
   sigma = covPar.shapenoise_sigma;
   n = covPar.galaxy_density;
-  lMin = 0; // 2*M_PI/thetaMax;
-  thetaMax_smaller=covPar.thetaMax_smaller;
-  area=covPar.area;
+  lMin = 0;
+  thetaMax_smaller = covPar.thetaMax_smaller;
+  area = covPar.area;
 
   cosmology cosmo(cosmo_paramfile);
 
@@ -144,7 +147,7 @@ Argument 8: Survey geometry, either circle, square, infinite, or rectangular
   }
 
   int N_ind = theta_rad.size(); // Number of independent theta-combinations
-  int N_total = N_ind*N_ind;
+  int N_total = N_ind * N_ind;
 
   int completed_steps = 0;
 

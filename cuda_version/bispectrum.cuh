@@ -1,7 +1,9 @@
 #ifndef BISPECTRUM_CUH
 #define BISPECTRUM_CUH
 
-#define slics true
+// Some of the functions in this file need more comments!
+
+#define slics true // Is there a way to get rid of this flag?
 //#define CONSTANT_POWERSPECTRUM false
 
 #include "cosmology.cuh"
@@ -12,8 +14,7 @@
  * @file bispectrum.cuh
  * This file declares routines needed for the bispectrum calculation
  * Routines are defined in bispectrum.cu
- * These functions mirror the methods of class bispectrumCalculator in the pure c++ version
- * @author Laila Linke
+ * @author Sven Heydenreich
  */
 
 // Declarations of  constant variables

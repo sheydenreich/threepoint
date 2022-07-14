@@ -8,6 +8,8 @@
 #include <vector>
 #include <chrono>
 
+// I AM NOT SURE WHAT THE DIFF BETWEEN THIS EXEC AND calculateGamma.cu is!
+
 int main(int argc, char **argv)
 {
   std::cout << "Executing " << argv[0] << " ";

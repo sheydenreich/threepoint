@@ -2,6 +2,8 @@
 #include "bispectrum.cuh"
 #include "cuda_helpers.cuh"
 
+// THIS FUNCTIONS PROBABLY NEED MORE COMMENTS
+
 __constant__ double dev_array_psi[prec_k];
 __constant__ double dev_array_product[prec_k];
 __constant__ double dev_array_psi_J2[prec_k];

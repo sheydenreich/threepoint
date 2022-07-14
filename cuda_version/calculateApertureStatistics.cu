@@ -120,9 +120,9 @@ Example:
         std::vector<double> thetas_calc = {theta1, theta2, theta3};
         // Progress for the impatient user (Thetas in arcmin)
         step += 1;
-        std::cout << step << "/" << Ntotal << ": Thetas:" << thetas.at(i) << " "
+        std::cerr << step << "/" << Ntotal << ": Thetas:" << thetas.at(i) << " "
                   << thetas.at(j) << " " << thetas.at(k) << " \r";
-        std::cout.flush();
+        std::cerr.flush();
 
         double Map3 = MapMapMap(thetas_calc); // Do calculation
         MapMapMaps.push_back(Map3);

@@ -192,10 +192,10 @@ Example:
       std::vector<double> thetas_calc = {theta, theta, theta};
       // Progress for the impatient user (Thetas in arcmin)
       step += 1;
-      std::cout << step << "/" << Ntotal << ": Thetas:" << thetas.at(j) << " "
+      std::cerr << step << "/" << Ntotal << ": Thetas:" << thetas.at(j) << " "
                 << thetas.at(j) << " " << thetas.at(j)
                 << " \r"; //\r is so that only one line is shown
-      std::cout.flush();
+      std::cerr.flush();
 
       double Map3 =
           MapMapMap(thetas_calc, phiMin, phiMax, lMin); // Do calculation
@@ -207,7 +207,7 @@ Example:
     auto elapsed =
         std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
 
-    std::cout << "Time needed for previous cosmology:" << elapsed.count() * 1e-9
+    std::cerr << "Time needed for previous cosmology:" << elapsed.count() * 1e-9
               << std::endl;
   };
 }

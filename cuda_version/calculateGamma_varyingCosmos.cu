@@ -10,6 +10,8 @@
 #include <chrono> //For time measurements
 #include <cstdlib>
 
+// DO WE STILL NEED THIS?
+
 /**
  * @file calculateGamma_varyingCosmos.cu
  * This executable calculates Gamma^i for variations of

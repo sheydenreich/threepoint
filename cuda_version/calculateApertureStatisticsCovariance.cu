@@ -4,11 +4,20 @@
 #include "helpers.cuh"
 #include "cuda_helpers.cuh"
 #include "halomodel.cuh"
-#include "cuba.h"
+
 
 #include <iostream>
 #include <chrono>
 
+/**
+ * @file calculateApertureStatisticsCovariance.cpp
+ * This executable calculates the covariance of <MapMapMap> as given by the real-space estimator
+ * Calculates Terms T1-T7 individually
+ * Aperture radii, cosmology, n(z), and survey properties are read from file
+ * Model uses Revised Halofit Powerspectrum, BiHalofit Bispectrum, and 1-halo terms for Tri- and Pentaspectrum
+ * Code uses CUDA and cubature library  (See https://github.com/stevengj/cubature for documentation)
+ * @author Laila Linke
+ */
 int main(int argc, char *argv[])
 {
   // Read in CLI
@@ -65,12 +74,14 @@ Argument 12: Survey geometry, either circle, square, infinite, or rectangular
   thetaMax = covPar.thetaMax;
   sigma = covPar.shapenoise_sigma;
   n = covPar.galaxy_density;
-  lMin = 0; // 2*M_PI/thetaMax;
-  thetaMax_smaller=covPar.thetaMax_smaller;
-  area=covPar.area;
+  lMin = 0;
+  thetaMax_smaller = covPar.thetaMax_smaller;
+  area = covPar.area;
 
+  // Set Cosmology
   cosmology cosmo(cosmo_paramfile);
 
+  // Read in n(z)
   std::vector<double> nz;
   try
   {
@@ -82,6 +93,7 @@ Argument 12: Survey geometry, either circle, square, infinite, or rectangular
     return -1;
   }
 
+  // Set survey geometry
   if (type_str == "circle")
   {
     type = 0;
@@ -106,6 +118,7 @@ Argument 12: Survey geometry, either circle, square, infinite, or rectangular
 
   set_cosmology(cosmo, &nz);
 
+  // Set aperture radii
   std::vector<double> thetas;
 
   try
@@ -121,18 +134,12 @@ Argument 12: Survey geometry, either circle, square, infinite, or rectangular
   // Initialize Covariance
   initCovariance();
 
+  // For T5, T6 and T7, halomodel calculations are needed, so this needs to be initialized.
   if (calculate_T5 || calculate_T6 || calculate_T7)
   {
     initHalomodel();
   }
 
-  if (calculate_T7) // Turn of CPU parallelisation of CUBA
-  {
-    int ncores = 0;
-    int pcores = 0;
-    cubacores(&ncores, &pcores);
-    cubaaccel(&ncores, &pcores);
-  }
   std::cerr << "Finished copying constants" << std::endl;
 
   std::cerr << "Using n(z) from " << nzfn << std::endl;
@@ -187,25 +194,21 @@ Argument 12: Survey geometry, either circle, square, infinite, or rectangular
         if (calculate_T4)
         {
           double term4 = T4_total(theta_combis.at(i), theta_combis.at(j));
-          std::cerr << "T4:" << term4 << std::endl;
           Cov_term4s.push_back(term4);
         };
         if (calculate_T5)
         {
           double term5 = T5_total(theta_combis.at(i), theta_combis.at(j));
-          std::cerr << "T5:" << term5 << std::endl;
           Cov_term5s.push_back(term5);
         }
         if (calculate_T6)
         {
           double term6 = T6_total(theta_combis.at(i), theta_combis.at(j));
-          std::cerr << "T6:" << term6 << std::endl;
           Cov_term6s.push_back(term6);
         }
         if (calculate_T7)
         {
           double term7 = T7_total(theta_combis.at(i), theta_combis.at(j));
-          printf("T7:%e\n", term7);
           Cov_term7s.push_back(term7);
         }
       }

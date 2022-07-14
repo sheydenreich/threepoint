@@ -10,8 +10,14 @@
 #include <vector>
 #include <chrono>
 
-#define slics false
 
+/**
+ * @file calculateGamma.cu
+ * This executable calculates Gamma^i
+ * for predefined thetas from the Takahashi+ Bispectrum
+ * Code uses CUDA and cubature library  (See https://github.com/stevengj/cubature for documentation)
+ * @author Sven Heydenreich
+ */
 int main(int argc, char **argv)
 {
   // Read in command line
@@ -121,9 +127,6 @@ Example:
     for (int j = 0; j < usteps; j++)
     {
       double u = umin + (umax - umin) / usteps * (j + 0.5);
-      // double u;
-      // if(j<10) u = 0.2/10*(j+0.5);
-      // else u = 1./10*((j-8)+0.5);
 
       for (int k = 0; k < vsteps; k++)
       {

@@ -1,13 +1,29 @@
-const double logMmin = 9;
-const double logMmax = 17; // 20;//17;
-const int n_mbins = 128;
-extern __constant__ double devLogMmin, devLogMmax;
-extern int __constant__ dev_n_mbins;
+#ifndef HALOMODEL_CUH
+#define HALOMODEL_CUH
 
-extern __constant__ double dev_sigma2_array[n_mbins];
-extern __constant__ double dev_dSigma2dm_array[n_mbins];
-extern double sigma2_array[n_mbins];
-extern double dSigma2dm_array[n_mbins];
+/**
+ * @file halomodel.cuh
+ * This file declares routines based on the halomodel
+ * There are functions for the 1-halo term of the powerspectrum, the trispectrum and the pentaspectrum
+ * Routines are defined in halomodel.cu
+ * @author Laila Linke
+ */
+
+
+// General definitions
+
+const double logMmin = 9; // Minimal halo mass (log(M/(Msun/h)))
+const double logMmax = 17; // Maximal halo mass (log(M/(Msun/h)))
+const int n_mbins = 128; // Number of bins for halo masses
+extern __constant__ double devLogMmin, devLogMmax; // Same as logMmin and logMmax for Device
+extern int __constant__ dev_n_mbins; // Same as n_mbins for Device
+
+extern double sigma2_array[n_mbins]; // \sigma^2(m), i.e. fluctuations at mass scale
+extern double dSigma2dm_array[n_mbins]; // d\sigma²/dm i.e. derivative of fluctuations wrt mass scale
+
+
+extern __constant__ double dev_sigma2_array[n_mbins]; // Same as sigma2_array for Device
+extern __constant__ double dev_dSigma2dm_array[n_mbins]; // Same as dSigma2dm_array for device
 
 /**
  * @brief Initialization function
@@ -150,19 +166,6 @@ __device__ double trispectrum_integrand(double m, double z, double l1, double l2
                                         double l3, double l4);
 
 /**
- * @brief 1-Halo Term integrand for 3D-Trispectrum. Needs to be integrated over mass m and redshift z to give total 3D-Trispectrum
- *
- * @param m mass [h^-1 Msun]
- * @param z redshift
- * @param k1 k1 [h/Mpc]
- * @param k2 k2 [h/Mpc]
- * @param k3 k3 [h/Mpc]
- * @param k4 k4 [h/Mpc]
- * @return Integrand for trispectrum (1-halo term only)
- */
-__device__ double trispectrum_3D_integrand(double m, double z, double k1, double k2, double k3, double k4);
-
-/**
  * @brief 1-Halo Term of projected Trispectrum with performed Limber Integration. Needs to be integrated over mass m for total 2D-Trispectrum
  * Integrates over redshift from a to b using GQ on device
  *
@@ -227,47 +230,157 @@ __device__ double pentaspectrum_limber_integrated(double a, double b, double m, 
  */
 __device__ double pentaspectrum_limber_mass_integrated(double zmin, double zmax, double logMmin, double logMmax, double l1, double l2, double l3, double l4, double l5, double l6);
 
-/// FUNCTIONS BELOW ARE FOR TESTING THE HALOMODEL
-
+/**
+ * @brief 1-Halo Term integrand for 2D-Powerspectrum. Needs to be integrated over mass m and redshift z to give total 2D-Pentaspectrum
+ *
+ * @param m mass [h^-1 Msun]
+ * @param z redshift
+ * @param l ell [1/rad]
+ * @return Integrand for Projected Powerspectrum (1-halo term only)
+ */
 __device__ double powerspectrum_integrand(double m, double z, double l);
 
+
+/**
+ * @brief 1-Halo Term of projected Powerspectrum with performed Limber Integration. Needs to be integrated over mass m for total 2D-Pentaspectrum
+ * Integrates over redshift from a to b using GQ on device
+ *
+ * @param a Minimal redshift
+ * @param b Maximal redshift
+ * @param m mass [h^-1 Msun]
+ * @param l ell [1/rad]
+ * @return Integrand for Projected Powerspectrum (1-halo term only)
+ */
 __device__ double powerspectrum_limber_integrated(double a, double b, double m, double l);
 
+
+/**
+ * @brief Wrapper for integrand_powerspectrum for cubature library
+ * See https://github.com/stevengj/cubature for documentation
+ * @param ndim Number of dimensions of integral (here: 1, automatically assigned by integration)
+ * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+ * @param vars Array containing integration variables
+ * @param thisPtr Pointer to PowerspecContainer instance
+ * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration)
+ * @param value Value of integral
+ * @return 0 on success
+ */
 int integrand_Powerspectrum(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
 
-__global__ void integrand_Powerspectrum_kernel(const double *vars, unsigned ndim, int npts, double thetal, double *value);
+/**
+ * @brief Integrand of powerspectrum, interface to GPU
+ * @param vars Integration parameters (m)
+ * @param ndim Number of dimensions of integral (here: 1)
+ * @param npts Number of integration points
+ * @param l ell-value[1/rad]
+ * @param value value of integrand
+ */
+__global__ void integrand_Powerspectrum_kernel(const double *vars, unsigned ndim, int npts, double l, double *value);
 
+/**
+ * @brief 1-halo term of projected Powerspectrum
+ * 
+ * @param l ell-value [1/rad]
+ */
 double Powerspectrum(const double &l);
 
+
+/**
+ * @brief Wrapper for integrand_trispectrum for cubature library
+ * See https://github.com/stevengj/cubature for documentation
+ * @param ndim Number of dimensions of integral (here: 6, automatically assigned by integration)
+ * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+ * @param vars Array containing integration variables
+ * @param thisPtr Pointer to TrispecContainer instance
+ * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration)
+ * @param value Value of integral
+ * @return 0 on success
+ */
 int integrand_Trispectrum(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
 
+/**
+ * @brief Integrand of Trispectrum, interface to GPU
+ * @param vars Integration parameters (m)
+ * @param ndim Number of dimensions of integral (here: 1)
+ * @param npts Number of integration points
+ * @param l ell-value[1/rad]
+ * @param value value of integrand
+ */
 __global__ void integrand_Trispectrum_kernel(const double *vars, unsigned ndim, int npts, double l1, double l2, double l3, double l4, double *value);
 
+/**
+ * @brief 1-halo term of projected Trispectrum
+ * 
+ * @param l1 ell1-value [1/rad]
+ * @param l2 ell1-value [1/rad]
+ * @param l3 ell1-value [1/rad]
+ * @param l4 ell1-value [1/rad]
+ * 
+ */
 double Trispectrum(const double &l1, const double &l2, const double &l3, const double &l4);
 
-int integrand_Trispectrum_3D(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
 
-__global__ void integrand_Trispectrum_3D_kernel(const double *vars, unsigned ndim, int npts, double k1, double k2, double k3, double k4, double z, double *value);
-
-double Trispectrum_3D(const double &k1, const double &k2, const double &k3, const double &k4, const double &z);
-
+/**
+ * @brief 1-halo term of projected Pentaspectrum
+ * 
+ * @param l1 ell1-value [1/rad]
+ * @param l2 ell1-value [1/rad]
+ * @param l3 ell1-value [1/rad]
+ * @param l4 ell1-value [1/rad]
+ * @param l5 ell1-value [1/rad]
+ * @param l6 ell1-value [1/rad]
+ 
+ */
 double Pentaspectrum(const double &l1, const double &l2, const double &l3, const double &l4, const double &l5, const double &l6);
 
+
+/**
+ * @brief Wrapper for integrand_pentaspectrum for cubature library
+ * See https://github.com/stevengj/cubature for documentation
+ * @param ndim Number of dimensions of integral (here: 8, automatically assigned by integration)
+ * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+ * @param vars Array containing integration variables
+ * @param thisPtr Pointer to PentaspecContainer instance
+ * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration)
+ * @param value Value of integral
+ * @return 0 on success
+ */
 int integrand_Pentaspectrum(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
 
+/**
+ * @brief Integrand of Pentaspectrum, interface to GPU
+ * @param vars Integration parameters (m)
+ * @param ndim Number of dimensions of integral (here: 1)
+ * @param npts Number of integration points
+ * @param l ell-value[1/rad]
+ * @param value value of integrand
+ */
 __global__ void integrand_Pentaspectrum_kernel(const double *vars, unsigned ndim, int npts, double l1, double l2, double l3, double l4, double l5, double l6, double *value);
 
+/**
+ * @brief Container for \sigma²(m) Integration
+ * 
+ */
 struct SigmaContainer
 {
   double R;
   double dR;
 };
 
+/**
+ * @brief Container for powerspec Integration
+ * 
+ */
+
 struct PowerspecContainer
 {
   double l;
 };
 
+/**
+ * @brief Container for Trispec Integration
+ * 
+ */
 struct TrispecContainer
 {
   double l1;
@@ -276,15 +389,19 @@ struct TrispecContainer
   double l4;
 };
 
-struct TrispecContainer3D
-{
-  double k1;
-  double k2;
-  double k3;
-  double k4;
-  double z;
-};
+// struct TrispecContainer3D
+// {
+//   double k1;
+//   double k2;
+//   double k3;
+//   double k4;
+//   double z;
+// };
 
+/**
+ * @brief Container for Pentaspecspec Integration
+ * 
+ */
 struct PentaspecContainer
 {
   double l1;
@@ -294,3 +411,5 @@ struct PentaspecContainer
   double l5;
   double l6;
 };
+
+#endif // HALOMODEL_CUH

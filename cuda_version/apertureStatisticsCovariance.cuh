@@ -5,38 +5,87 @@
 #include <vector>
 
 #include "cuda_helpers.cuh"
+
+/**
+ * @file apertureStatisticsCovariance.cuh
+ * This file declares routines needed for the analytic calculation of Aperture statistic covariances with CUDA
+ * There are functions for the covariance of <Map³> and <Map²>, but only the covariance for <Map³> has been rigorously tested.
+ * The covariance can be calculated for different survey geometries and the formulae are derived from the real space estimator.
+ * All aperture statistics use the Exponential aperture filter, first introduced by Crittenden + (2002) (https://ui.adsabs.harvard.edu/abs/2002ApJ...568...20C/abstract)
+ * Routines are defined in apertureStatistics.cu
+ * @author Laila Linke
+ */
+
+/***************** GENERAL DEFINITIONS **************************************************/
+
 extern int type; // defines survey geometry, can be 0, 1, 2, 3, corresponding to: 'circle', 'square', 'infinite', 'rectangle'
 
 /**
- * @brief Gives extent of survey [rad].
+ * @brief Gives extent of survey [rad]. Defined in constant memory on Device
  * if type = 'circular', this is the radius.
  * if type = 'square', this is the side length.
- * if type = 'infinite', this is sqrt(A).
+ * if type = 'infinite', this is sqrt(Area).
  * if type = 'rectangle', this is the longer side
  */
 extern __constant__ double dev_thetaMax;
-extern double thetaMax;
-extern double area;
+extern double thetaMax; // Same as dev_thetaMax but for Host
+
+// Area of survey [rad^2]. Defined in constant memory on Device
 extern __constant__ double dev_area;
+
+extern double area; // Same as dev_area but for host
 
 // if type='rectangle", this is the smaller side [rad]
 extern __constant__ double dev_thetaMax_smaller;
 extern double thetaMax_smaller;
 
-extern __constant__ double dev_lMin;
-extern double lMin;
+extern __constant__ double dev_lMin; // Minimal ell for integrations [1/rad]. Defined on Device
+extern double lMin;                  // Same as dev_lMin but for host
 
 /**
- * @brief Writes a covariance matrix (or one part of it) to a file
+ * @brief Initialization for covariance
+ * Copies all necessary constants from host to device
+ * This NEEDS to be run before doing any of the calculations here!
+ */
+void initCovariance();
+
+/**
+ * @brief Writes a covariance matrix to a file
+ * Exceptions are thrown, if file cannot be created or not the right number of values is given
  *
  * @param values Values of the covariance matrix, sorted in row-major order
  * @param N Number of rows  (= Number of cols)
- * @param filename File to which will be written. Exception is thrown, if file cannot be created (e.g. if folder doesn't exist)
+ * @param filename File to which will be written.
  */
 void writeCov(const std::vector<double> &values, const int &N, const std::string &filename);
 
 /**
- * @brief Calculates the first Term in the Gaussian Covariance with all permutations
+ * @brief Geometric factor for circular survey
+ *
+ * @param ell |ellvec|
+ */
+__device__ double G_circle(const double &ell);
+
+/**
+ * @brief Geometric factor for square survey
+ *
+ * @param ellX ell_x
+ * @param ellY ell_y
+ */
+__device__ double G_square(const double &ellX, const double &ellY);
+
+/**
+ * @brief Geometric factor for rectangular survey
+ *
+ * @param ellX ell_x
+ * @param ellY ell_y
+ */
+__device__ double G_rectangle(const double &ellX, const double &ellY);
+
+/******************* FOR COVARIANCE OF <Map^3> *****************************************/
+
+/**
+ * @brief Calculates the first Term in the Gaussian Covariance of Map³ with all permutations
  *
  * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
  * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
@@ -45,7 +94,7 @@ void writeCov(const std::vector<double> &values, const int &N, const std::string
 double T1_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
 
 /**
- * @brief Calculates the second Term in the Gaussian Covariance with all permutations. Returns 0 for type='infinite'
+ * @brief Calculates the second Term in the Gaussian Covariance of Map³ with all permutations. Returns 0 for type='infinite'
  *
  * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
  * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
@@ -54,7 +103,7 @@ double T1_total(const std::vector<double> &thetas_123, const std::vector<double>
 double T2_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
 
 /**
- * @brief Calculates the first Term in the NonGaussian Covariance with all permutations. Throws an exception if type='square'.
+ * @brief Calculates the first Term in the NonGaussian Covariance of Map³ with all permutations. Throws an exception if type='square'.
  *
  * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
  * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
@@ -63,7 +112,7 @@ double T2_total(const std::vector<double> &thetas_123, const std::vector<double>
 double T4_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
 
 /**
- * @brief Calculates the second Term in the Non-Gaussian Covariance with all permutations. Throws an exception if type is not 'infinite
+ * @brief Calculates the second Term in the Non-Gaussian Covariance of Map³ with all permutations. Throws an exception if type is not 'infinite
  *
  * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
  * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
@@ -72,7 +121,7 @@ double T4_total(const std::vector<double> &thetas_123, const std::vector<double>
 double T5_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
 
 /**
- * @brief Calculates the third Term in the Non-Gaussian Covariance with all permutations. Throws an exception if type is not 'square'
+ * @brief Calculates the third Term in the Non-Gaussian Covariance of Map³ with all permutations. Throws an exception if type is not 'square'
  *
  * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
  * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
@@ -81,7 +130,7 @@ double T5_total(const std::vector<double> &thetas_123, const std::vector<double>
 double T6_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
 
 /**
- * @brief Calculates the fourh Term in the Non-Gaussian Covariance with all permutations. Throws an exception if type is not 'infinite'
+ * @brief Calculates the fourh Term in the Non-Gaussian Covariance of Map³ with all permutations. Throws an exception if type is not 'infinite'
  *
  * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
  * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
@@ -90,7 +139,7 @@ double T6_total(const std::vector<double> &thetas_123, const std::vector<double>
 double T7_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
 
 /**
- * @brief First Term of Gaussian Covariance for one permutation
+ * @brief First Term of Gaussian Covariance of Map³ for one permutation
  *
  * @param theta1 Aperture radius [rad]
  * @param theta2 Aperture radius [rad]
@@ -102,7 +151,7 @@ double T7_total(const std::vector<double> &thetas_123, const std::vector<double>
 double T1(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
 
 /**
- * @brief Second Term of Gaussian Covariance for one permutation
+ * @brief Second Term of Gaussian Covariance of Map³ for one permutation
  * Throws exception if type is not "circle", "square" or "rectangle"
  *
  * @param theta1 Aperture radius [rad]
@@ -115,7 +164,7 @@ double T1(const double &theta1, const double &theta2, const double &theta3, cons
 double T2(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
 
 /**
- * @brief First Term of NonGaussian Covariance for one permutation
+ * @brief First Term of NonGaussian Covariance of Map³ for one permutation
  * Throws exception if type is not "infinite"
  *
  * @param theta1 Aperture radius [rad]
@@ -128,7 +177,7 @@ double T2(const double &theta1, const double &theta2, const double &theta3, cons
 double T4(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
 
 /**
- * @brief Second Term of NonGaussian Covariance for one permutation
+ * @brief Second Term of NonGaussian Covariance of Map³ for one permutation
  * Throws exception if type is not "infinite"
  *
  * @param theta1 Aperture radius [rad]
@@ -141,7 +190,7 @@ double T4(const double &theta1, const double &theta2, const double &theta3, cons
 double T5(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
 
 /**
- * @brief Third Term of NonGaussian Covariance for one permutation
+ * @brief Third Term of NonGaussian Covariance of Map³ for one permutation
  * Throws exception if type is not "square" or "rectangle"
  *
  * @param theta1 Aperture radius [rad]
@@ -154,7 +203,7 @@ double T5(const double &theta1, const double &theta2, const double &theta3, cons
 double T6(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
 
 /**
- * @brief Fourth Term of NonGaussian Covariance for one permutation
+ * @brief Fourth Term of NonGaussian Covariance of Map³ for one permutation
  * Throws exception if type is not "infinite"
  *
  * @param theta1 Aperture radius [rad]
@@ -369,7 +418,6 @@ __global__ void integrand_T2_part2_circle(const double *vars, unsigned ndim, int
  */
 __global__ void integrand_T2_part2_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
 
-
 /**
  * @brief Integrand for second part of Term2 for rectangular survey
  *
@@ -437,8 +485,7 @@ __global__ void integrand_T5_infinite(const double *vars, unsigned ndim, int npt
 __global__ void integrand_T6_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
                                     double theta4, double theta5, double theta6, double *value);
 
-
-   /**
+/**
  * @brief Integrand for Term 6 for rectangular survey
  *
  * @param vars Integration parameters (7 D)
@@ -453,7 +500,7 @@ __global__ void integrand_T6_square(const double *vars, unsigned ndim, int npts,
  * @param value Value of integral
  */
 __global__ void integrand_T6_rectangle(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
-                                    double theta4, double theta5, double theta6, double *value);
+                                       double theta4, double theta5, double theta6, double *value);
 
 /**
  * @brief Integrand for Term 7 for infinite survey
@@ -473,29 +520,9 @@ __global__ void integrand_T7_infinite(const double *vars, unsigned ndim, int npt
                                       double theta4, double theta5, double theta6, double *value, double mMin, double mMax);
 
 /**
- * @brief Geometric factor for circular survey
+ * @brief Container for variables needed for the Map³ Cov calculation
  *
- * @param ell |ellvec|
  */
-__device__ double G_circle(const double &ell);
-
-/**
- * @brief Geometric factor for square survey
- *
- * @param ellX ell_x
- * @param ellY ell_y
- */
-__device__ double G_square(const double &ellX, const double &ellY);
-
-
-/**
- * @brief Geometric factor for rectangular survey
- *
- * @param ellX ell_x
- * @param ellY ell_y
- */
-__device__ double G_rectangle(const double &ellX, const double &ellY);
-
 struct ApertureStatisticsCovarianceContainer
 {
    // First aperture radii [rad]
@@ -504,60 +531,119 @@ struct ApertureStatisticsCovarianceContainer
    // Second aperture radii [rad]
    std::vector<double> thetas_456;
 
-   double lMin, lMax, phiMin, phiMax, mMin, mMax, zMin, zMax;
+   // Integration borders
+   double lMin, lMax;     //[1/rad]
+   double phiMin, phiMax; //[rad]
+   double mMin, mMax;     //[Msun/h]
+   double zMin, zMax;     //[unitless]
 };
 
+/************************** FOR <Map²> COVARIANCE ***************************************/
+
+/**
+ * @brief Calculates the Gaussian Covariance of Map²
+ * Uses the Revised Halofit Powerspectrum and Limberintegration
+ *
+ * @param theta1 First Aperture radius [rad]
+ * @param theta2 Second aperture Radius [rad]
+ * @return double C_G(theta_1, theta2)
+ */
+double Cov_Map2_Gauss(const double &theta1, const double &theta2);
+
+/**
+ * @brief Calculates the Non-Gaussian Covariance of Map²
+ * Uses the Trispectrum from the halomodel (Only the 1-halo term)
+ *
+ * @param theta1 First Aperture radius [rad]
+ * @param theta2 Second aperture Radius [rad]
+ * @return double C_NG(theta_1, theta2)
+ */
+double Cov_Map2_NonGauss(const double &theta1, const double &theta2);
+
+/**
+ * @brief Wrapper of integrand_Cov_Map2_Gauss for the cubature library
+ * See https://github.com/stevengj/cubature for documentation
+ * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
+ * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+ * @param vars Array containing integration variables
+ * @param container Pointer to ApertureStatisticsCovarianceContainer instance
+ * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
+ * @param value Value of integral
+ * @return 0 on success
+ */
+int integrand_Cov_Map2_Gauss(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
+
+/**
+ * @brief Wrapper of integrand_Cov_Map2_NonGauss for the cubature library
+ * See https://github.com/stevengj/cubature for documentation
+ * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
+ * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+ * @param vars Array containing integration variables
+ * @param container Pointer to ApertureStatisticsCovarianceContainer instance
+ * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
+ * @param value Value of integral
+ * @return 0 on success
+ */
+int integrand_Cov_Map2_NonGauss(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
+
+/**
+ * @brief Integrand of Gaussian Cov of Map2 for infinite survey
+ *
+ * @param vars Integration Parameters (1D)
+ * @param ndim Number of integration dimensions
+ * @param npts Number of integration points
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param value Value of integral
+ */
+__global__ void integrand_Cov_Map2_Gauss_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+
+/**
+ * @brief Integrand of Gaussian Cov of Map2 for square survey
+ *
+ * @param vars Integration Parameters (4D)
+ * @param ndim Number of integration dimensions
+ * @param npts Number of integration points
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param value Value of integral
+ */
+__global__ void integrand_Cov_Map2_Gauss_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+
+/**
+ * @brief Integrand of Non-Gaussian Cov of Map2 for infinite survey
+ *
+ * @param vars Integration Parameters (3D)
+ * @param ndim Number of integration dimensions
+ * @param npts Number of integration points
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param value Value of integral
+ */
+__global__ void integrand_Cov_Map2_NonGauss_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+
+/**
+ * @brief Integrand of Non-Gaussian Cov of Map2 for infinite survey
+ *
+ * @param vars Integration Parameters (7D)
+ * @param ndim Number of integration dimensions
+ * @param npts Number of integration points
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param value Value of integral
+ */
+__global__ void integrand_Cov_Map2_NonGauss_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+
+/**
+ * @brief Container for variables needed for the Map³ Cov calculation
+ *
+ */
 struct CovMap2Container
 {
    double theta1, theta2; //[rad]
 
-   double lMin, lMax;
+   // Integration borders
+   double lMin, lMax; //[1/rad]
 };
-
-/**
- * @brief Initialization for covariance
- * Copies thetaMax, sigma, n, lMin and whether powerspec is constant from host to device
- */
-void initCovariance();
-
-//// THE FOLLOWING IS FOR TESTING T4 FOR AN ANALYTICAL BISPECTRUM ////
-
-__global__ void integrand_T4_testBispec_analytical(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
-                                                   double theta4, double theta5, double theta6, double *value);
-
-int integrand_T4_testBispec_analytical(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
-
-double T4_testBispec_analytical(const double &theta1, const double &theta2, const double &theta3,
-                                const double &theta4, const double &theta5, const double &theta6);
-
-__global__ void integrand_T4_infinite_testBispec(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
-                                                 double theta4, double theta5, double theta6, double *value);
-
-int integrand_T4_testBispec(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
-
-double T4_testBispec(const double &theta1, const double &theta2, const double &theta3,
-                     const double &theta4, const double &theta5, const double &theta6);
-
-__device__ double testBispec(double &l1, double &l2, double &l3);
-
-
-
-//// THE FOLLOWING IS FOR THE MAP2 COVARIANCE
-
-double Cov_Map2_Gauss(const double& theta1, const double& theta2);
-
-int integrand_Cov_Map2_Gauss(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
-
-__global__ void integrand_Cov_Map2_Gauss_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
-
-__global__ void integrand_Cov_Map2_Gauss_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
-
-double Cov_Map2_NonGauss(const double& theta1, const double& theta2);
-
-int integrand_Cov_Map2_NonGauss(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
-
-__global__ void integrand_Cov_Map2_NonGauss_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
-
-__global__ void integrand_Cov_Map2_NonGauss_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
 
 #endif // APERTURESTATISTICSCOVARIANCE_CUH

@@ -11,12 +11,10 @@
 #include <string>
 #include <vector>
 /**
- * @file calculateApertureStatistics.cu
- * This executable calculates <MapMapMap> from the
- * Takahashi+ Bispectrum
- * Aperture radii are read from file and <MapMapMap> is only calculated for
- * independent combis of thetas Code uses CUDA and cubature library  (See
- * https://github.com/stevengj/cubature for documentation)
+ * @file calculateMap6.cu
+ * This executable calculates <Map⁶> from the 1-halo term of the Pentaspectrum
+ * Aperture radii are read from file and <Map⁶> is only calculated for all thetas equal
+ * Code uses CUDA and cubature library  (See https://github.com/stevengj/cubature for documentation)
  * @author Laila Linke
  */
 int main(int argc, char *argv[])
@@ -24,7 +22,7 @@ int main(int argc, char *argv[])
   // Read in command line
 
   const char *message = R"( 
-calculateApertureStatistics.x : Wrong number of command line parameters (Needed: 5)
+calculateMap6.x : Wrong number of command line parameters (Needed: 5)
 Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
 Argument 2: Filename with thetas [arcmin]
 Argument 3: Outputfilename, directory needs to exist 
@@ -32,7 +30,7 @@ Argument 4: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) f
 Argument 5 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
 
 Example:
-./calculateApertureStatistics.x ../necessary_files/MR_cosmo.dat ../necessary_files/HOWLS_thetas.dat ../../results_MR/MapMapMap_bispec_gpu_nz.dat 1 ../necessary_files/nz_MR.dat
+./calculateMap6.x ../necessary_files/MR_cosmo.dat ../necessary_files/HOWLS_thetas.dat ../../results_MR/Map6.dat 1 ../necessary_files/nz_MR.dat
 )";
 
   if (argc < 5) // Give out error message if too few CLI arguments
@@ -104,81 +102,17 @@ Example:
 
   initHalomodel();
 
-  // Set up vector for aperture statistics
-  int Ntotal = N; // factorial(N+5)/factorial(N-1)/720; // Total number of bins that need to be calculated, = (N+6+1) ncr 3
-  std::vector<double> Map6s;
-
-  // Needed for monitoring
-
-  int step = 0;
-
-  // Calculate <MapMapMap>(theta1, theta2, theta3) in three loops
-  // Calculation only for theta1<=theta2<=theta3
+  // Calculate <Map⁶>(theta)  and do output
   for (int i = 0; i < N; i++)
   {
-    double theta1 = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
+    double theta = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
+    std::vector<double> thetas_calc = {theta, theta, theta, theta, theta, theta};
+    // Progress for the impatient user (Thetas in arcmin)
+    std::cout << i << "/" << N << ": Theta:" << thetas.at(i) << std::endl;
+    double Map6_ = Map6(thetas_calc); // Do calculation
 
-    for (int j = i; j < i + 1; j++)
-    {
-      double theta2 = convert_angle_to_rad(thetas.at(j));
-
-      for (int k = j; k < i + 1; k++)
-      {
-
-        double theta3 = convert_angle_to_rad(thetas.at(k));
-        for (int l = k; l < i + 1; l++)
-        {
-
-          double theta4 = convert_angle_to_rad(thetas.at(l));
-          for (int m = l; m < i + 1; m++)
-          {
-            double theta5 = convert_angle_to_rad(thetas.at(m));
-            for (int n = m; n < i + 1; n++)
-            {
-              double theta6 = convert_angle_to_rad(thetas.at(n));
-
-              std::vector<double> thetas_calc = {theta1, theta2, theta3, theta4, theta5, theta6};
-              // Progress for the impatient user (Thetas in arcmin)
-              step += 1;
-              // std::cout<<step<<std::endl;
-              std::cout << step << "/" << Ntotal << ": Thetas:" << thetas.at(i) << " "
-                        << thetas.at(j) << " " << thetas.at(k) << " " << thetas.at(l) << " "
-                        << thetas.at(m) << " " << thetas.at(n) << std::endl; // " \r";
-              // std::cout.flush();
-
-              double Map6_ = Map6(thetas_calc); // Do calculation
-              std::cerr << Map6_ << std::endl;
-
-              Map6s.push_back(Map6_);
-            };
-          };
-        };
-      };
-    };
-  };
-
-  // Output
-  step = 0;
-  for (int i = 0; i < i + 1; i++)
-  {
-    for (int j = i; j < i + 1; j++)
-    {
-      for (int k = j; k < i + 1; k++)
-      {
-        for (int l = k; l < i + 1; l++)
-        {
-          for (int m = l; m < i + 1; m++)
-          {
-            for (int n = m; n < i + 1; n++)
-            {
-              out << thetas[i] << " " << thetas[j] << " " << thetas[k] << " " << thetas[l] << " " << thetas[m] << " " << thetas[n] << " "
-                  << Map6s.at(step) << " " << std::endl;
-              step++;
-            };
-          };
-        };
-      };
-    };
+    out << thetas[i] << " "
+        << Map6_ << " " << std::endl;
   };
 
   return 0;

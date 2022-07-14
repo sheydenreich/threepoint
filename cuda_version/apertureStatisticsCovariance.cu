@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <iostream>
 
+/***************** GENERAL DEFINITIONS **************************************************/
+
 __constant__ double dev_thetaMax;
 __constant__ double dev_thetaMax_smaller;
 __constant__ double dev_area;
@@ -21,7 +23,24 @@ double lMin;
 double thetaMax;
 double thetaMax_smaller;
 double area;
-int type; // 0: circle, 1: square, 2: infinite
+int type; // 0: circle, 1: square, 2: infinite, 3: rectangular
+
+void initCovariance()
+{
+    copyConstants();
+
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_thetaMax, &thetaMax, sizeof(double)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_area, &area, sizeof(double)));
+
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma, &sigma, sizeof(double)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n, &n, sizeof(double)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMin, &lMin, sizeof(double)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_constant_powerspectrum, &constant_powerspectrum, sizeof(bool)));
+    if (type == 3)
+    {
+        CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_thetaMax_smaller, &thetaMax_smaller, sizeof(double)));
+    };
+};
 
 void writeCov(const std::vector<double> &values, const int &N, const std::string &filename)
 {
@@ -67,6 +86,56 @@ void writeCov(const std::vector<double> &values, const int &N, const std::string
         out << std::endl;
     }
 }
+
+__device__ double G_circle(const double &ell)
+{
+    double tmp = dev_thetaMax * ell;
+    double result = j1(tmp);
+    result *= result;
+    result *= 4 / tmp / tmp;
+
+    return result;
+}
+
+__device__ double G_square(const double &ellX, const double &ellY)
+{
+    double tmp1 = 0.5 * ellX * dev_thetaMax;
+    double tmp2 = 0.5 * ellY * dev_thetaMax;
+
+    double j01, j02;
+    if (abs(tmp1) <= 1e-6)
+        j01 = 1;
+    else
+        j01 = sin(tmp1) / tmp1;
+
+    if (abs(tmp2) <= 1e-6)
+        j02 = 1;
+    else
+        j02 = sin(tmp2) / tmp2;
+
+    return j01 * j01 * j02 * j02;
+};
+
+__device__ double G_rectangle(const double &ellX, const double &ellY)
+{
+    double tmp1 = 0.5 * ellX * dev_thetaMax;
+    double tmp2 = 0.5 * ellY * dev_thetaMax_smaller;
+
+    double j01, j02;
+    if (abs(tmp1) <= 1e-6)
+        j01 = 1;
+    else
+        j01 = sin(tmp1) / tmp1;
+
+    if (abs(tmp2) <= 1e-6)
+        j02 = 1;
+    else
+        j02 = sin(tmp2) / tmp2;
+
+    return j01 * j01 * j02 * j02;
+};
+
+/******************* FOR COVARIANCE OF <Map^3> *****************************************/
 
 double T1_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456)
 {
@@ -849,7 +918,7 @@ double T1(const double &theta1, const double &theta2, const double &theta3, cons
 
     // Do integration
     double result, error;
-    if (type == 2) //Infinite
+    if (type == 2) // Infinite
     {
 
         double vals_min[3] = {lMin, lMin, 0};
@@ -1973,295 +2042,7 @@ __global__ void integrand_T7_infinite(const double *vars, unsigned ndim, int npt
     }
 }
 
-__device__ double G_circle(const double &ell)
-{
-    double tmp = dev_thetaMax * ell;
-    double result = j1(tmp);
-    result *= result;
-    result *= 4 / tmp / tmp;
-
-    return result;
-}
-
-__device__ double G_square(const double &ellX, const double &ellY)
-{
-    double tmp1 = 0.5 * ellX * dev_thetaMax;
-    double tmp2 = 0.5 * ellY * dev_thetaMax;
-
-    double j01, j02;
-    if (abs(tmp1) <= 1e-6)
-        j01 = 1;
-    else
-        j01 = sin(tmp1) / tmp1;
-
-    if (abs(tmp2) <= 1e-6)
-        j02 = 1;
-    else
-        j02 = sin(tmp2) / tmp2;
-
-
-    return j01 * j01 * j02 * j02;
-};
-
-__device__ double G_rectangle(const double &ellX, const double &ellY)
-{
-    double tmp1 = 0.5 * ellX * dev_thetaMax;
-    double tmp2 = 0.5 * ellY * dev_thetaMax_smaller;
-
-    double j01, j02;
-    if (abs(tmp1) <= 1e-6)
-        j01 = 1;
-    else
-        j01 = sin(tmp1) / tmp1;
-
-    if (abs(tmp2) <= 1e-6)
-        j02 = 1;
-    else
-        j02 = sin(tmp2) / tmp2;
-
-    return j01 * j01 * j02 * j02;
-};
-
-void initCovariance()
-{
-    copyConstants();
-    
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_thetaMax, &thetaMax, sizeof(double)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_area, &area, sizeof(double)));
-
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma, &sigma, sizeof(double)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n, &n, sizeof(double)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMin, &lMin, sizeof(double)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_constant_powerspectrum, &constant_powerspectrum, sizeof(bool)));
-    if (type == 3)
-    {
-        CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_thetaMax_smaller, &thetaMax_smaller, sizeof(double)));
-    };
-};
-
-__global__ void integrand_T4_testBispec_analytical(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
-                                                   double theta4, double theta5, double theta6, double *value)
-{
-    int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
-
-    for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
-    {
-        double l1 = vars[i * ndim];
-        double l2 = vars[i * ndim + 1];
-        double l5 = vars[i * ndim + 2];
-
-        double l1sq = l1 * l1;
-        double l2sq = l2 * l2;
-        double l5sq = l5 * l5;
-
-        double th1sq = theta1 * theta1;
-        double th2sq = theta2 * theta2;
-        double th3sq = theta3 * theta3;
-        double th4sq = theta4 * theta4;
-        double th5sq = theta5 * theta5;
-        double th6sq = theta6 * theta6;
-
-        double alpha = 1e6;
-
-        double result = l1sq * l1sq * l1sq * l1sq * l1 * l2sq * l2sq * l2 * l5sq * l5sq * l5;
-        double tmp = -0.5 * l1sq * (th1sq + th3sq + th4sq + th6sq + 8 / alpha) - 0.5 * l2sq * (th2sq + th3sq + 4 / alpha) - 0.5 * l5sq * (th5sq + th6sq + 4 / alpha);
-
-        double tmp2 = cyl_bessel_i0(l1 * l2 * (th3sq + 2 / alpha));
-        result *= exp(tmp);
-        if (result != 0)
-        {
-            result *= (l1sq + l2sq) * cyl_bessel_i0(l1 * l2 * (th3sq + 2 / alpha)) - 2 * l1 * l2 * cyl_bessel_i1(l1 * l2 * (th3sq + 2 / alpha));
-            result *= (l1sq + l5sq) * cyl_bessel_i0(l1 * l5 * (th6sq + 2 / alpha)) - 2 * l1 * l5 * cyl_bessel_i1(l1 * l5 * (th6sq + 2 / alpha));
-        };
-        if (!isfinite(result))
-        {
-            printf("%e, %e, %e, %e, %e, %e, %e\n", l1, l2, l5, result, tmp, exp(tmp), tmp2);
-        };
-
-        value[i] = result;
-    }
-}
-
-int integrand_T4_testBispec_analytical(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
-{
-    if (fdim != 1)
-    {
-        std::cerr << "integrand_T4_testBispec_analytical: wrong function dimension" << std::endl;
-        return -1;
-    };
-
-    ApertureStatisticsCovarianceContainer *container_ = (ApertureStatisticsCovarianceContainer *)container;
-
-    if (npts > 1e8)
-    {
-        std::cerr << "WARNING: Large number of points: " << npts << std::endl;
-        return 1;
-    };
-
-    // Allocate memory on device for integrand values
-    double *dev_value;
-    CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value, fdim * npts * sizeof(double)));
-
-    // Copy integration variables to device
-    double *dev_vars;
-    CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim * npts * sizeof(double)));                              // alocate memory
-    CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); // copying
-
-    // Calculate values
-
-    integrand_T4_testBispec_analytical<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->thetas_123.at(0),
-                                                            container_->thetas_123.at(1), container_->thetas_123.at(2),
-                                                            container_->thetas_456.at(0), container_->thetas_456.at(1),
-                                                            container_->thetas_456.at(2), dev_value);
-
-    cudaFree(dev_vars); // Free variables
-
-    // Copy results to host
-    CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
-
-    cudaFree(dev_value); // Free values
-
-    return 0; // Success :)
-}
-
-double T4_testBispec_analytical(const double &theta1, const double &theta2, const double &theta3,
-                                const double &theta4, const double &theta5, const double &theta6)
-{
-    // Set maximal l value such, that theta*l <= 10
-    double thetaMin_123 = std::min({theta1, theta2, theta3});
-    double thetaMin_456 = std::min({theta4, theta5, theta6});
-    double thetaMin = std::min({thetaMin_123, thetaMin_456});
-    double lMax = 10. / thetaMin;
-
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
-
-    // Create container
-    ApertureStatisticsCovarianceContainer container;
-    container.thetas_123 = std::vector<double>{theta1, theta2, theta3};
-    container.thetas_456 = std::vector<double>{theta4, theta5, theta6};
-
-    // Do integration
-    double result, error;
-
-    double vals_min[3] = {0, 0, 0};
-    double vals_max[3] = {lMax, lMax, lMax};
-
-    hcubature_v(1, integrand_T4_testBispec_analytical, &container, 3, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
-    result /= pow(2 * M_PI, 3);
-    result *= pow(theta1 * theta2 * theta3 * theta4 * theta5 * theta6, 2) / 64;
-
-    return result;
-}
-
-__global__ void integrand_T4_infinite_testBispec(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
-                                                 double theta4, double theta5, double theta6, double *value)
-{
-    int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
-
-    for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
-    {
-        double l1 = vars[i * ndim];
-        double l2 = vars[i * ndim + 1];
-        double l5 = vars[i * ndim + 2];
-        double phi1 = vars[i * ndim + 3];
-        double phi2 = vars[i * ndim + 4];
-
-        double l3 = sqrt(l1 * l1 + l2 * l2 + 2 * l1 * l2 * cos(phi1));
-        double l6 = sqrt(l1 * l1 + l5 * l5 + 2 * l1 * l5 * cos(phi2));
-
-        if (l3 > dev_lMax || l6 > dev_lMax || l3 <= 0 || l6 <= 0)
-        {
-            value[i] = 0;
-        }
-        else
-        {
-            double result = uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3) * uHat(l1 * theta4) * uHat(l5 * theta5) * uHat(l6 * theta6);
-
-            result *= testBispec(l1, l2, l3);
-            result *= testBispec(l1, l5, l6);
-            result *= l1 * l2 * l5;
-
-            value[i] = result;
-        }
-    }
-}
-
-int integrand_T4_testBispec(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
-{
-    if (fdim != 1)
-    {
-        std::cerr << "integrand_T1: wrong function dimension" << std::endl;
-        return -1;
-    };
-
-    ApertureStatisticsCovarianceContainer *container_ = (ApertureStatisticsCovarianceContainer *)container;
-
-    if (npts > 1e8)
-    {
-        std::cerr << "WARNING: Large number of points: " << npts << std::endl;
-        return 1;
-    };
-
-    // Allocate memory on device for integrand values
-    double *dev_value;
-    CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value, fdim * npts * sizeof(double)));
-
-    // Copy integration variables to device
-    double *dev_vars;
-    CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim * npts * sizeof(double)));                              // alocate memory
-    CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); // copying
-
-    // Calculate values
-
-    integrand_T4_infinite_testBispec<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->thetas_123.at(0),
-                                                          container_->thetas_123.at(1), container_->thetas_123.at(2),
-                                                          container_->thetas_456.at(0), container_->thetas_456.at(1),
-                                                          container_->thetas_456.at(2), dev_value);
-
-    cudaFree(dev_vars); // Free variables
-
-    // Copy results to host
-    CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
-
-    cudaFree(dev_value); // Free values
-
-    return 0; // Success :)
-}
-
-double T4_testBispec(const double &theta1, const double &theta2, const double &theta3,
-                     const double &theta4, const double &theta5, const double &theta6)
-{
-    // Set maximal l value such, that theta*l <= 10
-    double thetaMin_123 = std::min({theta1, theta2, theta3});
-    double thetaMin_456 = std::min({theta4, theta5, theta6});
-    double thetaMin = std::max({thetaMin_123, thetaMin_456});
-    double lMax = 10. / thetaMin;
-
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
-
-    // Create container
-    ApertureStatisticsCovarianceContainer container;
-    container.thetas_123 = std::vector<double>{theta1, theta2, theta3};
-    container.thetas_456 = std::vector<double>{theta4, theta5, theta6};
-    // Do integration
-    double result, error;
-
-    double vals_min[5] = {lMin, lMin, lMin, 0, 0};
-    double vals_max[5] = {lMax, lMax, lMax, 2 * M_PI, 2 * M_PI};
-
-    hcubature_v(1, integrand_T4_testBispec, &container, 5, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
-    result = result / thetaMax / thetaMax * pow(2 * M_PI, 3);
-
-    return result;
-}
-
-__device__ double testBispec(double &l1, double &l2, double &l3)
-{
-    double alpha = 1e6;
-    double result = l1 * l1 * l2 * l2;
-    result *= exp((-l1 * l1 - l2 * l2 - l3 * l3) / alpha);
-    return result;
-}
+/************************** FOR <Map²> COVARIANCE ***************************************/
 
 double Cov_Map2_Gauss(const double &theta1, const double &theta2)
 {
@@ -2282,19 +2063,60 @@ double Cov_Map2_Gauss(const double &theta1, const double &theta2)
         double vals_max[1] = {lMax};
 
         hcubature_v(1, integrand_Cov_Map2_Gauss, &container, 1, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
-        result /= (2 * M_PI)*area;
+        result /= (2 * M_PI) * area;
     }
     else if (type == 1)
     {
-        double vals_min[4] = {-1.01*lMax, -1.01*lMax, -1.01*lMax, -1.01*lMax};
+        double vals_min[4] = {-1.01 * lMax, -1.01 * lMax, -1.01 * lMax, -1.01 * lMax};
         double vals_max[4] = {lMax, lMax, lMax, lMax};
         hcubature_v(1, integrand_Cov_Map2_Gauss, &container, 4, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
-        result /= pow(2*M_PI, 4);
-        std::cerr<<result<<std::endl;
+        result /= pow(2 * M_PI, 4);
+        std::cerr << result << std::endl;
     }
     else
     {
         throw std::logic_error("Cov_Map2_Gauss: Wrong survey geometry");
+    };
+
+    return result;
+}
+
+double Cov_Map2_NonGauss(const double &theta1, const double &theta2)
+{
+    double thetaMin = std::min({theta1, theta2});
+
+    double lMax = 10. / thetaMin;
+
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
+
+    CovMap2Container container;
+    container.theta1 = theta1;
+    container.theta2 = theta2;
+
+    double mmin = pow(10, logMmin);
+    double mmax = pow(10, logMmax);
+
+    double result, error;
+    if (type == 2)
+    {
+        double vals_min[3] = {lMin, lMin, mmin};
+        double vals_max[3] = {lMax, lMax, mmax};
+
+        hcubature_v(1, integrand_Cov_Map2_NonGauss, &container, 3, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
+
+        result /= pow(2 * M_PI, 2) * area;
+    }
+    else if (type == 1)
+    {
+        double vals_min[7] = {-1.01 * lMax, -1.01 * lMax, -1.01 * lMax, -1.01 * lMax, -1.01 * lMax, -1.01 * lMax, mmin};
+        double vals_max[7] = {lMax, lMax, lMax, lMax, lMax, lMax, mmax};
+        hcubature_v(1, integrand_Cov_Map2_NonGauss, &container, 7, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
+        result /= pow(2 * M_PI, 6);
+        std::cerr << result << std::endl;
+    }
+    else
+    {
+        throw std::logic_error("Cov_Map2_NonGauss: Wrong survey geometry");
     };
 
     return result;
@@ -2345,6 +2167,51 @@ int integrand_Cov_Map2_Gauss(unsigned ndim, size_t npts, const double *vars, voi
     return 0; // Success :)
 }
 
+int integrand_Cov_Map2_NonGauss(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
+{
+    if (fdim != 1)
+    {
+        std::cerr << "integrand_Cov_Map2_NonGauss: Wrong function dimension" << std::endl;
+        return -1;
+    };
+
+    CovMap2Container *container_ = (CovMap2Container *)container;
+
+    // Allocate memory on device for integrand values
+    double *dev_value;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value, fdim * npts * sizeof(double)));
+
+    // Copy integration variables to device
+    double *dev_vars;
+    CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim * npts * sizeof(double)));                              // alocate memory
+    CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); // copying
+
+    // Calculate values
+    if (type == 1)
+    {
+        integrand_Cov_Map2_NonGauss_square<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->theta1,
+                                                                container_->theta2, dev_value);
+    }
+    else if (type == 2)
+    {
+        integrand_Cov_Map2_NonGauss_infinite<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->theta1,
+                                                                  container_->theta2, dev_value);
+    }
+    else // This should not happen
+    {
+        exit(-1);
+    };
+
+    cudaFree(dev_vars); // Free variables
+
+    // Copy results to host
+    CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
+
+    cudaFree(dev_value); // Free values
+
+    return 0; // Success :)
+}
+
 __global__ void integrand_Cov_Map2_Gauss_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value)
 {
     int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -2373,8 +2240,8 @@ __global__ void integrand_Cov_Map2_Gauss_square(const double *vars, unsigned ndi
 
         double Gfactor = G_square(v_x, v_y);
 
-        double ell1_x=v_x-ell2_x;
-        double ell1_y=v_y-ell2_y;
+        double ell1_x = v_x - ell2_x;
+        double ell1_y = v_y - ell2_y;
         double ell1 = sqrt(ell1_x * ell1_x + ell1_y * ell1_y);
         double ell2 = sqrt(ell2_x * ell2_x + ell2_y * ell2_y);
 
@@ -2385,95 +2252,6 @@ __global__ void integrand_Cov_Map2_Gauss_square(const double *vars, unsigned ndi
     }
 }
 
-double Cov_Map2_NonGauss(const double &theta1, const double &theta2)
-{
-    double thetaMin = std::min({theta1, theta2});
-
-    double lMax = 10. / thetaMin;
-
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
-
-    CovMap2Container container;
-    container.theta1 = theta1;
-    container.theta2 = theta2;
-
-    double mmin = pow(10, logMmin);
-    double mmax = pow(10, logMmax);
-
-    double result, error;
-    if (type == 2)
-    {
-        double vals_min[3] = {lMin, lMin, mmin};
-        double vals_max[3] = {lMax, lMax, mmax};
-
-        hcubature_v(1, integrand_Cov_Map2_NonGauss, &container, 3, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
-
-        result /= pow(2 * M_PI, 2)*area;
-
-    }
-    else if (type == 1)
-    {
-        double vals_min[7] = {-1.01*lMax, -1.01*lMax, -1.01*lMax, -1.01*lMax, -1.01*lMax, -1.01*lMax, mmin};
-        double vals_max[7] = {lMax, lMax, lMax, lMax,  lMax, lMax, mmax};
-        hcubature_v(1, integrand_Cov_Map2_NonGauss, &container, 7, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
-        result /= pow(2*M_PI, 6);
-        std::cerr<<result<<std::endl;
-    }
-    else
-    {
-        throw std::logic_error("Cov_Map2_NonGauss: Wrong survey geometry");
-    };
-
-    return result;
-}
-
-int integrand_Cov_Map2_NonGauss(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
-{
-    if (fdim != 1)
-    {
-        std::cerr << "integrand_Cov_Map2_NonGauss: Wrong function dimension" << std::endl;
-        return -1;
-    };
-
-    CovMap2Container *container_ = (CovMap2Container *)container;
-
-    // Allocate memory on device for integrand values
-    double *dev_value;
-    CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value, fdim * npts * sizeof(double)));
-
-    // Copy integration variables to device
-    double *dev_vars;
-    CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim * npts * sizeof(double)));                              // alocate memory
-    CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); // copying
-
-    // Calculate values
-    if (type == 1)
-    {
-        integrand_Cov_Map2_NonGauss_square<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->theta1,
-                                                             container_->theta2, dev_value);
-    }
-    else if (type == 2)
-    {
-        integrand_Cov_Map2_NonGauss_infinite<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->theta1,
-                                                               container_->theta2, dev_value);
-    }
-    else // This should not happen
-    {
-        exit(-1);
-    };
-
-    cudaFree(dev_vars); // Free variables
-
-    // Copy results to host
-    CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
-
-    cudaFree(dev_value); // Free values
-
-    return 0; // Success :)
-}
-
-
-
 __global__ void integrand_Cov_Map2_NonGauss_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value)
 {
     int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -2481,19 +2259,18 @@ __global__ void integrand_Cov_Map2_NonGauss_infinite(const double *vars, unsigne
     for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
     {
         double ell1 = vars[i * ndim];
-        double ell2 = vars[i*ndim+1];
-        double m = vars[i*ndim+2];
+        double ell2 = vars[i * ndim + 1];
+        double m = vars[i * ndim + 2];
 
-        double result = uHat(ell1*theta1)*uHat(ell2*theta2);
+        double result = uHat(ell1 * theta1) * uHat(ell2 * theta2);
         result *= result;
 
-        double trispec=trispectrum_limber_integrated(0, dev_z_max, m, ell1, ell1, ell2, ell2);
+        double trispec = trispectrum_limber_integrated(0, dev_z_max, m, ell1, ell1, ell2, ell2);
         result *= trispec;
-        result *= ell1*ell2;
+        result *= ell1 * ell2;
         value[i] = result;
     }
 }
-
 
 __global__ void integrand_Cov_Map2_NonGauss_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value)
 {
@@ -2502,39 +2279,39 @@ __global__ void integrand_Cov_Map2_NonGauss_square(const double *vars, unsigned 
     for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
     {
         double vx = vars[i * ndim];
-        double vy = vars[i*ndim+1];
-        double l2x = vars[i*ndim+2];
-        double l2y = vars[i*ndim+3];
-        double l3x = vars[i*ndim+4];
-        double l3y = vars[i*ndim+5];
-        double m=vars[i*ndim+6];
+        double vy = vars[i * ndim + 1];
+        double l2x = vars[i * ndim + 2];
+        double l2y = vars[i * ndim + 3];
+        double l3x = vars[i * ndim + 4];
+        double l3y = vars[i * ndim + 5];
+        double m = vars[i * ndim + 6];
 
-        double l1x=vx-l2x;
-        double l1y=vy-l2y;
-        double l4x=-vx-l3x;
-        double l4y=-vy-l3y;
+        double l1x = vx - l2x;
+        double l1y = vy - l2y;
+        double l4x = -vx - l3x;
+        double l4y = -vy - l3y;
 
-        double ell1=sqrt(l1x*l1x+l1y*l1y);
-        double ell2=sqrt(l2x*l2x+l2y*l2y);
-        double ell3=sqrt(l3x*l3x+l3y*l3y);
-        double ell4=sqrt(l4x*l4x+l4y*l4y);
+        double ell1 = sqrt(l1x * l1x + l1y * l1y);
+        double ell2 = sqrt(l2x * l2x + l2y * l2y);
+        double ell3 = sqrt(l3x * l3x + l3y * l3y);
+        double ell4 = sqrt(l4x * l4x + l4y * l4y);
 
-        if(ell1 <= dev_lMin || ell2 <= dev_lMin || ell3 <= dev_lMin || ell4 <= dev_lMin)
+        if (ell1 <= dev_lMin || ell2 <= dev_lMin || ell3 <= dev_lMin || ell4 <= dev_lMin)
         {
-            value[i]=0;
+            value[i] = 0;
         }
         else
         {
 
-        double result = uHat(ell1*theta1)*uHat(ell2*theta1)*uHat(ell3*theta2)*uHat(ell4*theta2);
+            double result = uHat(ell1 * theta1) * uHat(ell2 * theta1) * uHat(ell3 * theta2) * uHat(ell4 * theta2);
 
-        double trispec=trispectrum_limber_integrated(0, dev_z_max, m, ell1, ell2, ell3, ell4);
-        double Gfactor = G_square(vx, vy);
-        result *= trispec;
-        result *= Gfactor;
-        value[i] = result;
-        
-        //printf("%e %e %e %e %e %e %e \n", result, trispec, Gfactor, ell1, ell2, ell3, ell4);
+            double trispec = trispectrum_limber_integrated(0, dev_z_max, m, ell1, ell2, ell3, ell4);
+            double Gfactor = G_square(vx, vy);
+            result *= trispec;
+            result *= Gfactor;
+            value[i] = result;
+
+            // printf("%e %e %e %e %e %e %e \n", result, trispec, Gfactor, ell1, ell2, ell3, ell4);
         };
     }
 }

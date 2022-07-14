@@ -12,11 +12,10 @@
 #include <string>
 #include <vector>
 /**
- * @file calculateApertureStatistics.cu
- * This executable calculates <MapMapMap> from the
- * Takahashi+ Bispectrum
- * Aperture radii are read from file and <MapMapMap> is only calculated for
- * independent combis of thetas Code uses CUDA and cubature library  (See
+ * @file calculateMap4.cu
+ * This executable calculates <Map⁴> from the 1-halo term of the Trispectrum
+ * Aperture radii are read from file and <Map⁴> is only calculated for theta1<=theta2<=theta3<=theta4
+ * Code uses CUDA and cubature library  (See
  * https://github.com/stevengj/cubature for documentation)
  * @author Laila Linke
  */
@@ -25,7 +24,7 @@ int main(int argc, char *argv[])
   // Read in command line
 
   const char *message = R"( 
-calculateApertureStatistics.x : Wrong number of command line parameters (Needed: 5)
+calculateMap4.x : Wrong number of command line parameters (Needed: 5)
 Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
 Argument 2: Filename with thetas [arcmin]
 Argument 3: Outputfilename, directory needs to exist 
@@ -33,7 +32,7 @@ Argument 4: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) f
 Argument 5 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
 
 Example:
-./calculateApertureStatistics.x ../necessary_files/MR_cosmo.dat ../necessary_files/HOWLS_thetas.dat ../../results_MR/MapMapMap_bispec_gpu_nz.dat 1 ../necessary_files/nz_MR.dat
+./calculateMap4.x ../necessary_files/MR_cosmo.dat ../necessary_files/HOWLS_thetas.dat ../../results_MR/Map4.dat 1 ../necessary_files/nz_MR.dat
 )";
 
   if (argc < 5) // Give out error message if too few CLI arguments
@@ -104,19 +103,18 @@ Example:
   };
 
   initHalomodel();
-  // thetas={2, 4, 8};
-  // N=thetas.size();
+
   //  Set up vector for aperture statistics
   int Ntotal = factorial(N + 3) / factorial(N - 1) / 24; // Total number of bins that need to be calculated, = (N+4+1) ncr 3
-  // int Ntotal=N;
+
   std::vector<double> Map4s;
 
   // Needed for monitoring
 
   int step = 0;
 
-  // Calculate <MapMapMap>(theta1, theta2, theta3) in three loops
-  // Calculation only for theta1<=theta2<=theta3
+  // Calculate <Map⁴>(theta1, theta2, theta3, theta4) in four loops
+  // Calculation only for theta1<=theta2<=theta3<=theta4
   for (int i = 0; i < N; i++)
   {
     double theta1 = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
@@ -136,10 +134,8 @@ Example:
           std::vector<double> thetas_calc = {theta1, theta2, theta3, theta4};
           // Progress for the impatient user (Thetas in arcmin)
           step += 1;
-          // std::cout<<step<<std::endl;
           std::cout << step << "/" << Ntotal << ": Thetas:" << thetas.at(i) << " "
-                    << thetas.at(j) << " " << thetas.at(k) << " " << thetas.at(l) << std::endl; // " \r";
-          // std::cout.flush();
+                    << thetas.at(j) << " " << thetas.at(k) << " " << thetas.at(l) << std::endl;
 
           double Map4_ = Map4(thetas_calc); // Do calculation
           std::cerr << Map4_ << std::endl;

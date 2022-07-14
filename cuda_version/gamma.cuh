@@ -1,6 +1,8 @@
 #ifndef GAMMA_GPU_CUH
 #define GAMMA_GPU_CUH
 
+// THIS FUNCTIONS NEED MORE COMMENTS
+
 #include <stdio.h>
 #include <math.h>
 #include <fstream>

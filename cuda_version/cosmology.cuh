@@ -5,9 +5,10 @@
 #include <fstream>
 #include <vector>
 
+
 /**
- * Class containing cosmological parameters
- * Can read them from file
+ * @brief Class containing cosmological parameters
+ * Class can read the parameters from a file
  */
 class cosmology
 {
@@ -27,34 +28,67 @@ public:
   cosmology(const std::string &fn_parameters); // Constructor from filename (reads in)
 };
 
-// Output
+/**
+ * @brief Operator to write cosmological parameter file
+ * 
+ * @param out Output stream
+ * @param cosmo Cosmology to be written to file
+ * @return std::ostream& 
+ */
 std::ostream &operator<<(std::ostream &out, const cosmology &cosmo);
 
+/**
+ * @brief Class containing survey parameters that are important for the covariance
+ * 
+ */
 class covarianceParameters
 {
 public:
   double thetaMax; //[rad] this is the radius for a circular survey and the sidelength for a square survey
-  double shapenoise_sigma;
-  double galaxy_density; // rad^-2
-  bool shapenoiseOnly;
-  double thetaMax_smaller; // [rad]
-  double area;
+  double shapenoise_sigma; // Galaxy ellipticity standard deviation (for single component)
+  double galaxy_density; // number density of galaxies rad^-2
+  bool shapenoiseOnly; // Whether a constant powerspectrum is used
+  double thetaMax_smaller; // smaller sidelength for a rectangular survey [rad]
+  double area; // Survey area [rad^2]
 
   covarianceParameters(){};                    // Empty constructor
   covarianceParameters(const std::string &fn); // Constructor from filename (reads in)
 };
 
-// Output
+/**
+ * @brief Operator to write covariance parameter file
+ * 
+ * @param out Output stream
+ * @param covPar covariance parameters to be written to file
+ * @return std::ostream& 
+ */
 std::ostream &operator<<(std::ostream &out, const covarianceParameters &covPar);
 
+/**
+ * @brief Class containing binning for 3Pt-Corr Function
+ * 
+ */
 struct configGamma
 {
   int rsteps, usteps, vsteps;
   double umin, umax, vmin, vmax, rmin, rmax;
 };
 
+/**
+ * @brief Read in binning for 3Pt-Corr Function
+ * 
+ * @param fn Filename
+ * @param config Config to which read-in shall be written
+ */
 void read_gamma_config(const std::string &fn, configGamma &config);
 
+/**
+ * @brief Operator to write 3Pt-Corr config to file
+ * 
+ * @param out Output stream
+ * @param config Config to be written to file
+ * @return std::ostream& 
+ */
 std::ostream &operator<<(std::ostream &out, const configGamma &config);
 
 #endif // COSMOLOGY_CUH

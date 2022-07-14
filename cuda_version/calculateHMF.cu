@@ -10,30 +10,28 @@
 #include <string>
 #include <vector>
 /**
- * @file calculateApertureStatistics.cu
- * This executable calculates <MapMapMap> from the
- * Takahashi+ Bispectrum
- * Aperture radii are read from file and <MapMapMap> is only calculated for
- * independent combis of thetas Code uses CUDA and cubature library  (See
- * https://github.com/stevengj/cubature for documentation)
+ * @file calculateHMF.cu
+ * This executable gives out the Halo Mass Function used for the Tri- and Pentaspectrum for consistency tests
+ * The Halo Mass Function is the Sheth-Tormen (2001) one
+ * Cosmology is read from file
  * @author Laila Linke
  */
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   // Read in command line
 
   const char *message = R"( 
-calculateApertureStatistics.x : Wrong number of command line parameters (Needed: 5)
+calculateHMF.x : Wrong number of command line parameters (Needed: 4)
 Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
-Argument 2: Filename with thetas [arcmin]
-Argument 3: Outputfilename, directory needs to exist 
-Argument 4: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) from file                  
-Argument 5 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
+Argument 2: Outputfilename, directory needs to exist 
+Argument 3: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) from file                  
+Argument 4 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
 
 Example:
-./calculateApertureStatistics.x ../necessary_files/MR_cosmo.dat ../necessary_files/HOWLS_thetas.dat ../../results_MR/MapMapMap_bispec_gpu_nz.dat 1 ../necessary_files/nz_MR.dat
+./calculateHMF.x ../necessary_files/MR_cosmo.dat ../../results_MR/HMF.dat 1 ../necessary_files/nz_MR.dat
 )";
 
-  if (argc < 5) // Give out error message if too few CLI arguments
+  if (argc < 4) // Give out error message if too few CLI arguments
   {
     std::cerr << message << std::endl;
     exit(1);
@@ -45,7 +43,8 @@ Example:
   cosmo_paramfile = argv[1];
   outfn = argv[2];
   nz_from_file = std::stoi(argv[3]);
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     nzfn = argv[4];
   };
 
@@ -54,19 +53,19 @@ Example:
 
   // Read in n_z
   std::vector<double> nz;
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
   };
 
   // Check if output file can be opened
   std::ofstream out;
   out.open(outfn.c_str());
-  if (!out.is_open()) {
+  if (!out.is_open())
+  {
     std::cerr << "Couldn't open " << outfn << std::endl;
     exit(1);
   };
-
-
 
   // User output
   std::cerr << "Using cosmology from " << cosmo_paramfile << ":" << std::endl;
@@ -77,30 +76,30 @@ Example:
 
   copyConstants();
 
-  if (nz_from_file) {
+  if (nz_from_file)
+  {
     std::cerr << "Using n(z) from " << nzfn << std::endl;
     set_cosmology(cosmo, &nz);
-  } 
-  else 
+  }
+  else
   {
     set_cosmology(cosmo);
   };
 
   initHalomodel();
-  
-  double mmin=10;
-  double mmax=16;
-  int Nbins=100;
-  double mbin=(mmax-mmin)/Nbins;
-  double z=1;
 
-  for( int i=0; i<Nbins; i++)
+  double mmin = 10;
+  double mmax = 16;
+  int Nbins = 100;
+  double mbin = (mmax - mmin) / Nbins;
+  double z = 1;
+
+  for (int i = 0; i < Nbins; i++)
   {
-    double m=pow(10, mmin+(i+0.5)*mbin);
-    double u=hmf(m, z);
-    out<<m<<" "<<u<<std::endl;
+    double m = pow(10, mmin + (i + 0.5) * mbin);
+    double u = hmf(m, z);
+    out << m << " " << u << std::endl;
   }
-
 
   return 0;
 }

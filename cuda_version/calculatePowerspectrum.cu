@@ -7,14 +7,27 @@
 #include <string>
 #include <vector>
 #include <math.h>
+
 /**
- * @file testPowerspectrum.cu
- * This executable calculates the nonlinear power spectrum from the
- * Takahashi+ halofit formula
+ * @file calculatePowerspectrum.cu
+ * This executable gives out the Limberintegrated Revised Halofit Powerspectrum
+ * The cosmology is read from file
+ * @warning ellMin and ellMax are hardcoded
  * @author Sven Heydenreich
  */
 int main(int argc, char *argv[])
 {
+  const char *message = R"( 
+calculatePowerspectrum.x : Wrong number of command line parameters (Needed: 5)
+Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
+Argument 2: Outputfilename, directory needs to exist 
+Argument 3: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) from file                  
+Argument 4 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
+
+Example:
+./calculatePowerspectrum.x ../necessary_files/MR_cosmo.dat ../../results_MR/powerspectrum_MR.dat 1 ../necessary_files/nz_MR.dat
+)";
+
   // Read in command line
   double lk_min = -5;
   double lk_max = 1;
@@ -28,17 +41,6 @@ int main(int argc, char *argv[])
     z[i] = 1.;
   }
   double *value = new double[n_k];
-
-  const char *message = R"( 
-testPowerspectrum.x : Wrong number of command line parameters (Needed: 5)
-Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
-Argument 2: Outputfilename, directory needs to exist 
-Argument 3: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) from file                  
-Argument 4 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
-
-Example:
-./testPowerspectrum.x ../necessary_files/MR_cosmo.dat ../../results_MR/powerspectrum_MR.dat 1 ../necessary_files/nz_MR.dat
-)";
 
   if (argc < 4) // Give out error message if too few CLI arguments
   {
