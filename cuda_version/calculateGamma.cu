@@ -152,9 +152,6 @@ Example:
                (total_steps - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
                elapsed.count() * 1e-9 / completed_steps);
         out
-            << i << " "
-            << j << " "
-            << k << " "
             << real(_gamma0) << " "
             << imag(_gamma0) << " "
             << real(_gamma1) << " "
