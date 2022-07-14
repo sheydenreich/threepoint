@@ -70,10 +70,7 @@ In general, some knowledge on CUDA and how GPUs work is useful to understand the
 
 ### Installation
 
-1. Clone the repo
-   ```sh
-   git clone https://github.com/sven/threepoint.git
-   ```
+1. Download the newest release and unpack it
 2. Install missing prerequisites
 3. Go into the source directory and open Makefile
 
