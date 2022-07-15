@@ -32,7 +32,7 @@ __global__ void integrand_Map2_kernel(const double *vars, unsigned ndim, int npt
     double ell = vars[i * ndim];
     double z = vars[i * ndim + 1];
 
-    value[i] = ell * pow(uHat(ell * theta), 2) * (limber_integrand(ell, z) + 0.5 * dev_sigma * dev_sigma / dev_n / dev_z_max);
+    value[i] = ell * pow(uHat(ell * theta), 2) * (dev_limber_integrand_power_spectrum(ell, z) + 0.5 * dev_sigma * dev_sigma / dev_n / dev_z_max);
   }
 }
 

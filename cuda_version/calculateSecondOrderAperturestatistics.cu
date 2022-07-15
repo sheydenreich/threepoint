@@ -62,17 +62,14 @@ Example:
 
   // Read in n_z
   std::vector<double> nz;
-  if (nz_from_file)
+  try
   {
-    try
-    {
-      read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
-    }
-    catch (const std::exception &e)
-    {
-      std::cerr << e.what() << '\n';
-      return -1;
-    }
+    read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
+  }
+  catch (const std::exception &e)
+  {
+    std::cerr << e.what() << '\n';
+    return -1;
   };
 
   // Check if output file can be opened
@@ -107,15 +104,8 @@ Example:
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma, &sigma, sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n, &n, sizeof(double)));
 
-  if (nz_from_file)
-  {
-    std::cerr << "Using n(z) from " << nzfn << std::endl;
-    set_cosmology(cosmo, &nz);
-  }
-  else
-  {
-    set_cosmology(cosmo);
-  };
+  std::cerr << "Using n(z) from " << nzfn << std::endl;
+  set_cosmology(cosmo, &nz);
 
   // Set up vector for aperture statistics
   std::vector<double> MapMaps;

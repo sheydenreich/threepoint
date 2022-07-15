@@ -49,9 +49,7 @@ Example:
 
   // Read in n_z
   std::vector<double> nz;
-  if (nz_from_file) {
-    read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
-  };
+  read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
 
   // Check if output file can be opened
   std::ofstream out;
@@ -72,14 +70,8 @@ Example:
 
   copyConstants();
 
-  if (nz_from_file) {
-    std::cerr << "Using n(z) from " << nzfn << std::endl;
-    set_cosmology(cosmo, &nz);
-  } 
-  else 
-  {
-    set_cosmology(cosmo);
-  };
+  std::cerr << "Using n(z) from " << nzfn << std::endl;
+  set_cosmology(cosmo, &nz);
 
   initHalomodel();
   

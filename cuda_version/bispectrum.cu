@@ -98,7 +98,7 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
   bool nz_from_file = (nz != NULL);
   if (nz_from_file)
   {
-    std::out << "Using n(z) from file" << std::endl;
+    std::cout << "Using n(z) from file" << std::endl;
   }
   else
   {

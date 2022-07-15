@@ -64,15 +64,7 @@ public:
  */
 std::ostream &operator<<(std::ostream &out, const covarianceParameters &covPar);
 
-/**
- * @brief Class containing binning for 3Pt-Corr Function
- * 
- */
-struct configGamma
-{
-  int rsteps, usteps, vsteps;
-  double umin, umax, vmin, vmax, rmin, rmax;
-};
+
 
 
 #endif // COSMOLOGY_CUH

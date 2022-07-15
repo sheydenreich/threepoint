@@ -61,11 +61,7 @@ Example:
   cosmology cosmo(cosmo_paramfile);
 
   std::vector<double> nz;
-  if (nz_from_file)
-  {
-    // Read in n_z
-    read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
-  };
+  read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
 
   // Check output file
   std::ofstream out;
@@ -98,14 +94,7 @@ Example:
 
   copyConstants();
 
-  if (nz_from_file)
-  {
-    set_cosmology(cosmo, &nz);
-  }
-  else
-  {
-    set_cosmology(cosmo);
-  };
+  set_cosmology(cosmo, &nz);
 
   compute_weights_bessel();
 
