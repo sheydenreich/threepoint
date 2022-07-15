@@ -42,6 +42,16 @@ void read_thetas(const std::string &fn, std::vector<double> &thetas);
 double valueMap(const std::map<double, double> &map, double value);
 
 /**
+ * @brief Class containing binning for 3Pt-Corr Function
+ * 
+ */
+ struct configGamma
+ {
+   int rsteps, usteps, vsteps;
+   double umin, umax, vmin, vmax, rmin, rmax;
+ };
+
+/**
  * @brief Read in binning for 3Pt-Corr Function
  * 
  * @param fn Filename
