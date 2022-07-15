@@ -41,5 +41,23 @@ void read_thetas(const std::string &fn, std::vector<double> &thetas);
 
 double valueMap(const std::map<double, double> &map, double value);
 
+/**
+ * @brief Read in binning for 3Pt-Corr Function
+ * 
+ * @param fn Filename
+ * @param config Config to which read-in shall be written
+ */
+ void read_gamma_config(const std::string &fn, configGamma &config);
+
+ /**
+  * @brief Operator to write 3Pt-Corr config to file
+  * 
+  * @param out Output stream
+  * @param config Config to be written to file
+  * @return std::ostream& 
+  */
+ std::ostream &operator<<(std::ostream &out, const configGamma &config);
+ 
+
 int factorial(int n);
 #endif // HELPERS_CUH
