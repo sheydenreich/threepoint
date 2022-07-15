@@ -25,29 +25,23 @@ int main(int argc, char *argv[])
 calculatePentaspectrum_halomodel.x : Wrong number of command line parameters (Needed: 4)
 Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
 Argument 2: Outputfilename, directory needs to exist 
-Argument 3: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) from file                  
-Argument 4 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
+Argument 3: Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
 
 Example:
-./calculatePentaspectrum_halomodel.x ../necessary_files/MR_cosmo.dat  ../../results_MR/Pentaspectrum.dat 1 ../necessary_files/nz_MR.dat
+./calculatePentaspectrum_halomodel.x ../necessary_files/MR_cosmo.dat  ../../results_MR/Pentaspectrum.dat ../necessary_files/nz_MR.dat
 )";
 
-  if (argc < 5) // Give out error message if too few CLI arguments
+  if (argc < 4) // Give out error message if too few CLI arguments
   {
     std::cerr << message << std::endl;
     exit(1);
   };
 
   std::string cosmo_paramfile, thetasfn, outfn, nzfn;
-  bool nz_from_file = false;
 
   cosmo_paramfile = argv[1];
   outfn = argv[2];
-  nz_from_file = std::stoi(argv[3]);
-  if (nz_from_file)
-  {
-    nzfn = argv[4];
-  };
+  nzfn = argv[3];
 
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);
