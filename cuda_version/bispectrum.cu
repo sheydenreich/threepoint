@@ -372,49 +372,19 @@ __device__ double om_v_of_z(double z)
   return dev_ow * aa * aa * aa / (dev_om + aa * (aa * aa * dev_ow + (1. - dev_om - dev_ow)));
 }
 
-__device__ double limber_integrand(double ell, double z)
-{
-  if (z < 1e-5)
-    return 0;
-  double didx = z / dev_z_max * (dev_n_redshift_bins - 1);
-  int idx = didx;
-  didx = didx - idx;
-  if (idx == dev_n_redshift_bins - 1)
-  {
-    idx = dev_n_redshift_bins - 2;
-    didx = 1.;
-  }
-  double g_value = g_interpolated(idx, didx);
-  double f_K_value = f_K_interpolated(idx, didx);
-  // printf("%.2e, %.2e\n", z, f_K_value);
-  // printf("%.2f, %.2f, %.5e, %.5e \n",z,ell,dev_limber_integrand_prefactor(z, g_value),P_k_nonlinear(ell/f_K_value, z));
-  return dev_limber_integrand_prefactor(z, g_value) * P_k_nonlinear(ell / f_K_value, z);
-}
 
 __global__ void limber_integrand_wrapper(const double *vars, unsigned ndim, size_t npts, double ell, double *value)
 {
   // index of thread
   int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
 
-  // if(thread_index==0)
-  // {
-  //   printf("# z, ell, prefactor, P_delta(ell,z) \n");
-  //   for(double z=0;z<6;z+=0.05)
-  //   limber_integrand(2.,z);
-  // }
-  // if(thread_index==0)
-  // {
-  //   printf("# z, ell, prefactor, P_delta(ell,z) \n");
-  //   for(double z=0;z<6;z+=0.05)
-  //   limber_integrand(1000.,z);
-  // }
 
   // return;
   // Grid-Stride loop, so I get npts evaluations
   for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
   {
     double z = vars[i * ndim];
-    value[i] = limber_integrand(ell, z);
+    value[i] = dev_limber_integrand_power_spectrum(ell, z);
   }
 }
 
@@ -724,26 +694,6 @@ __device__ double F2_tree(double k1, double k2, double k3) // F2 kernel in tree 
 double f_K_at_z(double z)
 {
   return c_over_H0 * GQ96_of_Einv(0, z);
-}
-
-double n_of_z(double z)
-{
-  if (z <= 0 || z >= z_max)
-    return 0;
-  if (slics)
-  {
-    // Here the correct n(z) for Euclid-like simulations.
-    return 1.7865 * (pow(z, 0.4710) + pow(z, 0.4710 * 5.1843)) / (pow(z, 5.1843) + 0.7259) / 2.97653;
-    // this is a different n(z), not the one used for our simulations. That one is above.
-    // return pow(z,2)*exp(-pow(z/0.637,1.5))*5.80564; //normalization 5.80564 such that int_0^3 dz n(z) is 1
-  }
-  else
-  {
-    if (z >= 1 && z < 1 + dz)
-      return 1. / dz;
-    else
-      return 0;
-  }
 }
 
 double lgr(double z) // linear growth factor at z (not normalized at z=0)
