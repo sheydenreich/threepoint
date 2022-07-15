@@ -88,6 +88,8 @@ xdg-open Makefile
 
 The folder `examples` contains examples for the required parameter files and how the code can be run. Three quantities are the key outputs of the code: the aperture statistics $\langle M_\mathrm{ap}^3\rangle$, the natural components of the 3Pt-Correlation Function $\Gamma$ and the covariance $C_{M^3}$ of the aperture statistics.
 
+Note that the number of redshift bins used for the interpolation of the lensing weights (and other quantities) is hard-coded as `n_redshift_bins` in the file `bispectrum.cuh`. Adjust this if necessary.
+
 ### Calculation of Third order aperture statistics
 
 #### Required Input
@@ -133,7 +135,8 @@ The code writes the $\Gamma_i$ into the file specified in the function call. Thi
 10. $u$-bin
 11. $v$-bin
 
-$r, u,$ and $v$ are the triangle parameters defined by Jarvis+(2004) and implemented in `treecorr`. See here for their definition: [https://rmjarvis.github.io/TreeCorr/_build/html/correlation3.html](https://rmjarvis.github.io/TreeCorr/_build/html/correlation3.html)
+$r, u,$ and $v$ are the triangle parameters defined by Jarvis+(2004) and implemented in `treecorr`. See here for their definition: [https://rmjarvis.github.io/TreeCorr/_build/html/correlation3.html](https://rmjarvis.github.io/TreeCorr/_build/html/correlation3.html).
+By default, the triangle center is set as the centroid, to ensure compatibility with the definitions in `treecorr` (Jarvis+2004). This can be deactivated when disabling the flag `CONVERT_TO_CENTROID` in the file `gamma.cuh`.
 
 <!-- LICENSE -->
 
