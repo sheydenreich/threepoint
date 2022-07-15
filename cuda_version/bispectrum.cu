@@ -98,11 +98,12 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
   bool nz_from_file = (nz != NULL);
   if (nz_from_file)
   {
-    std::cerr << "Using n(z) from file" << std::endl;
+    std::out << "Using n(z) from file" << std::endl;
   }
   else
   {
-    std::cerr << "Computing n(z) myself" << std::endl;
+    std::cerr << "No n(z) file found. Exiting." << std::endl;
+    exit(-1);
   };
 
   // set cosmology
@@ -166,14 +167,7 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
     {
       double z_now = j * dz;
       double nz_znow;
-      if (nz_from_file)
-      {
-        nz_znow = nz->at(j);
-      }
-      else
-      {
-        nz_znow = n_of_z(z_now);
-      };
+      nz_znow = nz->at(j);
       if (j == i || j == n_redshift_bins - 1)
       {
         g_array[i] += nz_znow * (f_K_array[j] - f_K_array[i]) / f_K_array[j] / 2;

@@ -26,30 +26,24 @@ calculateApertureStatistics.x : Wrong number of command line parameters (Needed:
 Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
 Argument 2: Filename with thetas [arcmin]
 Argument 3: Outputfilename, directory needs to exist 
-Argument 4: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) from file                  
-Argument 5 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
+Argument 4: Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
 
 Example:
-./calculateApertureStatistics.x ../necessary_files/MR_cosmo.dat ../necessary_files/HOWLS_thetas.dat ../../results_MR/MapMapMap_bispec_gpu_nz.dat 1 ../necessary_files/nz_MR.dat
+./calculateApertureStatistics.x ../necessary_files/MR_cosmo.dat ../necessary_files/HOWLS_thetas.dat ../../results_MR/MapMapMap_bispec_gpu_nz.dat ../necessary_files/nz_MR.dat
 )";
 
-  if (argc < 5) // Give out error message if too few CLI arguments
+  if (argc < 4) // Give out error message if too few CLI arguments
   {
     std::cerr << message << std::endl;
     exit(1);
   };
 
   std::string cosmo_paramfile, thetasfn, outfn, nzfn;
-  bool nz_from_file = false;
 
   cosmo_paramfile = argv[1];
   thetasfn = argv[2];
   outfn = argv[3];
-  nz_from_file = std::stoi(argv[4]);
-  if (nz_from_file)
-  {
-    nzfn = argv[5];
-  };
+  nzfn = argv[4];
 
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);

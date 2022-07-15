@@ -290,15 +290,6 @@ __device__ double F2_tree(double k1, double k2, double k3); // F2 kernel in tree
 double f_K_at_z(double z);
 
 /**
- * Source redshift distribution.
- * Currently includes only SLICS distribution, or all sources at z=1.
- * Uses slics distribution, if slics=True
- * @param z redshift
- * @return n(z), normalized sich that  \f$\int_0^{z_{max}} dz n(z) = 1\f$
- */
-double n_of_z(double z);
-
-/**
  * Linear growth function.
  * @warning Not normalized at z=0!
  * @param z redshift

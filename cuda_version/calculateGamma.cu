@@ -26,35 +26,29 @@ calculateGamma.x : Wrong number of command line parameters (Needed: 4)
 Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
 Argument 2: Config file for the 3pcf
 Argument 3: Outputfilename, directory needs to exist 
-Argument 4: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) from file                  
-Argument 5 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
-Argument 6 (optional): GPU device number
+Argument 4: Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
+Argument 5 (optional): GPU device number
 Example:
-./calculateGamma.x ../necessary_files/MR_cosmo.dat ../../results_MR/MapMapMap_varyingCosmos.dat 1 ../necessary_files/nz_MR.dat
+./calculateGamma.x ../necessary_files/MR_cosmo.dat ../../results_MR/MapMapMap_varyingCosmos.dat ../necessary_files/nz_MR.dat 0
 )";
 
-  if (argc < 4)
+  if (argc < 5)
   {
     std::cerr << message << std::endl;
     exit(1);
   };
 
   std::string cosmo_paramfile, outfn, nzfn, config_file;
-  bool nz_from_file = false;
 
   cosmo_paramfile = argv[1];
   config_file = argv[2];
   outfn = argv[3];
-  nz_from_file = std::stoi(argv[4]);
-  if (nz_from_file)
-  {
-    nzfn = argv[5];
-  };
+  nzfn = argv[4];
 
   std::cout << "Executing " << argv[0] << " ";
-  if (argc == 7)
+  if (argc == 6)
   {
-    int deviceNumber = atoi(argv[6]);
+    int deviceNumber = atoi(argv[5]);
     std::cout << "on GPU " << deviceNumber << std::endl;
     cudaSetDevice(deviceNumber);
   }

@@ -24,13 +24,13 @@ int main(int argc, char *argv[])
   const char *message = R"( 
 calculateSecondOrderApertureStatistics.x : Wrong number of command line parameters (Needed: 5)
 Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
-Argument 2: Filename with thetas [arcmin]
-Argument 3: Outputfilename, directory needs to exist
-Argument 4: 0: use analytic n(z) (only works for MR and SLICS), or 1: use n(z) from file                  
-Argument 5 (optional): Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
+Argument 2: Filename for covariance parameters (ASCII, see examples/exampleCovariance.param for an example)
+Argument 3: Filename with thetas [arcmin]
+Argument 4: Outputfilename, directory needs to exist
+Argument 5: Filename for n(z) (ASCII, see necessary_files/nz_MR.dat for an example)
 
 Example:
-./calculateSecondOrderApertureStatistics.x ../necessary_files/MR_cosmo.dat ../necessary_files/HOWLS_thetas.dat ../../results_MR/Map2.dat 1 1 ../necessary_files/nz_MR.dat
+./calculateSecondOrderApertureStatistics.x ../necessary_files/MR_cosmo.dat ../necessary_files/HOWLS_thetas.dat ../../results_MR/Map2.dat ../necessary_files/nz_MR.dat
 )";
 
   if (argc < 5) // Give out error message if too few CLI arguments
@@ -40,17 +40,12 @@ Example:
   };
 
   std::string cosmo_paramfile, covariance_paramfile, thetasfn, outfn, nzfn;
-  bool nz_from_file = false;
 
   cosmo_paramfile = argv[1];
   covariance_paramfile = argv[2];
   thetasfn = argv[3];
   outfn = argv[4];
-  nz_from_file = std::stoi(argv[5]);
-  if (nz_from_file)
-  {
-    nzfn = argv[7];
-  };
+  nzfn = argv[5];
 
   covarianceParameters covPar(covariance_paramfile);
   constant_powerspectrum = covPar.shapenoiseOnly;
