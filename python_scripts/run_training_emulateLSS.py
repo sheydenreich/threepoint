@@ -49,6 +49,21 @@ parser.add_argument(
     help="turns on debug mode. default: %(default)s"
 )
 
+parser.add_argument(
+    "--nofz", default="../necessary_files/nz_SLICS_euclidlike.dat", metavar = 'STR',
+    help="which n(z) file to use for computation of aperture masses. default: %(default)s"
+)
+
+parser.add_argument(
+    "--nodes", default=1500, metavar='INT', type=int,
+    help='Number of training nodes. default: %(default)s'
+)
+
+parser.add_argument(
+    "--cov_file", default = "../necessary_files/Covariance_SLICS.dat", metavar='STR',
+    help="Filename for covariance parameters. default: %(default)s"
+)
+
 
 class cosmology:
     def __init__(self,h=0.6898,sigma_8=0.826,Omega_b=0.0473,n_s=0.969,w=-1.,Omega_m=0.2905,z_max=3.):
@@ -76,7 +91,7 @@ def run_map23(cosmo,logname="../logs/log.dat",logname_err="../logs/log_err.dat",
             out_fname="../../results/temp_maps_emulateLSS",
             nz_fname = "../necessary_files/nz_SLICS_euclidlike.dat", theta_fname = "../necessary_files/Our_thetas.dat",
             cosmo_fname = "../necessary_files/temp_cosmo.dat",cleanup=True,cov_fname = "../necessary_files/Covariance_SLICS.dat",
-            debug=False, gpu_num=0):
+            debug=False, gpu_num=0, counter=None):
     
     command_map3 = ["./calculateApertureStatistics.x",cosmo_fname,theta_fname,out_fname+"_map3.dat","1",nz_fname]
     command_map2 = ["./calculateSecondOrderApertureStatistics.x",cosmo_fname,cov_fname,theta_fname,out_fname+"_map2.dat","1",nz_fname]
@@ -98,15 +113,18 @@ def run_map23(cosmo,logname="../logs/log.dat",logname_err="../logs/log_err.dat",
         proc = Popen(command_map2, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (out,err) = proc.communicate()
         if err is not None and len(err)>0:
-            print("WARNING: Error in Map2!")
-            print(err)
-            logfile = open(logname_err,"w")
-            logfile.write(err.decode("utf-8"))
-            logfile.close()
+            if(counter==1 or not "T+17 corrections" in err.decode("utf-8")):
+                print("WARNING: Error in Map2!")
+                print(err)
+                logfile = open(logname_err,"w")
+                logfile.write(err.decode("utf-8"))
+                logfile.close()
         logfile = open(logname,"w")
         logfile.write(out.decode("utf-8"))
         logfile.close()
 
+
+        # ONLY RECOMPUTE MAP2!
         proc = Popen(command_map3, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (out,err) = proc.communicate()
         if err is not None and len(err)>0:
@@ -119,20 +137,21 @@ def run_map23(cosmo,logname="../logs/log.dat",logname_err="../logs/log_err.dat",
         logfile.write(out.decode("utf-8"))
         logfile.close()
 
-    map2s = np.loadtxt(out_fname+"_map2.dat")#[:,-1]
-    map3s = np.loadtxt(out_fname+"_map3.dat")#[:,-1]
+    map2s = np.loadtxt(out_fname+"_map2.dat")[:,-1]
+    # map3s = np.loadtxt("/users/sven/Documents/code/EmulateLSS/training_data/single_results/result_map23_{}_kids1000_takahashi.dat".format(i))[len(map2s):]
+    # ONLY RECOMPUTE MAP2!
+    map3s = np.loadtxt(out_fname+"_map3.dat")[:,-1]
     if(debug):
         print(map2s)
         print(map3s)
         print(map2s.shape)
         print(map3s.shape)
-    map2s = map2s[:,-1]
-    map3s = map3s[:,-1]
     result = np.concatenate((map2s,map3s))
 
     if(cleanup):
         os.remove(cosmo_fname)
         os.remove(out_fname+"_map2.dat")
+        # ONLY RECOMPUTE MAP2!
         os.remove(out_fname+"_map3.dat")
 
     return result
@@ -200,7 +219,13 @@ def run_gamma(cosmo,logname="../logs/log.dat",logname_err="../logs/log_err.dat",
 ###### CALCULATION OF GAMMA
 if(__name__=="__main__"):
     args = parser.parse_args()
-    training_data = np.loadtxt("../../EmulateLSS/training_data/latin_hypercube_params.txt")
+    if(args.nodes==1500):
+        training_data = np.loadtxt("../../EmulateLSS/training_data/latin_hypercube_params.txt")
+    else:
+        try:
+            training_data = np.loadtxt("../../EmulateLSS/training_data/latin_hypercube_params_{}.txt".format(args.nodes))
+        except Exception as e:
+            raise NameError("No latin hypercube with {} nodes found.".format(args.nodes))
     gpu_num = args.gpu_num
 
     for i,line in tqdm(enumerate(training_data),total = training_data.shape[0]):
@@ -224,6 +249,7 @@ if(__name__=="__main__"):
                 logname_err = "../logs/log_err_gamma_{}{}.dat".format(i,args.output_name),gpu_num=gpu_num,
                 out_fname="../../results/temp_gamma_emulateLSS_{}".format(gpu_num),
                 cosmo_fname="../necessary_files/temp_cosmo_{}.dat".format(gpu_num),
+                nz_fname = args.nofz,
                 debug=args.debug)
 
                 np.savetxt(savename,result)
@@ -237,7 +263,19 @@ if(__name__=="__main__"):
             else:
                 map23 = run_map23(cosmo,logname="../logs/log_{}{}.dat".format(i,args.output_name),
                 logname_err = "../logs/log_err_{}{}.dat".format(i,args.output_name),gpu_num=gpu_num,
-                out_fname="../../results/temp_gamma_emulateLSS_{}".format(gpu_num),
+                out_fname="../../results/temp_map23_emulateLSS_{}".format(gpu_num),
                 cosmo_fname="../necessary_files/temp_cosmo_{}.dat".format(gpu_num),
-                theta_fname=args.thetas, debug=args.debug)
+                nz_fname = args.nofz,cov_fname=args.cov_file,
+                theta_fname=args.thetas, debug=args.debug,counter=i)
                 np.savetxt(savename,map23)
+
+if(args.skip==0):
+    print("Calculations done. Computing average.")
+    testfile = np.loadtxt("../../EmulateLSS/training_data/single_results/result_{}_{}{}.dat".format(args.statistic,0,args.output_name))
+    n_theta_combinations = len(testfile)
+    final_result = np.zeros((args.nodes,n_theta_combinations))
+    for i in trange(args.nodes,desc="Concatenating files"):
+        savename = "../../EmulateLSS/training_data/single_results/result_{}_{}{}.dat".format(args.statistic,i,args.output_name)
+        final_result[i] = np.loadtxt(savename)
+    np.savetxt("../../EmulateLSS/training_data/result_{}{}_{}.dat".format(args.statistic,args.output_name,args.nodes),final_result)
+

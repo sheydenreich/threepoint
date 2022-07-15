@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 
+#include <cassert>
 // Values that are put in constant memory on device
 // These things stay the same for a kernel run
 // Warning: They are read-only for the GPU!
@@ -86,7 +87,6 @@ __constant__ int dev_n_kbins;
 __constant__ double dev_H0_over_c ; //Hubble constant/speed of light [h s/m]
 __constant__ double dev_c_over_H0; //Speed of light / Hubble constant [h^-1 m/s]
 
-
 void copyConstants()
 {
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A96, &A96, 48*sizeof(double)));
@@ -99,6 +99,12 @@ void copyConstants()
 
 void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<double>* P_k, double dk, double kmin, double kmax)
 {
+  if(T17_CORRECTION)
+  {
+    std::cerr << "*****************************************************" << std::endl;
+    std::cerr << "WARNING: Applying T+17 corrections to power spectrum!" << std::endl;
+    std::cerr << "*****************************************************" << std::endl;
+  }
   bool nz_from_file=(nz!=NULL);
   if(nz_from_file)
   {
@@ -227,6 +233,7 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_ncur_array, ncur_array, n_redshift_bins * sizeof(double)));
 }
 
+
 __device__ double bispec(double k1, double k2, double k3, double z, int idx, double didx)
 {
   int i, j;
@@ -304,6 +311,180 @@ __device__ double bispec(double k1, double k2, double k3, double z, int idx, dou
   // else return 0;
 }
 
+void calculate_bkappa_array(const double* ell_array, std::string configuration, int n_ell, bool average, double* value)
+{
+    int npts;
+    if(configuration=="all") npts = n_ell*(n_ell+1)*(n_ell+2)/6;
+    else npts = n_ell;
+    // Allocate memory on device for integrand values
+    double* dev_value;
+    CUDA_SAFE_CALL(cudaMalloc((void**)&dev_value, npts*sizeof(double)));
+  
+    // Copy integration variables to device
+    if(configuration=="equilateral")
+    {
+      double* dev_ell1;
+      CUDA_SAFE_CALL(cudaMalloc(&dev_ell1, npts*sizeof(double))); //alocate memory
+      CUDA_SAFE_CALL(cudaMemcpy(dev_ell1, ell_array, npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+      CUDA_ERROR_CHECK(bkappa_wrapper<<<BLOCKS, THREADS>>>(dev_ell1, dev_ell1, dev_ell1, npts, average, dev_value));
+      cudaFree(dev_ell1);
+    }
+    if(configuration=="flattened")
+    {
+      double* dev_ell1;
+      double* dev_ell2;
+      double* ell2 = new double[n_ell];
+      for(int i = 0; i<n_ell;i++)
+      {
+        ell2[i] = ell_array[i]/2;
+      }
+      CUDA_SAFE_CALL(cudaMalloc(&dev_ell1, npts*sizeof(double))); //alocate memory
+      CUDA_SAFE_CALL(cudaMalloc(&dev_ell2, npts*sizeof(double))); //alocate memory
+
+      CUDA_SAFE_CALL(cudaMemcpy(dev_ell1, ell_array, npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+      CUDA_SAFE_CALL(cudaMemcpy(dev_ell2, ell2, npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+      delete [] ell2;
+
+      CUDA_ERROR_CHECK(bkappa_wrapper<<<BLOCKS, THREADS>>>(dev_ell1, dev_ell1, dev_ell2, npts, average, dev_value));
+      cudaFree(dev_ell1);
+      cudaFree(dev_ell2);
+    }
+    if(configuration.find("squeezed")!= std::string::npos)
+    {
+      // delete squeezed_ from configuration, convert to float
+      std::string sq = "squeezed_";
+      size_t pos = configuration.find(sq);
+      configuration.erase(pos, sq.length());
+      double side_3 = std::stof(configuration);
+      double* ell2 = new double[n_ell];
+      for(int i=0;i<n_ell;i++)
+      {
+        ell2[i] = side_3;
+      }
+      double* dev_ell1;
+      double* dev_ell2;
+
+      CUDA_SAFE_CALL(cudaMalloc(&dev_ell1, npts*sizeof(double))); //alocate memory
+      CUDA_SAFE_CALL(cudaMalloc(&dev_ell2, npts*sizeof(double))); //alocate memory
+
+      CUDA_SAFE_CALL(cudaMemcpy(dev_ell1, ell_array, npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+      CUDA_SAFE_CALL(cudaMemcpy(dev_ell2, ell2, npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+      delete [] ell2;
+
+      CUDA_ERROR_CHECK(bkappa_wrapper<<<BLOCKS, THREADS>>>(dev_ell1, dev_ell1, dev_ell2, npts, average, dev_value));
+      cudaFree(dev_ell1);
+      cudaFree(dev_ell2);
+
+
+    }
+    if(configuration=="all")
+    {
+      // write all combinations of ell_arrays!
+      double* dev_ell1;
+      double* dev_ell2;
+      double* dev_ell3;
+      CUDA_SAFE_CALL(cudaMalloc(&dev_ell1, npts*sizeof(double))); //alocate memory
+      CUDA_SAFE_CALL(cudaMalloc(&dev_ell2, npts*sizeof(double))); //alocate memory
+      CUDA_SAFE_CALL(cudaMalloc(&dev_ell3, npts*sizeof(double))); //alocate memory
+
+      double* ell1 = new double[npts];
+      double* ell2 = new double[npts];
+      double* ell3 = new double[npts];
+
+      int counter = 0;
+      for(int i=0;i<n_ell;i++)
+        for(int j=i;j<n_ell;j++)
+          for(int k=j;k<n_ell;k++)
+            {
+              ell1[counter] = ell_array[i];
+              ell2[counter] = ell_array[j];
+              ell3[counter] = ell_array[k];
+              counter++;
+            }
+      CUDA_SAFE_CALL(cudaMemcpy(dev_ell1, ell1, npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+      CUDA_SAFE_CALL(cudaMemcpy(dev_ell2, ell2, npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+      CUDA_SAFE_CALL(cudaMemcpy(dev_ell3, ell3, npts*sizeof(double), cudaMemcpyHostToDevice)); //copying
+      delete [] ell1;
+      delete [] ell2;
+      delete [] ell3;
+      CUDA_ERROR_CHECK(bkappa_wrapper<<<BLOCKS, THREADS>>>(dev_ell1, dev_ell2, dev_ell3, npts, average, dev_value));
+      cudaFree(dev_ell1);
+      cudaFree(dev_ell2);
+      cudaFree(dev_ell3);
+    }
+
+    // Copy results to host
+    CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, npts*sizeof(double), cudaMemcpyDeviceToHost));
+  
+    cudaFree(dev_value); //Free values  
+}
+
+__device__ bool is_triangle(double ell1, double ell2, double ell3)
+{
+  if (abs(ell1 - ell2) > ell3 || ell3 > (ell1 + ell2))
+    return false;
+  if (abs(ell2 - ell3) > ell1 || ell1 > (ell2 + ell3))
+    return false;
+  if (abs(ell1 - ell3) > ell2 || ell2 > (ell1 + ell3))
+    return false;
+  return true;
+}
+
+__device__ double number_of_triangles(double ell1, double ell2, double ell3)
+{ //TODO: maybe write this into a utility.cpp?
+  if (is_triangle(ell1, ell2, ell3))
+  {
+    double lambda = 2 * ell1 * ell1 * ell2 * ell2 + 2 * ell1 * ell1 * ell3 * ell3 + 2 * ell2 * ell2 * ell3 * ell3 - pow(ell1, 4) - pow(ell2, 4) - pow(ell3, 4);
+    lambda = 4. / sqrt(lambda);
+    return lambda;
+  }
+  else
+    return 0;
+}
+
+
+__global__ void bkappa_wrapper(const double* ell1, const double* ell2, const double* ell3, int n_ell, bool average, double* value)
+{
+    // index of thread
+    int thread_index=blockIdx.x*blockDim.x + threadIdx.x;
+    if(!average)
+    {
+      for(int i=thread_index; i<n_ell; i+=blockDim.x*gridDim.x)
+      {
+        value[i] = bkappa(ell1[i],ell2[i],ell3[i]);
+      }
+    }
+    else
+    {
+      double delta_ell = 0.13;
+      int n_ell_bins = 10;
+      for(int i=thread_index; i<n_ell; i+=blockDim.x*gridDim.x)
+      {
+        double result = 0;
+        double norm = 0;
+        for(int j=0; j<n_ell_bins*2; j++)
+        {
+          for(int k=0;k<n_ell_bins*2;k++)
+          {
+            for(int l=0;l<n_ell_bins*2;l++)
+            {
+              double ell1t,ell2t,ell3t;
+              ell1t = ell1[i]*(1+delta_ell*(j-n_ell_bins-0.5)/(n_ell_bins));
+              ell2t = ell2[i]*(1+delta_ell*(k-n_ell_bins-0.5)/(n_ell_bins));;
+              ell3t = ell3[i]*(1+delta_ell*(l-n_ell_bins-0.5)/(n_ell_bins));;
+              result += bkappa(ell1t,ell2t,ell3t)*number_of_triangles(ell1t,ell2t,ell3t);
+              norm += number_of_triangles(ell1t,ell2t,ell3t);
+            }
+          }
+        }
+        value[i] = result/norm;
+        // printf("%d, %d, %.3e, %.3e \n",i,n_ell,result,norm);
+      }
+
+    }
+
+
+}
 
 __device__ double bkappa(double ell1, double ell2, double ell3)
 {
@@ -397,7 +578,20 @@ __device__ double limber_integrand(double ell, double z)
   double g_value = g_interpolated(idx,didx);
   double f_K_value = f_K_interpolated(idx,didx);
   // printf("%.2f, %.2f, %.5e, %.5e \n",z,ell,limber_integrand_prefactor(z, g_value),P_k_nonlinear(ell/f_K_value, z));
-  return dev_limber_integrand_prefactor(z, g_value)*P_k_nonlinear(ell/f_K_value, z);
+  if(T17_CORRECTION)
+  {
+    double k = ell/f_K_value;
+    double result = dev_limber_integrand_prefactor(z, g_value)*P_k_nonlinear(k, z);
+    double c1 = 9.5171e-4;
+    double c2 = 5.1543e-3;
+    double a1 = 1.3063;
+    double a2 = 1.1475;
+    double a3 = 0.62793;
+    double correction = pow(1+c1*pow(k,-1.*a1),a1)/pow(1+c2*pow(k,-1.*a2),a3);
+    return result*correction;
+  }
+  else
+    return dev_limber_integrand_prefactor(z, g_value)*P_k_nonlinear(ell/f_K_value, z);
 }
 
 __global__ void limber_integrand_wrapper(const double* vars, unsigned ndim, size_t npts, double ell, double* value)
@@ -487,7 +681,7 @@ double Pell(double ell)
     
     hcubature_v(1, limber_integrand_wrapper, &ell, 1, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
   
-    
+    assert(!isnan(P_shapenoise));
     return result+P_shapenoise;
   }
 }

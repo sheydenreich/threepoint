@@ -1,11 +1,11 @@
 # config file for modeling 3pcf
-rsteps 10
-usteps 10
-vsteps 10
+rsteps 7
+usteps 7
+vsteps 7
 
 umin 0
 umax 1
 vmin 0
 vmax 1
 rmin 0.1
-rmax 100.
+rmax 240.

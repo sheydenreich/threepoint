@@ -33,7 +33,13 @@ __device__ double uHat_product_permutations(const double& l1, const double& l2, 
 
 __device__ double dev_integrand_Map2(const double& ell, const double& z, double theta)
 {
-  return ell*pow(uHat(ell*theta),2)*(limber_integrand(ell,z)+0.5*dev_sigma*dev_sigma/dev_n/dev_z_max);
+  if(T17_CORRECTION)
+  {
+    double correction = 1+pow(ell/(1.6*8192.),2);
+    return ell*pow(uHat(ell*theta),2)*(limber_integrand(ell,z)/correction+0.5*dev_sigma*dev_sigma/dev_n/dev_z_max);
+  }
+  else
+    return ell*pow(uHat(ell*theta),2)*(limber_integrand(ell,z)+0.5*dev_sigma*dev_sigma/dev_n/dev_z_max);
 }
 
 __global__ void integrand_Map2(const double* vars, unsigned ndim, int npts, double theta, double* value)

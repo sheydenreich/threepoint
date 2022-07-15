@@ -47,6 +47,10 @@ void read_n_of_z(const std::string &fn, const int &n_bins, const double &zMax, s
         double dix_file = (z - zmin_file) / dz_file - ix_file;
         double n_of_z = 0;
 
+        if (ix_file < 0) //Interpolate between zero and the first bin
+        {
+            n_of_z = n_of_zs.at(ix_file)*dix_file;
+        };
         if (ix_file >= 0 && ix_file < n_bins_file - 1) //Interpolate between closest bins
         {
             n_of_z = n_of_zs.at(ix_file + 1) * dix_file + n_of_zs.at(ix_file) * (1 - dix_file);

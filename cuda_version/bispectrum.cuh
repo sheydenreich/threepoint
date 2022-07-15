@@ -3,6 +3,7 @@
 
 #define slics true
 //#define CONSTANT_POWERSPECTRUM false
+#define T17_CORRECTION false
 
 #include "cosmology.cuh"
 
@@ -96,7 +97,7 @@ void set_cosmology(cosmology cosmo, std::vector<double>* nz=NULL, std::vector<do
    */
    __device__ double bispec(double k1, double k2, double k3, double z, int idx, double didx);
 
-   
+
 /**
  * 2D Bispectrum B_kappa, integrated from bispec 
  * @param ell1 l-mode 1
@@ -104,6 +105,52 @@ void set_cosmology(cosmology cosmo, std::vector<double>* nz=NULL, std::vector<do
  * @param ell3 l-mode 3
  */
 __device__ double bkappa(double ell1, double ell2, double ell3);
+
+
+/**
+ * @brief checks if (ell1,ell2,ell3) can form a triangle
+ * 
+ * @param ell1 
+ * @param ell2 
+ * @param ell3 
+ * @return true/false 
+ */
+__device__ bool is_triangle(double ell1, double ell2, double ell3);
+
+
+/**
+ * @brief gives a number proportional to the number of triangles that are formed in this configuration
+ * 
+ * @param ell1 
+ * @param ell2 
+ * @param ell3 
+ * @return __device__ 
+ */
+__device__ double number_of_triangles(double ell1, double ell2, double ell3);
+
+
+
+
+/**
+ * @brief host-function to calculate convergence bispectrum for an array of ell-scales
+ * @param ell_array array of ell-scales to be calculated
+ * @param only_diagonal if true, only calculates equilateral bispectrum. else calculates all scales
+ * @param n_ell number of elements in ell_array
+ * @param value output array
+ */
+void calculate_bkappa_array(const double* ell_array, std::string configuration, int n_ell, bool average, double* value);
+
+/**
+ * @brief wrapper to execute calculate_bkappa_array on GPU
+ * 
+ * @param ell1 array of first ell-scales
+ * @param ell2 array of second ell-scales
+ * @param ell3 array of third ell-scales
+ * @param n_ell number of elements to be computed
+ * @param value output array
+ */
+__global__ void bkappa_wrapper(const double* ell1, const double* ell2, const double* ell3, int n_ell, bool average, double* value);
+
 
   /**
    * 96 pt Gaussian Quadrature of integrand_bkappa along redshift

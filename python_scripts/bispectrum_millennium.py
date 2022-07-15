@@ -11,7 +11,7 @@ class MyManager(multiprocessing.managers.BaseManager):
     pass
 MyManager.register('np_zeros', np.zeros, multiprocessing.managers.ArrayProxy)
 
-
+# for all triangle configurations
 def MS_spectra_extraction_kernel(kwargs):
     bispectrum_array,power_spectrum_array,ell_array,los,method = kwargs
     kappa = get_kappa_millennium(los)
@@ -44,7 +44,6 @@ def MS_spectra_extraction_kernel(kwargs):
         bispectrum_array[:,los] = convmap.bispectrum(ell_array)[1]
         power_spectrum_array[:,los] = convmap.powerSpectrum(ell_array)[1]
 
-
 def extract_MS_spectra(ell_array,n_processes=64,n_los=64,method='myEstimator'):
     m = MyManager()
     m.start()
@@ -64,12 +63,47 @@ def extract_MS_spectra(ell_array,n_processes=64,n_los=64,method='myEstimator'):
     return bispectrum_array,power_spectrum_array
 
 
+# for equilateral, flattened and squeezed bispectra
+def MS_spectra_extraction_kernel(kwargs):
+    bispectrum_array,power_spectrum_array,ell_array,los = kwargs
+    kappa = get_kappa_millennium(los)
+
+    n_ell = len(ell_array)
+    a = bispectrum_extractor(kappa,fieldsize=4.*np.pi/180)
+    
+    if power_spectrum_array is not None:
+        power_spectrum_array[:,los] = extract_power_spectrum(kappa,4.*np.pi/180,bins = ell_array)[0]
+
+
+    for i in range(n_ell):
+        ell1 = ell_array[i]
+        bispectrum_array[0,i,los] = a.extract_bispectrum(ell1,ell1,ell1) #equilateral
+        bispectrum_array[1,i,los] = a.extract_bispectrum(ell1,ell1,ell1/2) #flattened
+        bispectrum_array[2,i,los] = a.extract_bispectrum(ell1,ell1,500) #squeezed 1
+        bispectrum_array[3,i,los] = a.extract_bispectrum(ell1,ell1,5000) #squeezed 2
+            
+# for equilateral, flattened and squeezed bispectra
+def extract_MS_spectra(ell_array,n_processes=64,n_los=64):
+    m = MyManager()
+    m.start()
+    n_ell = len(ell_array)
+    bispectrum_array = m.np_zeros((4,n_ell,n_los))
+    power_spectrum_array = m.np_zeros((n_ell-1,n_los))
+
+    with Pool(processes=n_processes) as p:
+        args = [[bispectrum_array,power_spectrum_array,ell_array,i] for i in range(n_los)]
+        for i in tqdm(p.imap_unordered(MS_spectra_extraction_kernel,args),total=n_los):
+            pass
+
+    return bispectrum_array,power_spectrum_array
+
+
 
 if(__name__=='__main__'):
     ell_array = np.logspace(2,5,30)
-    # bispec,power_spec = extract_MS_spectra(ell_array,64)
-    # np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/bispec_MR_data.dat',bispec)
-    # np.savetxt('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/powerspec_MR_data.dat',power_spec)
-    bispec,power_spec = extract_MS_spectra(ell_array,64,method='lenstools')
-    np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/bispec_MR_data_lenstools.dat',bispec)
-    np.savetxt('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/powerspec_MR_data_lenstools.dat',power_spec)
+    bispec,power_spec = extract_MS_spectra(ell_array,64)
+    np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/bispec_MR_data_equi_flat_squeezed',bispec)
+    np.savetxt('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/powerspec_MR_data.dat',power_spec)
+    # bispec,power_spec = extract_MS_spectra(ell_array,64,method='lenstools')
+    # np.save('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/bispec_MR_data_lenstools.dat',bispec)
+    # np.savetxt('/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_MR/powerspec_MR_data_lenstools.dat',power_spec)

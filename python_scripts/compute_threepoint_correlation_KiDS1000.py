@@ -19,7 +19,7 @@ kids_data = kids_data_file[1].data
 cat = treecorr.Catalog(ra=kids_data['RAJ2000'],dec=kids_data['DECJ2000'],
                        ra_units='deg',dec_units='deg',
                        g1=kids_data['e1'],
-                       g2=kids_data['e2'],
+                       g2=-1.*kids_data['e2'],
                        w=kids_data['weight'])
 
 ggg = treecorr.GGGCorrelation(nbins=bins_r,min_sep=min_sep,max_sep=max_sep,sep_units='arcmin',
@@ -27,4 +27,4 @@ ggg = treecorr.GGGCorrelation(nbins=bins_r,min_sep=min_sep,max_sep=max_sep,sep_u
 
 ggg.process(cat)
 
-ggg.write("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_KiDS/GGGcorrelation_16_bins_0p1_to_150_arcmin.dat")
+ggg.write("/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/results_KiDS/GGGcorrelation_16_bins_0p1_to_150_arcmin_e2flip.dat")

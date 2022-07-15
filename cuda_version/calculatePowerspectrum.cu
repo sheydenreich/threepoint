@@ -90,6 +90,15 @@ Example:
       set_cosmology(cosmo);
     };
 
+    std::cerr << "Warning: Assuming zero shapenoise!" << std::endl;
+    double val = 0;
+    double nval = 10;
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma, &val, sizeof(double)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n, &nval, sizeof(double)));
+    sigma = 0;
+    n = 10;
+    
+
 
 
     // std::string myOutfn = outfn;

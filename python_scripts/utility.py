@@ -209,10 +209,13 @@ class aperture_mass_computer:
         return array
 
 
-    def Map_fft_from_kappa(self,kappa_arr):
+    def Map_fft_from_kappa(self,kappa_arr,periodic_boundary = True):
         if self.u_arr is None:
             self.u_arr = self.Ufunc_array()
        
+        if(periodic_boundary):
+            return  apc.convolve_fft(kappa_arr, self.u_arr, boundary='wrap', normalize_kernel=False,allow_huge=True,nan_treatment='fill')
+
         return fftconvolve(kappa_arr,self.u_arr,'same')*self.fieldsize**2/self.npix**2
 
     def Map_fft(self,gamma_arr,norm=None,return_mcross=False,normalize_weighted=True, periodic_boundary=True):
