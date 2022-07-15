@@ -115,7 +115,7 @@ Example:
       {
         double v = vmin + (vmax - vmin) / vsteps * (k + 0.5);
 
-        double r2 = r * M_PI / 180. / 60.; // THIS IS THE BINNING BY JARVIS. FROM THE WEBSITE, NOT THE PAPER.
+        double r2 = r * M_PI / 180. / 60.; // THIS IS THE BINNING BY JARVIS+(2004). FROM THE WEBSITE, NOT THE PAPER.
         double r3 = r2 * u;
         double r1 = v * r3 + r2;
 
