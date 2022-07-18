@@ -13,11 +13,11 @@ import multiprocessing.managers
 from multiprocessing import Pool
 from tqdm import tqdm
 from file_loader import get_gamma_millennium, get_gamma_millennium_shapenoise, get_millennium_downsampled_shapenoise, get_slics
-
+import healpy as hp
 
 class aperture_mass_computer:
     """
-    a class handling the computation of aperture masses.
+    a class handling the computation of aperture masses for flat sky maps.
     The class can use both the exponential and the polynomial filter, but most tests were done for the exponential filter!
     initialization:
         npix: number of pixel of desired aperture mass map
@@ -366,6 +366,88 @@ class aperture_mass_computer:
         return result
 
 
+class aperture_mass_computer_curved_sky:
+    """
+    a class handling the computation of aperture masses for healpy curved maps.
+    Currently uses only the exponential filter. Currently only accepts kappa-maps (not shear catalogues)
+    initialization:
+        nside: nside of healpy maps
+        theta_ap: aperture radius of desired aperture mass map (in arcmin)
+        beam_U: U-function calculated on a healpy "beam"
+        npix: number of pixels corresponding to nside
+    """
+
+    def __init__(self, nside, theta_ap):
+        """Class constructor
+
+        Args:
+            nside (float): nside of healpy maps
+            theta_ap (float): aperture radius of desired aperture mass map [arcmin]
+        """
+        self.nside=nside
+        self.theta_ap=theta_ap
+        self.beam_U=self.Ufunc_beam()
+        self.npix=hp.nside2npix(nside)
+
+        # # I am not entirely sure what these things do 
+        # patch_field=np.zeros(self.npix)
+
+        # self.patch_indices = np.arange(0,self.npix)
+        # patch_field[self.patch_indices]=self.patch_indices+1
+        # patch_field_highres = hp.ud_grade(patch_field,nside_out=2**12)
+        # patch_pixel = []
+        # for i in self.patch_indices:
+        #     patch_pixel.append(np.where(patch_field_highres==i+1)[0])
+        # self.patch_pixel = np.array(patch_pixel)
+
+
+
+    def change_theta_ap(self, theta_ap):
+        """Changes the aperture radius and recomputes the U-beam
+
+        Args:
+            theta_ap (_type_): new aperture radius [arcmin]
+        """
+        self.theta_ap=theta_ap
+        self.beam_U=self.Ufunc_beam()
+
+    
+    def Ufunc(self, theta):
+        """
+        The U filter function for the aperture mass calculation from Schneider et al. (2002)
+        input: theta: aperture radius in arcmin
+        output: U [arcmin^-2]
+        """
+        xsq_half = (theta/self.theta_ap)**2/2
+        small_ufunc = np.exp(-xsq_half)*(1.-xsq_half)/(2*np.pi)
+        return small_ufunc/self.theta_ap**2
+
+    def Ufunc_beam(self):
+        """
+        Calculates the U filter function on a healpy "beam"
+        """
+        b=np.linspace(0, np.radians(500), 100000) #Calculate U up to 500 deg
+        bw=self.Ufunc(b)
+        beam=hp.beam2bl(bw, b, self.nside*3)
+        return beam
+
+    
+    def Map_fft_from_kappa(self, kappamap):
+        """Calculate the aperture mass map from a kappa map using FFT
+
+        Args:
+            kappamap (Healpy map): Kappa healpy map with nside=self.nside
+        """
+        if self.beam_U is None:
+            self.beam_U=self.Ufunc_beam()
+
+        Map=hp.smoothing(kappamap, beam_window=self.beam_U, verbose=False)
+        return Map
+
+        
+
+        
+
 def extract_Map3(Xs, Ys, shear_catalogue, npix, thetas, fieldsize, compute_mcross=False, save_map=None,
                  same_fieldsize_for_all_theta=False, use_polynomial_filter=False):
     """ Extracts <Map³> from a shear catalogue, using CIC distribution of galaxies on a grid and FFT
@@ -526,6 +608,49 @@ def extract_Map3_of_field(shears, npix, thetas, fieldsize, norm=None, ac=None, c
 
 
 
+def extract_Map3_curved_sky(kappa, nside, thetas, ac=None):
+    """ Extracts <Map³> from a kappa healpy map
+
+    Args:
+        kappa (healpy map): kappa healpy map
+        nside (int): nside of healpy maps
+        thetas (np array of floats): aperture radii [arcmin]
+        ac (aperture_mass_computer_curved_sky, optional): Computer for aperture mass calculation. Defaults to None, in which case a new one is created.
+
+    Returns:
+        np.array: <Map²> for all thetas
+    """
+    n_thetas=len(thetas)
+
+    if ac is None:
+        ac=aperture_mass_computer_curved_sky(nside, 1.)
+
+
+    aperture_mass_fields=[]
+
+    for theta in thetas:
+        ac.change_theta_ap(theta)
+        Map=ac.Map_fft_from_kappa(kappa)
+        aperture_mass_fields.append(Map)
+
+    result=np.zeros(n_thetas*(n_thetas+1)*(n_thetas+2)//6)
+
+    counter=0
+    for i in range(n_thetas):
+        field1=aperture_mass_fields[i]
+        for j in range(n_thetas):
+            field2=aperture_mass_fields[j]
+            for k in range(n_thetas):
+                field3=aperture_mass_fields[k]
+
+                result[counter]=np.mean(field1*field2*field3)
+                counter +=1
+    
+    return result
+
+    
+
+
 def extract_Map2(Xs, Ys, shear_catalogue, npix, thetas, fieldsize, save_map=None,
                  same_fieldsize_for_all_theta=False, use_polynomial_filter=False):
     """ Extracts <Map²> from a shear catalogue, using CIC distribution of galaxies on a grid and FFT
@@ -628,6 +753,42 @@ def extract_Map2_of_field(shears, npix, thetas, fieldsize, norm=None, ac=None,
 
     return result
 
+
+
+def extract_Map2_curved_sky(kappa, nside, thetas, ac=None):
+    """ Extracts <Map2> from a kappa healpy map
+
+    Args:
+        kappa (healpy map): kappa healpy map
+        nside (int): nside of healpy maps
+        thetas (np array of floats): aperture radii [arcmin]
+        ac (aperture_mass_computer_curved_sky, optional): Computer for aperture mass calculation. Defaults to None, in which case a new one is created.
+
+    Returns:
+        np.array: <Map²>
+    """
+    n_thetas=len(thetas)
+
+    if ac is None:
+        ac=aperture_mass_computer_curved_sky(nside, 1.)
+
+
+    aperture_mass_fields=[]
+
+    for theta in thetas:
+        ac.change_theta_ap(theta)
+        Map=ac.Map_fft_from_kappa(kappa)
+        aperture_mass_fields.append(Map)
+
+    result=np.zeros(n_thetas)
+
+    counter=0
+    for i in range(n_thetas):
+        field=aperture_mass_fields[i]
+        result[counter]=np.mean(field*field)
+        counter +=1
+    
+    return result
 
 def extract_Map2_Map3(Xs, Ys, shear_catalogue, npix, thetas, fieldsize, save_map=None,
                  same_fieldsize_for_all_theta=False, use_polynomial_filter=False):
@@ -917,7 +1078,7 @@ def Map3_MS_parallelised(all_los=range(64), thetas=[2,4,8,16], shapenoise=None, 
     """
     m=MyManager()
     m.start()
-    n_theta = len(thetas)
+    n_thetas = len(thetas)
     n_realisations=len(all_los)
   
     final_results= m.np_zeros((n_thetas*(n_thetas+1)*(n_thetas+2)//6,n_realisations))
