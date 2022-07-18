@@ -712,7 +712,7 @@ double T6_total(const std::vector<double> &thetas_123, const std::vector<double>
 {
     if (thetas_123.size() != 3 || thetas_456.size() != 3)
     {
-        throw std::invalid_argument("T4_total: Wrong number of aperture radii");
+        throw std::invalid_argument("T6_total: Wrong number of aperture radii");
     };
 
     double th0 = thetas_123.at(0);
@@ -1071,7 +1071,7 @@ double T5(const double &theta1, const double &theta2, const double &theta3, cons
 
 double T6(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6)
 {
-    if (type != 1 || type != 3)
+    if ((type != 1) && (type != 3))
     {
         throw std::logic_error("T6: Wrong survey geometry, only coded for square and rectangular survey");
     };
