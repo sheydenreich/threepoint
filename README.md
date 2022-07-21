@@ -31,9 +31,9 @@
 
 ## About The Project
 
-This code models the third-order aperture statistics $\langle M_\mathrm{ap}^3 \rangle$, the natural components of the shear three-point correlation function $\Gamma_i$ and the covariance of the third-order aperture statistics. The model is based on the `BiHalofit`-Bispectrum model by [Takahashi+ (2021)](https://ui.adsabs.harvard.edu/abs/2020ApJ...895..113T/abstract). The modelling of the $\Gamma_i$ uses the integration routine by [Ogata+ (2005)](https://www.kurims.kyoto-u.ac.jp/~prims/pdf/41-4/41-4-40.pdf)
+This code models the third-order aperture statistics $\langle M_\mathrm{ap}^3 \rangle$ and the natural components of the shear three-point correlation function $\Gamma_i$ a. The model is based on the `BiHalofit`-Bispectrum model by [Takahashi+ (2021)](https://ui.adsabs.harvard.edu/abs/2020ApJ...895..113T/abstract). The modelling of the $\Gamma_i$ uses the integration routine by [Ogata+ (2005)](https://www.kurims.kyoto-u.ac.jp/~prims/pdf/41-4/41-4-40.pdf)
 
-The modelling of $\langle M_\mathrm{ap}^3 \rangle$ and $\Gamma_i$ is described in detail in Heydenreich+ (2022). The modelling of the covariance is described in Linke+ (2022). Please cite these publications if you use this code in your project.
+The modelling of $\langle M_\mathrm{ap}^3 \rangle$ and $\Gamma_i$ is described in detail in Heydenreich+ (2022).  Please cite this publication if you use this code in your project.
 
 <!-- GETTING STARTED -->
 
@@ -50,7 +50,7 @@ To use this code these requirements are needed:
 * **cosmosis** Check here for how to install it: [https://cosmosis.readthedocs.io/en/latest/](https://cosmosis.readthedocs.io/en/latest/)
 * **g++** (Tested for version 9.3.0).
   Under Ubuntu this can be installed with
-  
+
   ```sh
   sudo apt install build-essential
   ```
@@ -146,7 +146,7 @@ By default, the triangle center is set as the centroid, to ensure compatibility 
 
 Distributed under the GNU General Public License v 3.0
 
-If you use the code for a publication, please cite Heydenreich+ (2022) and Linke+ (2022).
+If you use the code for a publication, please cite Heydenreich+ (2022).
 
 <!-- CONTACT -->
 
@@ -163,4 +163,3 @@ Project Link: [https://github.com/sheydenreich/threepoint](https://github.com/sh
 
 * The integration routines use [cubature](https://github.com/stevengj/cubature) and [Cuba](http://www.feynarts.de/cuba/)
 * This ReadMe is based on [Best-README-Template](https://github.com/othneildrew/Best-README-Template)
-

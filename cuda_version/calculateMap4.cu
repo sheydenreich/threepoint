@@ -4,7 +4,6 @@
 #include "cuda_helpers.cuh"
 #include "helpers.cuh"
 #include "halomodel.cuh"
-#include "apertureStatisticsCovariance.cuh"
 #include "cuba.h"
 
 #include <fstream>

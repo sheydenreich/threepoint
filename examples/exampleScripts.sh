@@ -17,6 +17,3 @@ $DIR_BIN/calculateApertureStatistics.x $FILE_COSMOLOGY $FILE_THETAS $DIR_RESULTS
 ### CALCULATION OF 3PT CORR FUNC
 $DIR_BIN/calculateGamma.x $FILE_COSMOLOGY $FILE_GAMMA $DIR_RESULTS/Gamma.dat $FILE_NZ
 
-### CALCULATON OF <Map3> COVARIANCE (T1_infinity only)
-$DIR_BIN/calculateApertureStatisticsCovariance.x $FILE_COSMOLOGY $FILE_THETAS $FILE_NZ $DIR $FILE_COVARIANCE 1 0 0 0 0 0 infinite 
-
