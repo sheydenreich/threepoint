@@ -4,10 +4,9 @@
 
 
 NPROC=64
-NREAL=4096
 
 
 DIR=/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/Map3_Covariances/SLICS_theta_4_to_32/
 mkdir -p $DIR
 
-python ../python_scripts/computeMap3_SLICS.py --processes $NPROC --savepath $DIR
+python -u ../python_scripts/computeMap3_SLICS.py --processes $NPROC --savepath $DIR > log

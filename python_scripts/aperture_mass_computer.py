@@ -976,7 +976,7 @@ def Map3_SLICS_parallelised(all_los, thetas=[2,4,8,16], n_processes=64):
     """
     m=MyManager()
     m.start()
-    n_theta = len(thetas)
+    n_thetas = len(thetas)
     n_realisations=len(all_los)
   
     final_results= m.np_zeros((n_thetas*(n_thetas+1)*(n_thetas+2)//6,n_realisations))

@@ -863,7 +863,7 @@ double T1(const double &theta1, const double &theta2, const double &theta3, cons
         double vMax = lMax;
         double vals_min[6] = {-vMax, -vMax, -lMax, -lMax, -lMax, -lMax};
         double vals_max[6] = {1.02 * vMax, 1.02 * vMax, 1.02 * lMax, 1.02 * lMax, 1.02 * lMax, 1.02 * lMax};
-        hcubature_v(1, integrand_T1, &container, 6, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
+        hcubature_v(1, integrand_T1, &container, 6, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
 
         result /= pow(2 * M_PI, 6); // Factors: (2pi)^-6 because 6 integrals in ell-space
     }
