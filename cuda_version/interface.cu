@@ -1,7 +1,9 @@
 // #include "/home/laila/cosmosis/cosmosis/datablock/datablock.hh"
 // #include "/home/laila/cosmosis/cosmosis/datablock/section_names.h"
-#include "/vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/datablock.hh"
-#include "/vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/section_names.h"
+//#include "/vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/datablock.hh"
+//#include "/vol/software/software/astro/cosmosis/cosmosis-1.6/cosmosis/cosmosis/datablock/section_names.h"
+#include <datablock.hh>
+#include <section_names.h>
 #include "helpers.cuh"
 #include "bispectrum.cuh"
 #include "apertureStatistics.cuh"
