@@ -932,7 +932,7 @@ double T1(const double &theta1, const double &theta2, const double &theta3, cons
         double vMax = lMax;
         double vals_min[6] = {-vMax, -vMax, -lMax, -lMax, -lMax, -lMax};
         double vals_max[6] = {1.02 * vMax, 1.02 * vMax, 1.02 * lMax, 1.02 * lMax, 1.02 * lMax, 1.02 * lMax};
-        hcubature_v(1, integrand_T1, &container, 6, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
+        hcubature_v(1, integrand_T1, &container, 6, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
 
         result /= pow(2 * M_PI, 6); // Factors: (2pi)^-6 because 6 integrals in ell-space
     }
@@ -1124,6 +1124,11 @@ double T7(const double &theta1, const double &theta2, const double &theta3, cons
     double thetaMin = std::min({thetaMin_123, thetaMin_456});
     double lMax = 10. / thetaMin;
     lMin = 1e-4;
+
+   // lMax *= 200;
+   // lMin /= 2;
+    std::cerr<<lMin<<" "<<lMax<<std::endl;
+
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
 
     // Create container
@@ -1140,7 +1145,7 @@ double T7(const double &theta1, const double &theta2, const double &theta3, cons
         double vals_min[7] = {log(lMin), log(lMin), log(lMin), log(lMin), 0, 0, mmin};
         double vals_max[7] = {log(lMax), log(lMax), log(lMax), log(lMax), 2 * M_PI, 2 * M_PI, mmax};
 
-        hcubature_v(1, integrand_T7, &container, 7, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
+        hcubature_v(1, integrand_T7, &container, 7, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
         result = result / area / pow(2 * M_PI, 6);
     }
     else
@@ -1547,7 +1552,7 @@ int integrand_T7(unsigned ndim, size_t npts, const double *vars, void *container
 
     int Nmax = 1e5;
     int Niter = int(npts / Nmax) + 1; // Number of iterations
-
+    std::cerr<<npts<<std::endl;
     for (int i = 0; i < Niter; i++)
     {
 

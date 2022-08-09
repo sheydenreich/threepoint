@@ -7,8 +7,8 @@ NPROC=6
 NREAL=4096
 
 
-DIR=/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/SLICS_theta_4_to_32/
+DIR=/home/laila/OneDrive/1_Work/5_Projects/02_3ptStatistics/Map3_Covariances/MS
 #/vol/euclid6/euclid6_ssd/sven/threepoint_with_laila/Map3_Covariances/SLICS_theta_4_to_32/
 mkdir -p $DIR
 
-python ../python_scripts/computeMap3_SLICS.py --processes $NPROC --savepath $DIR
+python ../python_scripts/computeMap2_MS.py --processes $NPROC --savepath $DIR

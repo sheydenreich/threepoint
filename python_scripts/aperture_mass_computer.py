@@ -12,8 +12,9 @@ from utility import create_gamma_field
 import multiprocessing.managers
 from multiprocessing import Pool
 from tqdm import tqdm
-from file_loader import get_gamma_millennium, get_gamma_millennium_shapenoise, get_millennium_downsampled_shapenoise, get_slics
-
+from file_loader import get_gamma_millennium, get_gamma_millennium_shapenoise, get_kappa_millennium, get_millennium_downsampled_shapenoise, get_slics, get_kappa_slics
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 
 class aperture_mass_computer:
     """
@@ -191,9 +192,11 @@ class aperture_mass_computer:
             self.u_arr = self.Ufunc_array()
 
         # Do the calculation, the normalisation is the pixel size
-        return fftconvolve(kappa_arr, self.u_arr, 'same')*self.fieldsize**2/self.npix**2
+        result= fftconvolve(kappa_arr, self.u_arr, 'same')*self.fieldsize**2/self.npix**2
 
-    def Map_fft(self, gamma_arr, norm=None, return_mcross=False, normalize_weighted=True, periodic_boundary=True):
+        return result
+
+    def Map_fft(self, gamma_arr, norm=None, return_mcross=False, normalize_weighted=True, periodic_boundary=False):
         """
         Computes the Aperture Mass map from a Gamma-Grid
         input:
@@ -226,6 +229,9 @@ class aperture_mass_computer:
             ii = fftconvolve(yi, qi, 'same')
 
         result = (ii-rr)
+
+        # plt.imshow(result, norm=LogNorm())
+        # plt.show()
         if(np.any(np.isnan(result))):
             print("ERROR! NAN in aperture mass computation!")
         if(return_mcross):
@@ -367,7 +373,7 @@ class aperture_mass_computer:
 
 
 def extract_Map3(Xs, Ys, shear_catalogue, npix, thetas, fieldsize, compute_mcross=False, save_map=None,
-                 same_fieldsize_for_all_theta=False, use_polynomial_filter=False):
+                 same_fieldsize_for_all_theta=True, use_polynomial_filter=False):
     """ Extracts <Map³> from a shear catalogue, using CIC distribution of galaxies on a grid and FFT
 
     Args:
@@ -525,6 +531,95 @@ def extract_Map3_of_field(shears, npix, thetas, fieldsize, norm=None, ac=None, c
     return result
 
 
+def extract_Map3_of_kappa_field(kappas, npix, thetas, fieldsize, norm=None, ac=None,
+                          save_map=None, same_fieldsize_for_all_theta=True, use_polynomial_filter=False):
+    """ Extracts <Map³> from a kappa grid.
+
+    Args:
+        kappa  (np.array, 1 x npix^2 ): kappa on a grid
+        npix (int): number of pixels (along one side)
+        thetas (np.array of floats): aperture radii [arcmin]
+        fieldsize (float): side length of field [arcmin]
+        norm: if None, assumes that the gamma_arr is a field with <\gamma_t> as pixel values
+              if Scalar, uses the Estimator of Bartelmann & Schneider (2001) with n as the scalar
+              if array, computes the mean number density within an aperture and uses this for n in
+                                the Bartelmann & Schneider (2001) Estimator
+        ac (aperture_mass_computer, optional): Computer for the calculation. Defaults to None, in which case a new one is initialized.
+        save_map (str, optional): Filename to which aperture mass maps should be saved. Defaults to None, then nothing is saved.
+        same_fieldsize_for_all_theta (bool, optional): If the same amount of "border" is cut for all aperture radii. Defaults to False.
+        use_polynomial_filter (bool, optional): Whether polynomial filter should be used. Defaults to False, then exponential filter is used.
+
+    Returns:
+        np.array: <Map3> for all thetas, if compute_mcross=True, also the <Mperp²Map> etc...
+    """
+    n_thetas = len(thetas) #Number of aperture radii
+    maxtheta = np.max(thetas) # Maximum aperture radius
+
+    # Create a new aperture mass computer if none is given to the function
+    if ac is None:
+        ac = aperture_mass_computer(
+            npix, 1., fieldsize, use_polynomial_filter=use_polynomial_filter)
+
+    # Initialize results array
+    result = np.zeros(n_thetas*(n_thetas+1)*(n_thetas+2)//6)
+
+
+    # Calculate the aperture mass maps for all aperture radii
+    aperture_mass_fields = np.zeros((npix, npix, n_thetas))
+
+    for x, theta in enumerate(thetas): # Go through all aperture radii
+
+        ac.change_theta_ap(theta)
+        # Calculate aperture mass maps
+
+        map = ac.Map_fft_from_kappa(kappas)
+
+        aperture_mass_fields[:, :, x] = map
+
+    # Save aperture mass maps if wanted
+    if(save_map is not None):
+        np.save(save_map, aperture_mass_fields)
+
+
+    # Calculate the <Map³> for all independent combinations of the aperture radii
+    counter = 0
+    for i in range(n_thetas):
+        field1 = aperture_mass_fields[:, :, i]
+
+        for j in range(i, n_thetas):
+            field2 = aperture_mass_fields[:, :, j]
+
+            for k in range(j, n_thetas):
+                field3 = aperture_mass_fields[:, :, k]
+
+
+                # Determine how much border needs to be cut-off
+                if not same_fieldsize_for_all_theta:
+                    maxtheta = thetas[k]
+
+                if(use_polynomial_filter):
+                    factor_cutoff = 1.  # polynomial filter is zero outside of theta_ap
+                else:
+                    factor_cutoff = 4.  # exponential filter has 99.8 percent of its power within 4*theta_ap
+
+                # cut off boundaries
+                index_maxtheta = int(
+                    np.round(maxtheta/(fieldsize)*npix*factor_cutoff))
+
+                field1_cut = field1[index_maxtheta:(
+                    npix-index_maxtheta), index_maxtheta:(npix-index_maxtheta)]
+                field2_cut = field2[index_maxtheta:npix -
+                                    index_maxtheta, index_maxtheta:npix-index_maxtheta]
+                field3_cut = field3[index_maxtheta:npix -
+                                    index_maxtheta, index_maxtheta:npix-index_maxtheta]
+
+
+                result[counter] = np.mean(field1_cut*field2_cut*field3_cut)
+                counter += 1
+
+    return result
+
+
 
 def extract_Map2(Xs, Ys, shear_catalogue, npix, thetas, fieldsize, save_map=None,
                  same_fieldsize_for_all_theta=False, use_polynomial_filter=False):
@@ -629,6 +724,54 @@ def extract_Map2_of_field(shears, npix, thetas, fieldsize, norm=None, ac=None,
     return result
 
 
+def extract_Map2_of_kappa_field(kappas, npix, thetas, fieldsize, norm=None, ac=None,
+                          save_map=None, same_fieldsize_for_all_theta=True, use_polynomial_filter=False):
+    n_thetas = len(thetas) #Number of aperture radii
+    maxtheta = np.max(thetas) # Maximum aperture radius
+
+    # Create a new aperture mass computer if none is given to the function
+    if ac is None:
+        ac = aperture_mass_computer(
+            npix, 1., fieldsize, use_polynomial_filter=use_polynomial_filter)
+
+    # Initialize results array
+    result = np.zeros(n_thetas)
+
+
+    # Calculate the aperture mass maps for all aperture radii
+    aperture_mass_fields = np.zeros((npix, npix, n_thetas))
+
+    for x, theta in enumerate(thetas): # Go through all aperture radii
+        ac.change_theta_ap(theta)
+        # Calculate aperture mass maps
+        map = ac.Map_fft_from_kappa(kappas)
+
+        aperture_mass_fields[:, :, x] = map
+
+    # Save aperture mass maps if wanted
+    if(save_map is not None):
+        np.save(save_map, aperture_mass_fields)
+
+
+    # Calculate the <Map²> for all aperture radii
+    for i in range(n_thetas):
+        field1 = aperture_mass_fields[:,:,i]
+
+        if not same_fieldsize_for_all_theta:
+            maxtheta = thetas[i]
+        
+        if(use_polynomial_filter):
+            factor_cutoff = 1. #polynomial filter is zero outside of theta_ap
+        else:
+            factor_cutoff = 4. #exponential filter has 99.8 percent of its power within 4*theta_ap
+
+        index_maxtheta = int(np.round(maxtheta/(fieldsize)*npix*factor_cutoff)) #cut off boundaries
+        
+        field1_cut = field1[index_maxtheta:(npix-index_maxtheta),index_maxtheta:(npix-index_maxtheta)]
+        result[i] = np.mean(field1_cut**2)
+
+    return result
+
 def extract_Map2_Map3(Xs, Ys, shear_catalogue, npix, thetas, fieldsize, save_map=None,
                  same_fieldsize_for_all_theta=False, use_polynomial_filter=False):
 
@@ -732,10 +875,11 @@ def Map3_Gaussian_Random_Field(power_spectrum, thetas, npix=4096, fieldsize=240,
         kappa_field=kappa_field-np.mean(kappa_field)
 
 
-    shears = create_gamma_field(kappa_field)
+    #shears = create_gamma_field(kappa_field)
     
-    result = extract_Map3_of_field(shears, npix, thetas, fieldsize)
+    #result = extract_Map3_of_field(shears, npix, thetas, fieldsize)
 
+    result=extract_Map3_of_kappa_field(kappa_field, npix, thetas, fieldsize)
     return result
 
 
@@ -917,7 +1061,7 @@ def Map3_MS_parallelised(all_los=range(64), thetas=[2,4,8,16], shapenoise=None, 
     """
     m=MyManager()
     m.start()
-    n_theta = len(thetas)
+    n_thetas = len(thetas)
     n_realisations=len(all_los)
   
     final_results= m.np_zeros((n_thetas*(n_thetas+1)*(n_thetas+2)//6,n_realisations))
@@ -945,9 +1089,12 @@ def Map3_SLICS(los, thetas):
     fieldsize=10*60
     npix=1024
 
-    Xs, Ys, shears1, shears2 = get_slics(los)
-    shear=shears1+1.0j*shears2
-    result = extract_Map3(Xs, Ys, shear, npix, thetas, fieldsize=fieldsize)
+    #Xs, Ys, shears1, shears2 = get_slics(los)
+    #shear=shears1+1.0j*shears2
+    #result = extract_Map3(Xs, Ys, shear, npix, thetas, fieldsize=fieldsize)
+    
+    kappa=get_kappa_slics(los)
+    result=extract_Map3_of_kappa_field(kappa, npix, thetas, fieldsize, same_fieldsize_for_all_theta=True)
 
     return result    
 
@@ -976,7 +1123,7 @@ def Map3_SLICS_parallelised(all_los, thetas=[2,4,8,16], n_processes=64):
     """
     m=MyManager()
     m.start()
-    n_theta = len(thetas)
+    n_thetas = len(thetas)
     n_realisations=len(all_los)
   
     final_results= m.np_zeros((n_thetas*(n_thetas+1)*(n_thetas+2)//6,n_realisations))
@@ -1165,8 +1312,10 @@ def Map2_MS(los, thetas, shapenoise=None, numberdensity=None):
     npix=4096
 
     if (shapenoise==None) and (numberdensity==None):
-        field=get_gamma_millennium(los)
-        result = extract_Map2_of_field(field, npix, thetas, fieldsize)
+        # field=get_gamma_millennium(los)
+        # result = extract_Map2_of_field(field, npix, thetas, fieldsize)
+        kappa = get_kappa_millennium(los)
+        result = extract_Map2_of_kappa_field(kappa, npix, thetas, fieldsize, same_fieldsize_for_all_theta=True)
     elif numberdensity==None:
         field=get_gamma_millennium_shapenoise(los, shapenoise)
         result = extract_Map2_of_field(field, npix, thetas, fieldsize)
@@ -1175,6 +1324,8 @@ def Map2_MS(los, thetas, shapenoise=None, numberdensity=None):
         Xs, Ys, shears1, shears2 = get_millennium_downsampled_shapenoise(los, Ngal_subsample, shapenoise)
         shear=shears1+1.0j*shears2
         result = extract_Map2(Xs, Ys, shear, npix, thetas, fieldsize=fieldsize)
+
+    
 
     return result    
 
@@ -1233,9 +1384,10 @@ def Map2_SLICS(los, thetas):
     fieldsize=10*60
     npix=1024
 
-    Xs, Ys, shears1, shears2 = get_slics(los)
-    shear=shears1+1.0j*shears2
-    result = extract_Map2(Xs, Ys, shear, npix, thetas, fieldsize=fieldsize)
+        
+    kappa=get_kappa_slics(los)
+    result=extract_Map2_of_kappa_field(kappa, npix, thetas, fieldsize, same_fieldsize_for_all_theta=True)
+
 
     return result    
 

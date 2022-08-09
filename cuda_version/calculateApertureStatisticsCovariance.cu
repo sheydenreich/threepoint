@@ -56,6 +56,14 @@ Argument 12: Survey geometry, either circle, square, infinite, or rectangular
   bool calculate_T7 = std::stoi(argv[11]);
   std::string type_str = argv[12];
 
+  std::cerr<<"Calculating term1:"<<calculate_T1<<std::endl;
+  std::cerr<<"Calculating term2:"<<calculate_T2<<std::endl;
+  std::cerr<<"Calculating term4:"<<calculate_T4<<std::endl;
+  std::cerr<<"Calculating term5:"<<calculate_T5<<std::endl;
+  std::cerr<<"Calculating term6:"<<calculate_T6<<std::endl;
+  std::cerr<<"Calculating term7:"<<calculate_T7<<std::endl;
+
+
   std::cerr << "Using cosmology from " << cosmo_paramfile << std::endl;
   std::cerr << "Using thetas from " << thetasfn << std::endl;
   std::cerr << "Using n(z) from " << nzfn << std::endl;
@@ -115,6 +123,8 @@ Argument 12: Survey geometry, either circle, square, infinite, or rectangular
     std::cerr << "Cov type not correctly specified" << std::endl;
     exit(-1);
   };
+
+  std::cerr<<"Using survey geometry "<<type_str<<std::endl;
 
   set_cosmology(cosmo, &nz);
 
@@ -232,6 +242,10 @@ Argument 12: Survey geometry, either circle, square, infinite, or rectangular
               convert_rad_to_angle(theta_combis.at(j).at(0)), convert_rad_to_angle(theta_combis.at(j).at(1)), convert_rad_to_angle(theta_combis.at(j).at(2)), "arcmin");
     }
   }
+
+
+
+
 
   // Output
 

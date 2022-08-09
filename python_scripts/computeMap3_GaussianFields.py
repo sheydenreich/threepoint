@@ -104,6 +104,5 @@ if(__name__ == '__main__'):
     if not exists(savepath):
         makedirs(savepath)
     savename = 'npix_'+str(args.npix)+'_fieldsize_'+str(np.int(np.round(args.fieldsize)))
-    if(args.substract_mean):
-        savename += '_mean_substracted'
+
     np.save(savepath+'map_cubed_'+savename,result)

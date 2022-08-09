@@ -4,7 +4,7 @@
 import numpy as np
 from astropy.io import fits
 
-filesystem="aifa"
+filesystem="pc"#"aifa"
 
 def get_kappa_millennium(los):
     return get_millennium(los)[:,:,4]
@@ -14,9 +14,11 @@ def get_millennium(los):
     los_no1 = los//8
     los_no2 = los%8
     if filesystem=="aifa":
-        ms_field = np.loadtxt("/home/laila/Work_Local/MS/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
-    else:
         ms_field = np.loadtxt("/vol/euclid2/euclid2_raid2/sven/millennium_maps/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
+
+    else:
+        ms_field = np.loadtxt("/home/laila/Work_Local/MS/41_los_8_"+ str(los_no1) +"_"+ str(los_no2) +".ascii")
+
     ms_field = ms_field.reshape(4096,4096,5)
     return ms_field
 
@@ -71,8 +73,12 @@ def get_gamma_millennium_shapenoise(los, shapenoise):
     return data[:,:,2]+sigma1 + 1.0j*(data[:,:,3]+sigma2)
 
 def get_kappa_slics(los):
-    filestr = "/vol/euclid7/euclid7_2/llinke/HOWLS/convergence_maps/SLICS_LCDM/kappa_noise_GalCatalog_LOS_cone"+str(los)+".fits_s333"+str(los)+"_zmin0.0_zmax3.0_sys_3.fits_ks_nomask_shear.fits"
-    return fits.open(filestr)[0].data
+    if filesystem=="aifa":
+        filestr = "/vol/euclid7/euclid7_2/llinke/HOWLS/convergence_maps/SLICS_LCDM/kappa_noise_GalCatalog_LOS_cone"+str(los)+".fits_s333"+str(los)+"_zmin0.0_zmax3.0_sys_3.fits_ks_nomask_shear.fits"
+    else:
+        filestr = "/home/laila/Work_Local/SLICS_DATA/convergence/kappa_noise_GalCatalog_LOS_cone"+str(los)+".fits_s333"+str(los)+"_zmin0.0_zmax3.0_sys_3.fits_ks_nomask_shear.fits"
+
+    return fits.open(filestr)[0].data[0]
 
 
 def get_slics(los):
