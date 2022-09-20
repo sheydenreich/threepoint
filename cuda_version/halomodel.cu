@@ -657,7 +657,6 @@ double Trispectrum(const double &l1, const double &l2, const double &l3, const d
   return result;
 }
 
-
 double Pentaspectrum(const double &l1, const double &l2, const double &l3, const double &l4, const double &l5, const double &l6)
 {
   PentaspecContainer container;
@@ -740,4 +739,48 @@ __global__ void integrand_Pentaspectrum_kernel(const double *vars, unsigned ndim
     double z = vars[i * ndim + 1];
     value[i] = m * pentaspectrum_integrand(m, z, l1, l2, l3, l4, l5, l6);
   }
+}
+
+__device__ double tetraspectrum_integrand(double m, double z, double l1, double l2, double l3, double l4, double l5)
+{
+  double didx = z / dev_z_max * (n_redshift_bins - 1);
+  int idx = didx;
+  didx = didx - idx;
+  if (idx == n_redshift_bins - 1)
+  {
+    idx = n_redshift_bins - 2;
+    didx = 1.;
+  }
+  double g = dev_g_array[idx] * (1 - didx) + dev_g_array[idx + 1] * didx;
+  double chi = dev_f_K_array[idx] * (1 - didx) + dev_f_K_array[idx + 1] * didx;
+  double rhobar = 2.7754e11; // critical density[Msun*h²/Mpc³]
+  rhobar *= dev_om;
+
+  double result = 1;
+
+  result *= pow(g, 5);
+  result /= pow(chi, 3);
+
+  result *= dev_c_over_H0 / dev_E(z);
+  result *= u_NFW(l1 / chi, m, z) * u_NFW(l2 / chi, m, z) * u_NFW(l3 / chi, m, z);
+  result *= u_NFW(l4 / chi, m, z) * u_NFW(l5 / chi, m, z);
+  result *= pow(m / rhobar, 5) * hmf(m, z);
+  result *= pow(1.5 * dev_om / dev_c_over_H0 / dev_c_over_H0, 5);
+  result *= pow(1 + z, 5);
+
+  return result;
+}
+
+__device__ double tetraspectrum_limber_integrated(double a, double b, double m, double l1, double l2, double l3, double l4, double l5)
+{
+  double cx, dx, q;
+  cx = (a + b) / 2;
+  dx = (b - a) / 2;
+  q = 0;
+  for (int i = 0; i < 48; i++)
+  {
+    q += dev_W96[i] * (tetraspectrum_integrand(m, cx - dx * dev_A96[i], l1, l2, l3, l4, l5) + tetraspectrum_integrand(m, cx + dx * dev_A96[i], l1, l2, l3, l4, l5));
+  }
+
+  return (q * dx);
 }

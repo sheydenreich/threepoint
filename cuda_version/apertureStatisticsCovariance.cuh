@@ -59,6 +59,9 @@ void initCovariance();
  */
 void writeCov(const std::vector<double> &values, const int &N, const std::string &filename);
 
+void writeCrossCov(const std::vector<double> &values, const int &Ninner, const int& Nouter, const std::string &filename);
+
+
 /**
  * @brief Geometric factor for circular survey
  *
@@ -645,5 +648,158 @@ struct CovMap2Container
    // Integration borders
    double lMin, lMax; //[1/rad]
 };
+
+
+/************************** FOR <Map²-Map3> CROSS-COVARIANCE ***************************************/
+
+
+/**
+ * @brief Calculates the Term T2 of the of Map³-Map² cross covariance with all permutations
+ *
+ * @param thetas_123 Three aperture radii of Map3 [rad]. Exception thrown if not exactly three values.
+ * @param theta4 Aperture radius of Map2 [rad]. 
+ * @return double T_2, total(theta1, theta2, theta3, theta4) = T_2 + 2 Permutations
+ * @todo Can be sped up by calculating less permutations!
+ */
+double Map2Map3_T2_total(const std::vector<double> &thetas_123, const double &theta_4);
+
+
+/**
+ * @brief Calculates the Term T2 of the of Map³-Map² cross covariance for one permutation
+ *
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param theta3 Aperture radius [rad]
+ * @param theta4 Aperture radius [rad]
+ */
+double Map2Map3_T2(const double &theta1, const double &theta2, const double &theta3, const double &theta4);
+
+
+/**
+ * @brief Wrapper of integrand_Map2Map3_T2 for the cubature library
+ * See https://github.com/stevengj/cubature for documentation
+ * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
+ * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+ * @param vars Array containing integration variables
+ * @param container Pointer to ApertureStatisticsCovarianceContainer instance
+ * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
+ * @param value Value of integral
+ * @return 0 on success
+ */
+int integrand_Map2Map3_T2(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
+
+/**
+ * @brief Integrand for Term T2 of the of Map³-Map² cross covariance for square survey
+ *
+ * @param vars Integration parameters (4 D)
+ * @param ndim Number of integration dimensions (here: 4)
+ * @param npts Number of integration points
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param value Value of integral
+ */
+__global__ void integrand_Map2Map3_T2_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+
+
+
+/**
+ * @brief  Calculates the Term T3 of the of Map³-Map² cross covariance with all permutations
+ *
+ * @param thetas_123 Three aperture radii of Map3 [rad]. Exception thrown if not exactly three values.
+ * @param theta4 Aperture radius of Map2 [rad].
+ * @return double T_3, total(theta1, theta2, theta3, theta4) = T_3 + 2 Permutations
+ */
+double Map2Map3_T3_total(const std::vector<double> &thetas_123, const double &theta_4);
+
+
+/**
+ * @brief Calculates the Term T3 of the of Map³-Map² cross covariance for one permutation
+ *
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param theta3 Aperture radius [rad]
+ * @param theta4 Aperture radius [rad]
+ */
+double Map2Map3_T3(const double &theta1, const double &theta2, const double &theta3, const double &theta4);
+
+/**
+ * @brief Wrapper of integrand_Map2Map3_T3 for the cubature library
+ * See https://github.com/stevengj/cubature for documentation
+ * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
+ * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+ * @param vars Array containing integration variables
+ * @param container Pointer to ApertureStatisticsCovarianceContainer instance
+ * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
+ * @param value Value of integral
+ * @return 0 on success
+ */
+int integrand_Map2Map3_T3(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
+
+/**
+ * @brief Integrand for Term T3 of the of Map³-Map² cross covariance for infinite survey
+ *
+ * @param vars Integration parameters (3 D)
+ * @param ndim Number of integration dimensions (here: 3)
+ * @param npts Number of integration points
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param theta3 Aperture radius [rad]
+ * @param theta4 Aperture radius [rad]
+ * @param value Value of integral
+ */
+__global__ void integrand_Map2Map3_T3_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double *value);
+
+
+/**
+ * @brief  Calculates the Term T4 of the of Map³-Map² cross covariance. 
+ * 
+ * This is basically just a wrapper for Map2Map3_T4, because there are no permutations for this term
+ *
+ * @param thetas_123 Three aperture radii of Map3 [rad]. Exception thrown if not exactly three values.
+ * @param theta4 Aperture radius of Map2 [rad].
+ * @return double T_3, total(theta1, theta2, theta3, theta4) = T_4
+ */
+double Map2Map3_T4_total(const std::vector<double> &thetas_123, const double &theta_4);
+
+
+/**
+ * @brief Calculates the Term T4 of the of Map³-Map² cross covariance for one permutation
+ *
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param theta3 Aperture radius [rad]
+ * @param theta4 Aperture radius [rad]
+ */
+double Map2Map3_T4(const double &theta1, const double &theta2, const double &theta3, const double &theta4);
+
+/**
+ * @brief Wrapper of integrand_Map2Map3_T4 for the cubature library
+ * See https://github.com/stevengj/cubature for documentation
+ * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
+ * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+ * @param vars Array containing integration variables
+ * @param container Pointer to ApertureStatisticsCovarianceContainer instance
+ * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
+ * @param value Value of integral
+ * @return 0 on success
+ */
+int integrand_Map2Map3_T4(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
+
+/**
+ * @brief Integrand for Term T4 of the of Map³-Map² cross covariance for infinite survey.
+ * @warning Uses 1-halo term only for Tetraspectrum!
+ * 
+ * @param vars Integration parameters (5 D)
+ * @param ndim Number of integration dimensions (here: 5)
+ * @param npts Number of integration points
+ * @param theta1 Aperture radius [rad]
+ * @param theta2 Aperture radius [rad]
+ * @param theta3 Aperture radius [rad]
+ * @param theta4 Aperture radius [rad]
+ * @param value Value of integral
+ */
+__global__ void integrand_Map2Map3_T4_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double *value);
+
+
 
 #endif // APERTURESTATISTICSCOVARIANCE_CUH
