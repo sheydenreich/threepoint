@@ -25,6 +25,9 @@ double thetaMax_smaller;
 double area;
 int type; // 0: circle, 1: square, 2: infinite, 3: rectangular
 
+__constant__ double dev_sigma2_from_windowfunction_array[n_redshift_bins]; 
+
+
 void initCovariance()
 {
     copyConstants();
@@ -123,6 +126,16 @@ __device__ double G_circle(const double &ell)
     return result;
 }
 
+double host_G_circle(const double &ell)
+{
+    double tmp = thetaMax * ell;
+    double result = j1(tmp);
+    result *= result;
+    result *= 4 / tmp / tmp;
+
+    return result;
+}
+
 __device__ double G_square(const double &ellX, const double &ellY)
 {
     double tmp1 = 0.5 * ellX * dev_thetaMax;
@@ -160,6 +173,96 @@ __device__ double G_rectangle(const double &ellX, const double &ellY)
 
     return j01 * j01 * j02 * j02;
 };
+
+
+
+double sigma2_from_windowFunction(double chi)
+{
+    double qmin = -1e3;
+    double qmax = 1e3;
+
+    double vals_min[2]={qmin, qmin};
+    double vals_max[2]={qmax, qmax};
+    Sigma2Container container;
+    container.chi=chi;
+
+    double result, error;
+    hcubature_v(1, integrand_sigma2_from_windowFunction, &container, 2, vals_min, vals_max, 
+    0, 0, 1e-4, ERROR_L1, &result, &error);
+
+    return result/pow(2*M_PI, 2);
+}
+
+int integrand_sigma2_from_windowFunction(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
+{
+    if (fdim != 1)
+    {
+        std::cerr << "integrand_sigma2_from_windowFunction: wrong function dimension" << std::endl;
+        return -1;
+    };
+    Sigma2Container *container_ = (Sigma2Container *)container;
+
+
+ // Allocate memory on device for integrand values
+    double *dev_value;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value, fdim * npts * sizeof(double)));
+
+    // Copy integration variables to device
+    double *dev_vars;
+    CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim * npts * sizeof(double)));                              // alocate memory
+    CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); // copying
+
+    integrand_sigma2_from_windowFunction<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, type, container_->chi, dev_value);
+
+    cudaFree(dev_vars); // Free variables
+
+    // Copy results to host
+    CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
+
+    cudaFree(dev_value); // Free values
+
+    return 0; // Success :)
+}
+
+__global__ void integrand_sigma2_from_windowFunction(const double *vars, unsigned ndim, int npts, int type, double chi, double *value)
+{
+    int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
+    {
+        double q1 = vars[i * ndim];
+        double q2 = vars[i * ndim + 1];
+
+        double q = sqrt(q1 * q1 + q2 * q2);
+        double Gfactor;
+        
+        if (type==0)
+        { 
+            Gfactor= G_circle(q);
+        }
+        else if(type==1)
+        {
+            Gfactor = G_square(q1, q2);
+        }
+        else
+        {
+            printf("Wrong geometry for sigma2_from_windowFunction, %d \n", type);
+            return;
+        };
+        double result;
+        if(q/chi<1e-9)
+        {
+            result=0;
+        }
+        else
+        {
+            result=Gfactor*dev_linear_pk(q/chi);
+           // printf("q, chi, G, P is %e, %e, %e, %e\n",q, chi, Gfactor, dev_linear_pk(q/chi), result);
+        };
+        value[i] = result;
+    }
+}
+
 
 /******************* FOR COVARIANCE OF <Map^3> *****************************************/
 
@@ -2062,11 +2165,157 @@ __global__ void integrand_T7_infinite(const double *vars, unsigned ndim, int npt
             result *= pentaspec;
             result *= l1 * l2 * l4 * l5;
             result *= l1 * l2 * l4 * l5;
-
             value[i] = result;
         }
     }
 }
+
+
+
+double T7_SSC(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6)
+{
+    // Set maximal l value such, that theta*l <= 10
+    double thetaMin_123 = std::min({theta1, theta2, theta3});
+    double thetaMin_456 = std::min({theta4, theta5, theta6});
+    double thetaMin = std::min({thetaMin_123, thetaMin_456});
+    double lMax = 10. / thetaMin;
+    lMin = 1e-4;
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
+
+    // Create container
+    ApertureStatisticsCovarianceContainer container;
+    container.thetas_123 = std::vector<double>{theta1, theta2, theta3};
+    container.thetas_456 = std::vector<double>{theta4, theta5, theta6};
+    container.mMin=pow(10, logMmin);
+    container.mMax=pow(10, logMmax);
+    container.zMin=0;
+    container.zMax=z_max;
+
+    // Do integration
+    double result, error;
+    if (type == 1)
+    {
+        double vals_min[6] = {lMin, lMin, 0, lMin, lMin, 0};
+        double vals_max[6] = {lMax, lMax, 2*M_PI, lMax, lMax, 2*M_PI};
+
+        hcubature_v(1, integrand_T7_SSC, &container, 6, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+        result = result / pow(2 * M_PI, 4);
+    }
+    else
+    {
+        throw std::logic_error("T7_SSC: Wrong survey geometry, only coded for square survey");
+    };
+
+    return result;
+}
+
+int integrand_T7_SSC(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
+{
+      if (fdim != 1)
+    {
+        std::cerr << "integrand_T5: wrong function dimension" << std::endl;
+        return -1;
+    };
+
+    ApertureStatisticsCovarianceContainer *container_ = (ApertureStatisticsCovarianceContainer *)container;
+
+    int Nmax = 1e5;
+    int Niter = int(npts / Nmax) + 1; // Number of iterations
+    std::cerr<<npts<<std::endl;
+    for (int i = 0; i < Niter; i++)
+    {
+
+        int npts_iter;
+        if (i == Niter - 1)
+        {
+            npts_iter = npts - (Niter - 1) * Nmax;
+        }
+        else
+        {
+            npts_iter = Nmax;
+        };
+
+        double vars_iter[npts_iter * ndim];
+        for (int j = 0; j < npts_iter; j++)
+        {
+            for (int k = 0; k < ndim; k++)
+            {
+                vars_iter[j * ndim + k] = vars[i * Nmax * ndim + j * ndim + k];
+            }
+        };
+
+        // Allocate memory on device for integrand values
+        double *dev_value_iter;
+        CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value_iter, fdim * npts_iter * sizeof(double)));
+
+        // Copy integration variables to device
+        double *dev_vars_iter;
+        CUDA_SAFE_CALL(cudaMalloc(&dev_vars_iter, ndim * npts_iter * sizeof(double)));                                   // alocate memory
+        CUDA_SAFE_CALL(cudaMemcpy(dev_vars_iter, vars_iter, ndim * npts_iter * sizeof(double), cudaMemcpyHostToDevice)); // copying
+
+        integrand_T7_SSC<<<BLOCKS, THREADS>>>(dev_vars_iter, ndim, npts_iter, 
+        container_->thetas_123.at(0),  container_->thetas_123.at(1), container_->thetas_123.at(2),
+        container_->thetas_456.at(0), container_->thetas_456.at(1),
+        container_->thetas_456.at(2), dev_value_iter, container_->mMin, container_->mMax, 
+        container_->zMin, container_->zMax);
+
+
+        cudaFree(dev_vars_iter); // Free variables
+
+        double value_iter[npts_iter];
+        // Copy results to host
+        CUDA_SAFE_CALL(cudaMemcpy(value_iter, dev_value_iter, fdim * npts_iter * sizeof(double), cudaMemcpyDeviceToHost));
+
+        cudaFree(dev_value_iter); // Free values
+
+        for (int j = 0; j < npts_iter; j++)
+        {
+            value[i * Nmax + j] = value_iter[j];
+        }
+    }
+
+    return 0; // Success :)
+}
+
+
+__global__ void integrand_T7_SSC(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
+                                      double theta4, double theta5, double theta6, 
+                                      double *value, double mMin, double mMax, double zMin, double zMax)
+                                      {
+                                              int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
+    {
+        double l1 = (vars[i * ndim]);
+        double l2 = (vars[i * ndim + 1]);
+        double phi1 = (vars[i * ndim + 2]);
+        double l4 = (vars[i * ndim + 3]);
+        double l5 = vars[i * ndim + 4];
+        double phi2 = vars[i * ndim + 5];
+
+
+        double l3 = (l1 * l1 + l2 * l2 + 2 * l1 * l2 * cos(phi1));
+        double l6 = (l4 * l4 + l5 * l5 + 2 * l4 * l5 * cos(phi2));
+
+        if (l3 <= 0 || l6 <= 0)
+        {
+            value[i] = 0;
+        }
+        else
+        {
+            l3 = sqrt(l3);
+            l6 = sqrt(l6);
+            double result = uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3) * uHat(l4 * theta4) * uHat(l5 * theta5) * uHat(l6 * theta6);
+
+            double pentaspec = pentaspectrum_limber_integrated_ssc(zMin, zMax, mMin, mMax, l1, l2, l3, l4, l5, l6);
+            result *= pentaspec;
+            result *= l1 * l2 * l4 * l5;
+            //printf("%e, %e, %e, %e, %e, %e, %e, %e\n", l1, l2, l3, l4, l5, l6, pentaspec, result);
+
+            value[i] = result;
+        }
+    }
+                                      }
 
 /************************** FOR <Map²> COVARIANCE ***************************************/
 

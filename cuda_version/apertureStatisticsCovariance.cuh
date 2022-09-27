@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "cuda_helpers.cuh"
+#include "bispectrum.cuh"
 
 /**
  * @file apertureStatisticsCovariance.cuh
@@ -42,6 +43,9 @@ extern double thetaMax_smaller;
 extern __constant__ double dev_lMin; // Minimal ell for integrations [1/rad]. Defined on Device
 extern double lMin;                  // Same as dev_lMin but for host
 
+extern __constant__ double dev_sigma2_from_windowfunction_array[n_redshift_bins]; 
+
+
 /**
  * @brief Initialization for covariance
  * Copies all necessary constants from host to device
@@ -70,6 +74,13 @@ void writeCrossCov(const std::vector<double> &values, const int &Ninner, const i
 __device__ double G_circle(const double &ell);
 
 /**
+ * @brief Geometric factor for circular survey
+ *
+ * @param ell |ellvec|
+ */
+double host_G_circle(const double &ell);
+
+/**
  * @brief Geometric factor for square survey
  *
  * @param ellX ell_x
@@ -84,6 +95,22 @@ __device__ double G_square(const double &ellX, const double &ellY);
  * @param ellY ell_y
  */
 __device__ double G_rectangle(const double &ellX, const double &ellY);
+
+
+
+
+double sigma2_from_windowFunction(double chi);
+
+int integrand_sigma2_from_windowFunction(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
+
+__global__ void integrand_sigma2_from_windowFunction(const double *vars, unsigned ndim, int npts, int type, double chi, double *value);
+
+
+
+struct Sigma2Container
+{
+   double chi;
+};
 
 /******************* FOR COVARIANCE OF <Map^3> *****************************************/
 
@@ -540,6 +567,16 @@ struct ApertureStatisticsCovarianceContainer
    double mMin, mMax;     //[Msun/h]
    double zMin, zMax;     //[unitless]
 };
+
+
+double T7_SSC(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
+
+int integrand_T7_SSC(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
+
+
+__global__ void integrand_T7_SSC(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
+                                      double theta4, double theta5, double theta6, 
+                                      double *value, double mMin, double mMax, double zMin, double zMax);
 
 /************************** FOR <Map²> COVARIANCE ***************************************/
 
