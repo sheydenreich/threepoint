@@ -152,7 +152,7 @@ __host__ __device__ double get_sigma2(const double &m, const double &z);
 __host__ __device__ double get_dSigma2dm(const double &m, const double &z);
 
 
-__device__ double halo_bias(const double& m, const double& z);
+__host__ __device__ double halo_bias(const double& m, const double& z);
 
 
 

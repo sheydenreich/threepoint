@@ -178,7 +178,7 @@ __device__ double G_rectangle(const double &ellX, const double &ellY)
 
 double sigma2_from_windowFunction(double chi)
 {
-    double qmin = -1e3;
+    double qmin = 0;//-1e3;
     double qmax = 1e3;
 
     double vals_min[2]={qmin, qmin};
@@ -190,7 +190,12 @@ double sigma2_from_windowFunction(double chi)
     hcubature_v(1, integrand_sigma2_from_windowFunction, &container, 2, vals_min, vals_max, 
     0, 0, 1e-4, ERROR_L1, &result, &error);
 
-    return result/pow(2*M_PI, 2);
+    result/=pow(2*M_PI, 2);
+    result*=4;
+
+    std::cout<<chi<<" "<<result<<std::endl;
+
+    return result;
 }
 
 int integrand_sigma2_from_windowFunction(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
