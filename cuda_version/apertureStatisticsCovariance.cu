@@ -25,6 +25,9 @@ double thetaMax_smaller;
 double area;
 int type; // 0: circle, 1: square, 2: infinite, 3: rectangular
 
+__constant__ double dev_sigma2_from_windowfunction_array[n_redshift_bins]; 
+
+
 void initCovariance()
 {
     copyConstants();
@@ -87,9 +90,45 @@ void writeCov(const std::vector<double> &values, const int &N, const std::string
     }
 }
 
+void writeCrossCov(const std::vector<double> &values, const int &Ninner, const int& Nouter, const std::string &filename)
+{
+    // Check if there are the correct number of values for an NxN Covariance
+    if (values.size() != Ninner*Nouter)
+    {
+        throw std::out_of_range("writeCrossCov: Values has wrong length");
+    };
+
+    std::ofstream out(filename); // Open file and check if it can be opened
+    if (!out.is_open())
+    {
+        throw std::runtime_error("writeCrossCov: Could not open " + filename);
+    };
+
+    // Do Output
+    for (int i = 0; i < Nouter; i++)
+    {
+        for (int j = 0; j < Ninner; j++)
+        {
+            out << values.at(i * Ninner + j) << " ";
+        };
+        out << std::endl;
+    };
+}
+
+
 __device__ double G_circle(const double &ell)
 {
     double tmp = dev_thetaMax * ell;
+    double result = j1(tmp);
+    result *= result;
+    result *= 4 / tmp / tmp;
+
+    return result;
+}
+
+double host_G_circle(const double &ell)
+{
+    double tmp = thetaMax * ell;
     double result = j1(tmp);
     result *= result;
     result *= 4 / tmp / tmp;
@@ -134,6 +173,101 @@ __device__ double G_rectangle(const double &ellX, const double &ellY)
 
     return j01 * j01 * j02 * j02;
 };
+
+
+
+double sigma2_from_windowFunction(double chi)
+{
+    double qmin = 0;//-1e3;
+    double qmax = 1e3;
+
+    double vals_min[2]={qmin, qmin};
+    double vals_max[2]={qmax, qmax};
+    Sigma2Container container;
+    container.chi=chi;
+
+    double result, error;
+    hcubature_v(1, integrand_sigma2_from_windowFunction, &container, 2, vals_min, vals_max, 
+    0, 0, 1e-4, ERROR_L1, &result, &error);
+
+    result/=pow(2*M_PI, 2);
+    result*=4;
+
+    std::cout<<chi<<" "<<result<<std::endl;
+
+    return result;
+}
+
+int integrand_sigma2_from_windowFunction(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
+{
+    if (fdim != 1)
+    {
+        std::cerr << "integrand_sigma2_from_windowFunction: wrong function dimension" << std::endl;
+        return -1;
+    };
+    Sigma2Container *container_ = (Sigma2Container *)container;
+
+
+ // Allocate memory on device for integrand values
+    double *dev_value;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value, fdim * npts * sizeof(double)));
+
+    // Copy integration variables to device
+    double *dev_vars;
+    CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim * npts * sizeof(double)));                              // alocate memory
+    CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); // copying
+
+    integrand_sigma2_from_windowFunction<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, type, container_->chi, dev_value);
+
+    cudaFree(dev_vars); // Free variables
+
+    // Copy results to host
+    CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
+
+    cudaFree(dev_value); // Free values
+
+    return 0; // Success :)
+}
+
+__global__ void integrand_sigma2_from_windowFunction(const double *vars, unsigned ndim, int npts, int type, double chi, double *value)
+{
+    int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
+    {
+        double q1 = vars[i * ndim];
+        double q2 = vars[i * ndim + 1];
+
+        double q = sqrt(q1 * q1 + q2 * q2);
+        double Gfactor;
+        
+        if (type==0)
+        { 
+            Gfactor= G_circle(q);
+        }
+        else if(type==1)
+        {
+            Gfactor = G_square(q1, q2);
+        }
+        else
+        {
+            printf("Wrong geometry for sigma2_from_windowFunction, %d \n", type);
+            return;
+        };
+        double result;
+        if(q/chi<1e-9)
+        {
+            result=0;
+        }
+        else
+        {
+            result=Gfactor*dev_linear_pk(q/chi);
+           // printf("q, chi, G, P is %e, %e, %e, %e\n",q, chi, Gfactor, dev_linear_pk(q/chi), result);
+        };
+        value[i] = result;
+    }
+}
+
 
 /******************* FOR COVARIANCE OF <Map^3> *****************************************/
 
@@ -2041,11 +2175,157 @@ __global__ void integrand_T7_infinite(const double *vars, unsigned ndim, int npt
             result *= pentaspec;
             result *= l1 * l2 * l4 * l5;
             result *= l1 * l2 * l4 * l5;
-
             value[i] = result;
         }
     }
 }
+
+
+
+double T7_SSC(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6)
+{
+    // Set maximal l value such, that theta*l <= 10
+    double thetaMin_123 = std::min({theta1, theta2, theta3});
+    double thetaMin_456 = std::min({theta4, theta5, theta6});
+    double thetaMin = std::min({thetaMin_123, thetaMin_456});
+    double lMax = 10. / thetaMin;
+    lMin = 1e-4;
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
+
+    // Create container
+    ApertureStatisticsCovarianceContainer container;
+    container.thetas_123 = std::vector<double>{theta1, theta2, theta3};
+    container.thetas_456 = std::vector<double>{theta4, theta5, theta6};
+    container.mMin=pow(10, logMmin);
+    container.mMax=pow(10, logMmax);
+    container.zMin=0;
+    container.zMax=z_max;
+
+    // Do integration
+    double result, error;
+    if (type == 1)
+    {
+        double vals_min[6] = {lMin, lMin, 0, lMin, lMin, 0};
+        double vals_max[6] = {lMax, lMax, 2*M_PI, lMax, lMax, 2*M_PI};
+
+        hcubature_v(1, integrand_T7_SSC, &container, 6, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+        result = result / pow(2 * M_PI, 4);
+    }
+    else
+    {
+        throw std::logic_error("T7_SSC: Wrong survey geometry, only coded for square survey");
+    };
+
+    return result;
+}
+
+int integrand_T7_SSC(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
+{
+      if (fdim != 1)
+    {
+        std::cerr << "integrand_T5: wrong function dimension" << std::endl;
+        return -1;
+    };
+
+    ApertureStatisticsCovarianceContainer *container_ = (ApertureStatisticsCovarianceContainer *)container;
+
+    int Nmax = 1e5;
+    int Niter = int(npts / Nmax) + 1; // Number of iterations
+    std::cerr<<npts<<std::endl;
+    for (int i = 0; i < Niter; i++)
+    {
+
+        int npts_iter;
+        if (i == Niter - 1)
+        {
+            npts_iter = npts - (Niter - 1) * Nmax;
+        }
+        else
+        {
+            npts_iter = Nmax;
+        };
+
+        double vars_iter[npts_iter * ndim];
+        for (int j = 0; j < npts_iter; j++)
+        {
+            for (int k = 0; k < ndim; k++)
+            {
+                vars_iter[j * ndim + k] = vars[i * Nmax * ndim + j * ndim + k];
+            }
+        };
+
+        // Allocate memory on device for integrand values
+        double *dev_value_iter;
+        CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value_iter, fdim * npts_iter * sizeof(double)));
+
+        // Copy integration variables to device
+        double *dev_vars_iter;
+        CUDA_SAFE_CALL(cudaMalloc(&dev_vars_iter, ndim * npts_iter * sizeof(double)));                                   // alocate memory
+        CUDA_SAFE_CALL(cudaMemcpy(dev_vars_iter, vars_iter, ndim * npts_iter * sizeof(double), cudaMemcpyHostToDevice)); // copying
+
+        integrand_T7_SSC<<<BLOCKS, THREADS>>>(dev_vars_iter, ndim, npts_iter, 
+        container_->thetas_123.at(0),  container_->thetas_123.at(1), container_->thetas_123.at(2),
+        container_->thetas_456.at(0), container_->thetas_456.at(1),
+        container_->thetas_456.at(2), dev_value_iter, container_->mMin, container_->mMax, 
+        container_->zMin, container_->zMax);
+
+
+        cudaFree(dev_vars_iter); // Free variables
+
+        double value_iter[npts_iter];
+        // Copy results to host
+        CUDA_SAFE_CALL(cudaMemcpy(value_iter, dev_value_iter, fdim * npts_iter * sizeof(double), cudaMemcpyDeviceToHost));
+
+        cudaFree(dev_value_iter); // Free values
+
+        for (int j = 0; j < npts_iter; j++)
+        {
+            value[i * Nmax + j] = value_iter[j];
+        }
+    }
+
+    return 0; // Success :)
+}
+
+
+__global__ void integrand_T7_SSC(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
+                                      double theta4, double theta5, double theta6, 
+                                      double *value, double mMin, double mMax, double zMin, double zMax)
+                                      {
+                                              int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
+    {
+        double l1 = (vars[i * ndim]);
+        double l2 = (vars[i * ndim + 1]);
+        double phi1 = (vars[i * ndim + 2]);
+        double l4 = (vars[i * ndim + 3]);
+        double l5 = vars[i * ndim + 4];
+        double phi2 = vars[i * ndim + 5];
+
+
+        double l3 = (l1 * l1 + l2 * l2 + 2 * l1 * l2 * cos(phi1));
+        double l6 = (l4 * l4 + l5 * l5 + 2 * l4 * l5 * cos(phi2));
+
+        if (l3 <= 0 || l6 <= 0)
+        {
+            value[i] = 0;
+        }
+        else
+        {
+            l3 = sqrt(l3);
+            l6 = sqrt(l6);
+            double result = uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3) * uHat(l4 * theta4) * uHat(l5 * theta5) * uHat(l6 * theta6);
+
+            double pentaspec = pentaspectrum_limber_integrated_ssc(zMin, zMax, mMin, mMax, l1, l2, l3, l4, l5, l6);
+            result *= pentaspec;
+            result *= l1 * l2 * l4 * l5;
+            //printf("%e, %e, %e, %e, %e, %e, %e, %e\n", l1, l2, l3, l4, l5, l6, pentaspec, result);
+
+            value[i] = result;
+        }
+    }
+                                      }
 
 /************************** FOR <Map²> COVARIANCE ***************************************/
 
@@ -2076,7 +2356,6 @@ double Cov_Map2_Gauss(const double &theta1, const double &theta2)
         double vals_max[4] = {lMax, lMax, lMax, lMax};
         hcubature_v(1, integrand_Cov_Map2_Gauss, &container, 4, vals_min, vals_max, 0, 0, 1e-3, ERROR_L1, &result, &error);
         result /= pow(2 * M_PI, 4);
-        std::cerr << result << std::endl;
     }
     else
     {
@@ -2117,7 +2396,6 @@ double Cov_Map2_NonGauss(const double &theta1, const double &theta2)
         double vals_max[7] = {lMax, lMax, lMax, lMax, lMax, lMax, mmax};
         hcubature_v(1, integrand_Cov_Map2_NonGauss, &container, 7, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
         result /= pow(2 * M_PI, 6);
-        std::cerr << result << std::endl;
     }
     else
     {
@@ -2318,5 +2596,467 @@ __global__ void integrand_Cov_Map2_NonGauss_square(const double *vars, unsigned 
 
             // printf("%e %e %e %e %e %e %e \n", result, trispec, Gfactor, ell1, ell2, ell3, ell4);
         };
+    }
+}
+
+
+/************************** FOR <Map²-Map3> CROSS-COVARIANCE ***************************************/
+
+double Map2Map3_T2_total(const std::vector<double> &thetas_123, const double &theta_4)
+{
+    if (thetas_123.size() != 3)
+    {
+        throw std::invalid_argument("Map2Map3_T2_total: Wrong number of aperture radii");
+    };
+
+    double th0=thetas_123.at(0);
+    double th1=thetas_123.at(1);
+    double th2=thetas_123.at(2);
+    double th3=theta_4;
+
+    
+    double result=0;
+
+    // TO DO: BY CHECKING IF TWO THETAS ARE THE SAME, THE NUMBER OF INDIVIDUAL PERMUATIONS TO 
+    // BE CALCULATED CAN BE REDUCED!
+
+    printf("Doing %f, %f, %f, %f \n", th0, th1, th2, th3);
+    result += Map2Map3_T2(th0, th1, th2, th3);
+
+    printf("Doing %f, %f, %f, %f \n", th1, th0, th2, th3);
+    result += Map2Map3_T2(th1, th0, th2, th3);
+
+    printf("Doing %f, %f, %f, %f \n", th2, th0, th1, th3);
+    result += Map2Map3_T2(th2, th0, th1, th3);
+
+    return result;
+
+}
+
+double Map2Map3_T2(const double &theta1, const double &theta2, const double &theta3, const double &theta4)
+{
+    if (type==2)
+        return 0;
+
+    // Integral over ell 1
+    std::vector<double> thetas1{theta2, theta3};
+    ApertureStatisticsCovarianceContainer container;
+    container.thetas_123 = thetas1;
+    double thetaMin = std::min({theta2, theta3});
+    double lMax = 10. / thetaMin; // Determine ell-Boundary
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double))); //Copies the value of lMax to the GPU
+
+    double result_1, error_1;
+
+    double vals_min1[1] = {lMin};
+    double vals_max1[1] = {lMax};
+    hcubature_v(1, integrand_T2_part1, &container, 1, vals_min1, vals_max1, 0, 0, 1e-4, ERROR_L1, &result_1, &error_1); //Do integration
+
+    result_1 /= 2 * M_PI; // Division by 2pi because 1 integral in ell-space
+
+
+    // Integral over ell 2 and ell 3
+    std::vector<double> thetas2{theta1, theta4};
+    container.thetas_123 = thetas2;
+    thetaMin=std::max({theta1, theta4});
+    lMax = 10. / thetaMin;
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
+
+    //lMax=1e3;
+    double result_2, error_2;
+
+    double vals_min2[4] = {-lMax/sqrt(2), -lMax/sqrt(2), -lMax/sqrt(2), -lMax/sqrt(2)};
+    double vals_max2[4] = {lMax/sqrt(2), lMax/sqrt(2), lMax/sqrt(2), lMax/sqrt(2)};
+
+    if (type == 1)
+    {
+        hcubature_v(1, integrand_Map2Map3_T2, &container, 4, vals_min2, vals_max2, 0, 0, 1e-1, ERROR_L1, &result_2, &error_2);
+        result_2 /= pow(2 * M_PI,4); // Division by 2pi^4 because 4 integrals in ell-space
+
+    }
+    else
+    {
+        throw std::logic_error("Map2Map3_T2: Wrong survey geometry");
+    }
+    
+    return result_1*result_2;
+
+}
+
+
+int integrand_Map2Map3_T2(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
+{
+    if (fdim != 1)
+    {
+        std::cerr << "integrand_Map2Map3_T2: wrong function dimension" << std::endl;
+        return -1;
+    };
+
+    ApertureStatisticsCovarianceContainer *container_ = (ApertureStatisticsCovarianceContainer *)container;
+
+    // Allocate memory on device for integrand values
+    double *dev_value;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value, fdim * npts * sizeof(double)));
+
+    // Copy integration variables to device
+    double *dev_vars;
+    CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim * npts * sizeof(double)));                              // alocate memory for result on GPU
+    CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); // copying
+    
+
+    if(type == 1)
+    {
+        integrand_Map2Map3_T2_square<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->thetas_123.at(0),
+                                                   container_->thetas_123.at(1),  dev_value);
+    }
+    else
+    {
+        exit(-1);
+    };
+
+        cudaFree(dev_vars); // Free variables
+
+    // Copy results to host
+    CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
+
+    cudaFree(dev_value); // Free values
+
+    return 0; // Success :)
+}
+
+
+__global__ void integrand_Map2Map3_T2_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value)
+{
+    int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
+    {
+        double ell1_x = vars[i * ndim];
+        double ell1_y = vars[i * ndim + 1];
+        double ell2_x = vars[i * ndim + 2];
+        double ell2_y = vars[i * ndim + 3];
+
+
+        double ell1=sqrt(ell1_x*ell1_x+ell1_y*ell1_y);
+        double ell2=sqrt(ell2_x*ell2_x+ell2_y*ell2_y);
+        double ell3=sqrt((ell1_x+ell2_x)*(ell1_x+ell2_x)+(ell1_y+ell2_y)*(ell1_y+ell2_y));
+        double result;
+
+        double Gfactor = G_square(ell1_x, ell1_y);
+
+        result = bkappa(ell1, ell2, ell3);
+        result *= uHat(ell1 * theta1) * uHat(ell2 * theta2) * uHat(ell3 *theta2);
+        result *= Gfactor;
+
+        value[i] = result;
+       
+    }
+}
+
+
+
+double Map2Map3_T3_total(const std::vector<double> &thetas_123, const double &theta_4)
+{
+    if (thetas_123.size() != 3)
+    {
+        throw std::invalid_argument("Map2Map3_T2_total: Wrong number of aperture radii");
+    };
+
+    double th0=thetas_123.at(0);
+    double th1=thetas_123.at(1);
+    double th2=thetas_123.at(2);
+    double th3=theta_4;
+
+    
+    double result=0;
+
+    // TO DO: BY CHECKING IF TWO THETAS ARE THE SAME, THE NUMBER OF INDIVIDUAL PERMUATIONS TO 
+    // BE CALCULATED CAN BE REDUCED!
+
+    printf("Doing %f, %f, %f, %f \n", th0, th1, th2, th3);
+    result += Map2Map3_T3(th0, th1, th2, th3);
+
+    printf("Doing %f, %f, %f, %f \n", th1, th0, th2, th3);
+    result += Map2Map3_T3(th1, th0, th2, th3);
+
+    printf("Doing %f, %f, %f, %f \n", th2, th0, th1, th3);
+    result += Map2Map3_T3(th2, th0, th1, th3);
+
+    return result;
+
+}
+
+
+
+double Map2Map3_T3(const double &theta1, const double &theta2, const double &theta3, const double &theta4)
+{
+
+    std::vector<double> thetas{theta1, theta2, theta3, theta4};
+    ApertureStatisticsCovarianceContainer container;
+    container.thetas_123 = thetas;
+    double thetaMin = std::min({theta1, theta2, theta3, theta4});
+    double lMax = 10. / thetaMin;
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
+    lMin=1e-5; //Set lMin to a value different from zero, so we can integrate over the log(ell)
+    double result, error;
+
+    if (type == 2)
+    {
+        double vals_min[3] = {log(lMin), log(lMin), 0};
+        double vals_max[3] = {log(lMax), log(lMax), 2 * M_PI};
+        hcubature_v(1, integrand_Map2Map3_T3, &container, 3, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+        result /= pow(2 * M_PI, 2); // Division by 2pi^2 because 2 integral in ell-space
+        result /= area;
+        result *= 2;
+    }
+    else
+    {
+        throw std::logic_error("Map2Map3_T3: Only coded for infinite survey");
+    }
+    
+    return result;
+
+}
+
+
+int integrand_Map2Map3_T3(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
+{
+    if (fdim != 1)
+    {
+        std::cerr << "integrand_Map2Map3_T3: wrong function dimension" << std::endl;
+        return -1;
+    };
+
+    ApertureStatisticsCovarianceContainer *container_ = (ApertureStatisticsCovarianceContainer *)container;
+
+   // Allocate memory on device for integrand values
+    double *dev_value;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value, fdim * npts * sizeof(double)));
+    
+    // Copy integration variables to device
+    double *dev_vars;
+    CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim * npts * sizeof(double)));                              // alocate memory
+    CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); // copying
+
+    // Calculate values
+    if (type == 2)
+    {
+        integrand_Map2Map3_T3_infinite<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, container_->thetas_123.at(0),
+                                                   container_->thetas_123.at(1), container_->thetas_123.at(2),
+                                                   container_->thetas_123.at(3), dev_value);
+    }
+    else // This should not happen
+    {
+        exit(-1);
+    };
+
+    cudaFree(dev_vars); // Free variables
+
+    // Copy results to host
+    CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
+
+    cudaFree(dev_value); // Free values
+
+    return 0; // Success :)
+
+}
+
+
+__global__ void integrand_Map2Map3_T3_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double *value)
+{
+    int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
+    {
+        double l1 = exp(vars[i * ndim]);
+        double l2 = exp(vars[i * ndim + 1]);
+        double phi = vars[i*ndim+2];
+
+        double l3 = l1 * l1 + l2 * l2 + 2 * l1 * l2 * cos(phi);
+
+        if (l3 > dev_lMax ||l3 <= 0)
+        {
+            value[i] = 0;
+        }
+        else
+        {
+            l3=sqrt(l3);
+
+            double result = uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3) * uHat(l1 * theta4) * uHat(l1 * theta4);
+
+            result *= bkappa(l1, l2, l3);
+            result *= dev_Pell(l1);
+            result *= l1 * l2; //one time for the log-integration
+            result *= l1 * l2;
+
+            value[i] = result;
+        }
+    }
+}
+
+
+
+double Map2Map3_T4_total(const std::vector<double> &thetas_123, const double &theta_4)
+{
+    if (thetas_123.size() != 3)
+    {
+        throw std::invalid_argument("Map2Map3_T2_total: Wrong number of aperture radii");
+    };
+
+    double th0=thetas_123.at(0);
+    double th1=thetas_123.at(1);
+    double th2=thetas_123.at(2);
+    double th3=theta_4;
+
+    
+    double result=0;
+
+    printf("Doing %f, %f, %f, %f \n", th0, th1, th2, th3);
+    result += Map2Map3_T4(th0, th1, th2, th3);
+
+    return result;
+
+}
+
+
+double Map2Map3_T4(const double &theta1, const double &theta2, const double &theta3, const double &theta4)
+{
+
+    std::vector<double> thetas{theta1, theta2, theta3, theta4};
+    ApertureStatisticsCovarianceContainer container;
+    container.thetas_123 = thetas;
+    double thetaMin = std::min({theta1, theta2, theta3, theta4});
+    double lMax = 10. / thetaMin;
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
+
+    double lMin=1e-4;
+    double result, error;
+
+    if (type == 2)
+    {
+        double mmin = pow(10, logMmin);
+        double mmax = pow(10, logMmax);
+
+        double vals_min[5] = {log(lMin), log(lMin), log(lMin), 0, mmin};
+        double vals_max[5] = {log(lMax), log(lMax), log(lMax), 2 * M_PI, mmax};
+        hcubature_v(1, integrand_Map2Map3_T4, &container, 5, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
+        result /= pow(2 * M_PI, 3); // Division by 2pi^3 because 3 integral in ell-space
+        result /= area;
+    }
+    else
+    {
+        throw std::logic_error("Map2Map3_T4: Only coded for infinite survey");
+    }
+    
+    return result;
+
+}
+
+int integrand_Map2Map3_T4(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value)
+{
+      if (fdim != 1)
+    {
+        std::cerr << "integrand_Map2Map3_T4: wrong function dimension" << std::endl;
+        return -1;
+    };
+
+    ApertureStatisticsCovarianceContainer *container_ = (ApertureStatisticsCovarianceContainer *)container;
+
+    int Nmax = 1e5;
+    int Niter = int(npts / Nmax) + 1; // Number of iterations
+
+    for (int i = 0; i < Niter; i++)
+    {
+
+        int npts_iter;
+        if (i == Niter - 1)
+        {
+            npts_iter = npts - (Niter - 1) * Nmax;
+        }
+        else
+        {
+            npts_iter = Nmax;
+        };
+
+        double vars_iter[npts_iter * ndim];
+        for (int j = 0; j < npts_iter; j++)
+        {
+            for (int k = 0; k < ndim; k++)
+            {
+                vars_iter[j * ndim + k] = vars[i * Nmax * ndim + j * ndim + k];
+            }
+        };
+
+        // Allocate memory on device for integrand values
+        double *dev_value_iter;
+        CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value_iter, fdim * npts_iter * sizeof(double)));
+
+        // Copy integration variables to device
+        double *dev_vars_iter;
+        CUDA_SAFE_CALL(cudaMalloc(&dev_vars_iter, ndim * npts_iter * sizeof(double)));                                   // alocate memory
+        CUDA_SAFE_CALL(cudaMemcpy(dev_vars_iter, vars_iter, ndim * npts_iter * sizeof(double), cudaMemcpyHostToDevice)); // copying
+
+        // Calculate values
+        if (type == 2)
+        {
+            double mMin = pow(10, logMmin);
+            double mMax = pow(10, logMmax);
+            integrand_Map2Map3_T4_infinite<<<BLOCKS, THREADS>>>(dev_vars_iter, ndim, npts_iter, container_->thetas_123.at(0),
+                                                       container_->thetas_123.at(1), container_->thetas_123.at(2),
+                                                       container_->thetas_123.at(3), dev_value_iter);
+        }
+        else // This should not happen
+        {
+            exit(-1);
+        };
+
+        cudaFree(dev_vars_iter); // Free variables
+
+        double value_iter[npts_iter];
+        // Copy results to host
+        CUDA_SAFE_CALL(cudaMemcpy(value_iter, dev_value_iter, fdim * npts_iter * sizeof(double), cudaMemcpyDeviceToHost));
+
+        cudaFree(dev_value_iter); // Free values
+
+        for (int j = 0; j < npts_iter; j++)
+        {
+            value[i * Nmax + j] = value_iter[j];
+        }
+    }
+
+    return 0; // Success :)  
+}
+
+
+__global__ void integrand_Map2Map3_T4_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double *value)
+{
+    int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
+    {
+        double l1 = exp(vars[i * ndim]);
+        double l2 = exp(vars[i * ndim + 1]);
+        double l4 = exp(vars[i * ndim + 2]);
+        double phi = vars[i * ndim + 3];
+        double m = vars[i * ndim + 4];
+
+        double l3 = (l1 * l1 + l2 * l2 + 2 * l1 * l2 * cos(phi));
+
+        if (l3 <= 0)
+        {
+            value[i] = 0;
+        }
+        else
+        {
+            l3 = sqrt(l3);
+            double result = uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3) * uHat(l4 * theta4) * uHat(l4 * theta4);
+
+            double tetraspec = tetraspectrum_limber_integrated(0, dev_z_max, m, l1, l2, l3, l4, l4);
+            result *= tetraspec;
+            result *= l1 * l2 * l4;
+            result *= l1 * l2 * l4;
+
+            value[i] = result;
+        }
     }
 }

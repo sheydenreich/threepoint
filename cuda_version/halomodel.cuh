@@ -151,6 +151,11 @@ __host__ __device__ double get_sigma2(const double &m, const double &z);
  */
 __host__ __device__ double get_dSigma2dm(const double &m, const double &z);
 
+
+__host__ __device__ double halo_bias(const double& m, const double& z);
+
+
+
 /**
  * @brief 1-Halo Term integrand for 2D-Trispectrum. Needs to be integrated over mass m and redshift z to give total 2D-Trispectrum
  *
@@ -180,6 +185,39 @@ __device__ double trispectrum_integrand(double m, double z, double l1, double l2
  */
 __device__ double trispectrum_limber_integrated(double a, double b, double m, double l1, double l2, double l3, double l4);
 
+
+/**
+ * @brief 1-Halo Term integrand for 2D-Tetraspectrum. Needs to be integrated over mass m and redshift z to give total 2D-Tetraspectrum
+ *
+ * @param m mass [h^-1 Msun]
+ * @param z redshift
+ * @param l1 ell1 [1/rad]
+ * @param l2 ell2 [1/rad]
+ * @param l3 ell3 [1/rad]
+ * @param l4 ell4 [1/rad]
+ * @param l5 ell5 [1/rad]
+ * @return Integrand for Projected Tetraspectrum (1-halo term only)
+ */
+__device__ double tetraspectrum_integrand(double m, double z, double l1, double l2, double l3, double l4, double l5);
+
+/**
+ * @brief 1-Halo Term of projected Tetraspectrum with performed Limber Integration. Needs to be integrated over mass m for total 2D-Pentaspectrum
+ * Integrates over redshift from a to b using GQ on device
+ *
+ * @param a Minimal redshift
+ * @param b Maximal redshift
+ * @param m mass [h^-1 Msun]
+ * @param l1 ell1 [1/rad]
+ * @param l2 ell2 [1/rad]
+ * @param l3 ell3 [1/rad]
+ * @param l4 ell4 [1/rad]
+ * @param l5 ell5 [1/rad]
+ * @param l6 ell6 [1/rad]
+ * @return Integrand for Projected Tetraspectrum (1-halo term only)
+ */
+__device__ double tetraspectrum_limber_integrated(double a, double b, double m, double l1, double l2, double l3, double l4, double l5);
+
+
 /**
  * @brief 1-Halo Term integrand for 2D-Pentaspectrum. Needs to be integrated over mass m and redshift z to give total 2D-Pentaspectrum
  *
@@ -194,6 +232,10 @@ __device__ double trispectrum_limber_integrated(double a, double b, double m, do
  * @return Integrand for Projected Pentaspectrum (1-halo term only)
  */
 __device__ double pentaspectrum_integrand(double m, double z, double l1, double l2, double l3, double l4, double l5, double l6);
+
+__device__ double pentaspectrum_integrand_ssc(double mmin, double mmax, double z, double l1, double l2, double l3, double l4, double l5, double l6);
+
+
 
 /**
  * @brief 1-Halo Term of projected Pentaspectrum with performed Limber Integration. Needs to be integrated over mass m for total 2D-Pentaspectrum
@@ -211,6 +253,10 @@ __device__ double pentaspectrum_integrand(double m, double z, double l1, double 
  * @return Integrand for Projected Pentaspectrum (1-halo term only)
  */
 __device__ double pentaspectrum_limber_integrated(double a, double b, double m, double l1, double l2, double l3, double l4, double l5, double l6);
+
+
+__device__ double pentaspectrum_limber_integrated_ssc(double zmin, double zmax, double mmin, double mmax, double l1, double l2, double l3, double l4, double l5, double l6);
+
 
 /**
  * @brief 1-Halo Term of projected Pentaspectrum with performed Limber and Mass Integration.
@@ -411,5 +457,13 @@ struct PentaspecContainer
   double l5;
   double l6;
 };
+
+
+
+
+__device__ double integrand_I_31(const double& k1, const double& k2, const double& k3, const double& m, const double& z);
+
+__device__ double I_31(const double& k1, const double& k2, const double& k3, const double& a, const double& b, const double& z);
+
 
 #endif // HALOMODEL_CUH
