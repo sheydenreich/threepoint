@@ -127,13 +127,13 @@ Argument 6: Survey geometry, either circle, square, infinite, or rectangular
 
   double sigma2_array[n_redshift_bins];
 
+
   for(int i=0; i<n_redshift_bins; i++)
   {
-    double z_now = i*dz;
+    double z_now = (i+0.5)*dz;
     double chi=f_K_at_z(z_now);
     sigma2_array[i]=sigma2_from_windowFunction(chi);
   };
-  sigma2_array[0]=0;
   
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma2_from_windowfunction_array, sigma2_array, n_redshift_bins * sizeof(double)));
 
@@ -161,12 +161,15 @@ Argument 6: Survey geometry, either circle, square, infinite, or rectangular
       }
     }
   }
+
+
   int N_ind = theta_combis.size(); // Number of independent theta-combinations
   int N_total = N_ind * (N_ind + 1) / 2;
 
   int completed_steps = 0;
 
   auto begin = std::chrono::high_resolution_clock::now(); // Begin time measurement
+
 
 
  for (int i = 0; i < N_ind; i++)

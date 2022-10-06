@@ -1,11 +1,7 @@
 # define the Compiler to use
 # NVCC = /usr/local/cuda-11.6/bin/nvcc -std=c++17 -rdc=true -Xcompiler -fopenmp -O3 -arch=sm_86
-<<<<<<< HEAD
 #NVCC = nvcc -std=c++17 -rdc=true -Xcompiler -fopenmp -O3 -arch=sm_86
 NVCC = nvcc -std=c++11 -rdc=true -Xcompiler -fopenmp -O3 
-=======
-NVCC = nvcc -std=c++11 -rdc=true -Xcompiler -fopenmp -O3 -arch=sm_75
->>>>>>> v2.0
 
 # define the C++ compiler to use
 GCC = g++

@@ -179,7 +179,7 @@ __device__ double G_rectangle(const double &ellX, const double &ellY)
 double sigma2_from_windowFunction(double chi)
 {
     double qmin = 0;//-1e3;
-    double qmax = 1e3;
+    double qmax = 1e5; //1e3
 
     double vals_min[2]={qmin, qmin};
     double vals_max[2]={qmax, qmax};
@@ -193,7 +193,7 @@ double sigma2_from_windowFunction(double chi)
     result/=pow(2*M_PI, 2);
     result*=4;
 
-    std::cout<<chi<<" "<<result<<std::endl;
+   // std::cout<<chi<<" "<<result<<std::endl;
 
     return result;
 }
@@ -2188,7 +2188,7 @@ double T7_SSC(const double &theta1, const double &theta2, const double &theta3, 
     double thetaMin_123 = std::min({theta1, theta2, theta3});
     double thetaMin_456 = std::min({theta4, theta5, theta6});
     double thetaMin = std::min({thetaMin_123, thetaMin_456});
-    double lMax = 10. / thetaMin;
+    double lMax =  10. / thetaMin;
     lMin = 1e-4;
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
 
@@ -2198,6 +2198,8 @@ double T7_SSC(const double &theta1, const double &theta2, const double &theta3, 
     container.thetas_456 = std::vector<double>{theta4, theta5, theta6};
     container.mMin=pow(10, logMmin);
     container.mMax=pow(10, logMmax);
+    //container.mMin=pow(10, 11);
+    //container.mMax=pow(10, 17);
     container.zMin=0;
     container.zMax=z_max;
 
@@ -2205,11 +2207,11 @@ double T7_SSC(const double &theta1, const double &theta2, const double &theta3, 
     double result, error;
     if (type == 1)
     {
-        double vals_min[6] = {lMin, lMin, 0, lMin, lMin, 0};
-        double vals_max[6] = {lMax, lMax, 2*M_PI, lMax, lMax, 2*M_PI};
+        double vals_min[6] = {log(lMin), log(lMin), 0, log(lMin), log(lMin), 0};
+        double vals_max[6] = {log(lMax), log(lMax), 2*M_PI, log(lMax), log(lMax), 2*M_PI};
 
         hcubature_v(1, integrand_T7_SSC, &container, 6, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
-        result = result / pow(2 * M_PI, 4);
+        result = result / pow(2 * M_PI, 6);
     }
     else
     {
@@ -2296,11 +2298,11 @@ __global__ void integrand_T7_SSC(const double *vars, unsigned ndim, int npts, do
 
     for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
     {
-        double l1 = (vars[i * ndim]);
-        double l2 = (vars[i * ndim + 1]);
+        double l1 = exp(vars[i * ndim]);
+        double l2 = exp(vars[i * ndim + 1]);
         double phi1 = (vars[i * ndim + 2]);
-        double l4 = (vars[i * ndim + 3]);
-        double l5 = vars[i * ndim + 4];
+        double l4 = exp(vars[i * ndim + 3]);
+        double l5 = exp(vars[i * ndim + 4]);
         double phi2 = vars[i * ndim + 5];
 
 
@@ -2319,7 +2321,9 @@ __global__ void integrand_T7_SSC(const double *vars, unsigned ndim, int npts, do
 
             double pentaspec = pentaspectrum_limber_integrated_ssc(zMin, zMax, mMin, mMax, l1, l2, l3, l4, l5, l6);
             result *= pentaspec;
-            result *= l1 * l2 * l4 * l5;
+           result *= l1 * l2 * l4 * l5;
+           result *= l1 * l2 * l4 * l5;
+
             //printf("%e, %e, %e, %e, %e, %e, %e, %e\n", l1, l2, l3, l4, l5, l6, pentaspec, result);
 
             value[i] = result;

@@ -387,10 +387,21 @@ __device__ __host__ double halo_bias(const double& m, const double& z)
   double q=0.707;
   double p=0.3;
 
-  double sigma2=get_sigma2(m, z);
-  double delta_c=1.69;
+  double sig2=get_sigma2(m, z);
+#ifdef __CUDA_ARCH__
+  double om_z=dev_om_m_of_z(z);
+#else
+  double om_z=om_m_of_z(z);
+#endif
 
-  return 1+1./delta_c*(q*delta_c*delta_c/sigma2 - 1 + 2*p/(1+pow(q*delta_c*delta_c/sigma2, p)));
+  double delta_c=1.686*(1+0.0123*log10(om_z));
+  double factor=1;
+  // if( m> 1e14)
+  // {
+  //   factor=3.3*pow(m, -0.04);
+  // }
+
+  return( 1+1./delta_c*(q*delta_c*delta_c/sig2 - 1 + 2*p/(1+pow(q*delta_c*delta_c/sig2, p))))*factor;
 
 }
 
@@ -465,7 +476,7 @@ __device__ double pentaspectrum_integrand_ssc(double mmin, double mmax, double z
   double didx = z / dev_z_max * (n_redshift_bins - 1);
   int idx = didx;
   didx = didx - idx;
-  if (idx == n_redshift_bins - 1)
+  if (idx == n_redshift_bins - 1) 
   {
     idx = n_redshift_bins - 2;
     didx = 1.;
@@ -852,6 +863,7 @@ __device__ double integrand_I_31(const double& k1, const double& k2, const doubl
 
   double result = u_NFW(k1, m, z) * u_NFW(k2, m, z) * u_NFW(k3, m, z);
   result *= pow(m/rhobar, 3)*hmf(m, z);
+  
   result *= halo_bias(m, z);
 
   return result;
@@ -862,12 +874,17 @@ __device__ double integrand_I_31(const double& k1, const double& k2, const doubl
 __device__ double I_31(const double& k1, const double& k2, const double& k3, const double& a, const double& b, const double& z)
 {
   double cx, dx, q;
-  cx = (a + b) / 2;
-  dx = (b - a) / 2;
+  double logMmin=log(a);
+  double logMmax=log(b);
+    cx = (logMmin + logMmax) / 2;
+  dx = (logMmax - logMmin) / 2;
+
   q = 0;
   for (int i = 0; i < 48; i++)
   {
-    q += dev_W96[i] * (integrand_I_31(k1, k2, k3, cx - dx * dev_A96[i], z) + integrand_I_31(k1, k2, k3, cx + dx * dev_A96[i],z));
+        double m1 = exp(cx - dx * dev_A96[i]);
+    double m2 = exp(cx + dx * dev_A96[i]);
+    q += dev_W96[i] * (m1* integrand_I_31(k1, k2, k3, m1, z) + m2*integrand_I_31(k1, k2, k3, m2,z));
   }
 
   return (q * dx);
