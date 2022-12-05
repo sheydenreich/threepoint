@@ -2185,9 +2185,9 @@ __global__ void integrand_T7_infinite(const double *vars, unsigned ndim, int npt
 double T7_SSC(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6)
 {
     // Set maximal l value such, that theta*l <= 10
-    double thetaMin_123 = std::min({theta1, theta2, theta3});
-    double thetaMin_456 = std::min({theta4, theta5, theta6});
-    double thetaMin = std::min({thetaMin_123, thetaMin_456});
+    double thetaMin_123 = std::max({theta1, theta2, theta3});
+    double thetaMin_456 = std::max({theta4, theta5, theta6});
+    double thetaMin = std::max({thetaMin_123, thetaMin_456});
     double lMax =  10. / thetaMin;
     lMin = 1e-4;
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_lMax, &lMax, sizeof(double)));
@@ -2210,7 +2210,7 @@ double T7_SSC(const double &theta1, const double &theta2, const double &theta3, 
         double vals_min[6] = {log(lMin), log(lMin), 0, log(lMin), log(lMin), 0};
         double vals_max[6] = {log(lMax), log(lMax), 2*M_PI, log(lMax), log(lMax), 2*M_PI};
 
-        hcubature_v(1, integrand_T7_SSC, &container, 6, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+        hcubature_v(1, integrand_T7_SSC, &container, 6, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
         result = result / pow(2 * M_PI, 6);
     }
     else
@@ -2396,9 +2396,9 @@ double Cov_Map2_NonGauss(const double &theta1, const double &theta2)
     }
     else if (type == 1)
     {
-        double vals_min[7] = {-1.01 * lMax, -1.01 * lMax, -1.01 * lMax, -1.01 * lMax, -1.01 * lMax, -1.01 * lMax, mmin};
-        double vals_max[7] = {lMax, lMax, lMax, lMax, lMax, lMax, mmax};
-        hcubature_v(1, integrand_Cov_Map2_NonGauss, &container, 7, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
+        double vals_min[6] = {-1.01 * lMax, -1.01 * lMax, -1.01*lMax, -1.01*lMax, -1.01*lMax, -1.01*lMax};
+        double vals_max[6] = {lMax, lMax, lMax, lMax, lMax, lMax};
+        hcubature_v(1, integrand_Cov_Map2_NonGauss, &container, 6, vals_min, vals_max, 1e4, 0, 1e-1, ERROR_L1, &result, &error);
         result /= pow(2 * M_PI, 6);
     }
     else
@@ -2565,18 +2565,17 @@ __global__ void integrand_Cov_Map2_NonGauss_square(const double *vars, unsigned 
 
     for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
     {
-        double vx = vars[i * ndim];
-        double vy = vars[i * ndim + 1];
+        double l1x = vars[i * ndim];
+        double l1y = vars[i * ndim + 1];
         double l2x = vars[i * ndim + 2];
         double l2y = vars[i * ndim + 3];
         double l3x = vars[i * ndim + 4];
         double l3y = vars[i * ndim + 5];
-        double m = vars[i * ndim + 6];
 
-        double l1x = vx - l2x;
-        double l1y = vy - l2y;
-        double l4x = -vx - l3x;
-        double l4y = -vy - l3y;
+        double qx = l2x+l1x;
+        double qy = l2y+l1y;
+        double l4x = l3x+qx;
+        double l4y = l3y+qy;
 
         double ell1 = sqrt(l1x * l1x + l1y * l1y);
         double ell2 = sqrt(l2x * l2x + l2y * l2y);
@@ -2592,13 +2591,15 @@ __global__ void integrand_Cov_Map2_NonGauss_square(const double *vars, unsigned 
 
             double result = uHat(ell1 * theta1) * uHat(ell2 * theta1) * uHat(ell3 * theta2) * uHat(ell4 * theta2);
 
-            double trispec = trispectrum_limber_integrated(0, dev_z_max, m, ell1, ell2, ell3, ell4);
-            double Gfactor = G_square(vx, vy);
-            result *= trispec;
-            result *= Gfactor;
-            value[i] = result;
-
-            // printf("%e %e %e %e %e %e %e \n", result, trispec, Gfactor, ell1, ell2, ell3, ell4);
+        double trispec = 0; 
+        trispec+=trispectrum_2halo(0.001, dev_z_max, pow(10, logMmin), pow(10, logMmax), l1x, l1y, l2x, l2y, l3x, l3y, l4x, l4y);
+        
+            
+        double Gfactor = G_square(qx, qy);
+        result *= trispec;
+        result *= Gfactor;
+        value[i] = result;
+        // if(result<0) printf("%e %e %e %e %e %e %e \n", result, trispec, Gfactor, ell1, ell2, ell3, ell4);
         };
     }
 }
