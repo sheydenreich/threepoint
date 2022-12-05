@@ -28,6 +28,8 @@ const double eps = 1.0e-4;
 __constant__ double dev_f_K_array[n_redshift_bins]; // Array for comoving distance
 __constant__ double dev_g_array[n_redshift_bins];   // Array for lensing efficacy g
 double g_array[n_redshift_bins];
+double f_K_array[n_redshift_bins];
+
 
 __constant__ bool dev_Pk_given;
 __constant__ double dev_Pk[n_kbins];
@@ -147,7 +149,6 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_z_max, &z_max, sizeof(double)));
 
   // Calculate f_K(z) and g(z)
-  double f_K_array[n_redshift_bins];
 
   // First: f_K
 #pragma omp parallel for

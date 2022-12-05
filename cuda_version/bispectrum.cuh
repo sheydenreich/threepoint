@@ -38,6 +38,7 @@ const int n_kbins = 256;
 extern __constant__ double dev_f_K_array[n_redshift_bins]; // Array for comoving distance
 extern __constant__ double dev_g_array[n_redshift_bins];   // Array for lensing efficacy g
 extern double g_array[n_redshift_bins];
+extern double f_K_array[n_redshift_bins];
 
 // In case the power spectrum is given by an external module (e.g. CAMB): Array to store the power spectrum
 extern __constant__ bool dev_Pk_given;
