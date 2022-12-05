@@ -1,6 +1,7 @@
 #ifndef BISPECTRUM_CUH
 #define BISPECTRUM_CUH
 
+#define T17_CORRECTION true
 
 #include "cosmology.cuh"
 
@@ -152,8 +153,9 @@ __device__ double f_K_interpolated(int idx, double didx);
  * @param D1 will store Growth factor at redshift corresponding to idx+didx
  * @param r_sigma will store r_sigma at redshift corresponding to idx+didx
  * @param n_eff will store n_eff at redshift corresponding to idx+didx
+ * @param n_cur will store n_cur at redshift correspinding to idx+didx
  */
-__device__ void compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff);
+__device__ void compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff, double *ncur);
 
 /**
  * @brief Matter density parameter as a function of redshift

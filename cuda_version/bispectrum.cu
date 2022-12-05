@@ -97,6 +97,11 @@ void copyConstants()
 
 void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<double> *P_k, double dk, double kmin, double kmax)
 {
+#if T17_CORRECTION
+    std::cerr << "*****************************************************" << std::endl;
+    std::cerr << "WARNING: Applying T+17 corrections to power spectrum!" << std::endl;
+    std::cerr << "*****************************************************" << std::endl;
+#endif
   bool nz_from_file = (nz != NULL);
   if (nz_from_file)
   {
@@ -154,7 +159,7 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
 #pragma omp parallel for
   for (int i = 0; i < n_redshift_bins; i++)
   {
-    double z_now = i * dz;
+    double z_now = (i+0.5) * dz;
     f_K_array[i] = f_K_at_z(z_now);
   };
 
@@ -166,7 +171,7 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
     // perform trapezoidal integration
     for (int j = i; j < n_redshift_bins; j++)
     {
-      double z_now = j * dz;
+      // double z_now = j * dz;
       double nz_znow;
       nz_znow = nz->at(j);
       if (j == i || j == n_redshift_bins - 1)
@@ -195,7 +200,7 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
 #pragma omp parallel for
   for (int i = 0; i < n_redshift_bins; i++)
   {
-    double z_now = i * dz;
+    double z_now = (i+0.5) * dz;
 
     D1_array[i] = lgr(z_now) / lgr(0.);           // linear growth factor
     r_sigma_array[i] = calc_r_sigma(D1_array[i]); // =1/k_NL [Mpc/h] in Eq.(B1)
@@ -216,8 +221,8 @@ __device__ double bispec(double k1, double k2, double k3, double z, int idx, dou
   int i, j;
   double q[4], qt, logsigma8z, r1, r2;
   double an, bn, cn, en, fn, gn, hn, mn, nn, pn, alphan, betan, mun, nun, BS1h, BS3h, PSE[4];
-  double r_sigma, n_eff, D1;
-  compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff);
+  double r_sigma, n_eff, D1, ncur;
+  compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff, &ncur);
 
   if (z > 10.)
     return bispec_tree(k1, k2, k3, z, D1);
@@ -310,21 +315,15 @@ __device__ double integrand_bkappa(double z, double ell1, double ell2, double el
     return 0;
   }
 
-  double didx = z / dev_z_max * (dev_n_redshift_bins - 1);
+  double didx = z / dev_z_max * (dev_n_redshift_bins);
   int idx = didx;
   didx = didx - idx;
-  if (idx == dev_n_redshift_bins - 1)
-  {
-    idx = dev_n_redshift_bins - 2;
-    didx = 1.;
-  }
+
   double g_value = g_interpolated(idx, didx);
   double f_K_value = f_K_interpolated(idx, didx);
   double result = pow(g_value * (1. + z), 3) * bispec(ell1 / f_K_value, ell2 / f_K_value, ell3 / f_K_value, z, idx, didx) / f_K_value / dev_E(z);
   if (isnan(result))
   {
-    //      printf("%lf, %lf, %lf \n", z, dev_z_max, dev_n_redshift_bins);
-    //      printf("%lf, %lf \n", idx, didx);
     printf("nan in bispec!"); // %lf, %lf, %lf, %lf, %.3f, %lf, %lf, %lf \n", f_K_value, ell1, ell2, ell3, z, idx, didx, dev_n_redshift_bins);
     return 0;
   }
@@ -333,20 +332,71 @@ __device__ double integrand_bkappa(double z, double ell1, double ell2, double el
 
 __device__ double g_interpolated(int idx, double didx)
 {
-  return dev_g_array[idx] * (1 - didx) + dev_g_array[idx + 1] * didx;
+  int interpolate_idx = idx;
+  double weight = 1-abs(didx - 0.5);
+  double interpolate_weight = 1-weight;
+  if(didx>0.5)
+  {
+    if(idx==dev_n_redshift_bins-1){
+      interpolate_idx=idx;
+      interpolate_weight=0.0;
+    }
+    else{
+      interpolate_idx=idx+1;
+    }
+  }
+  else if(didx<0.5){
+    interpolate_idx=idx-1;
+  }
+
+
+  return dev_g_array[idx] * weight + dev_g_array[interpolate_idx] * interpolate_weight;
+
 }
 
 __device__ double f_K_interpolated(int idx, double didx)
 {
-  double res = dev_f_K_array[idx] * (1 - didx) + dev_f_K_array[idx + 1] * didx;
-  return res;
+  int interpolate_idx = idx;
+  double weight = 1-abs(didx - 0.5);
+  double interpolate_weight = 1-weight;
+  if(didx>0.5){
+    if(idx==dev_n_redshift_bins-1){
+      interpolate_idx=idx;
+      interpolate_weight=0.0;
+    }
+    else{
+      interpolate_idx=idx+1;
+    }
+  }
+  else if(didx<0.5){
+    interpolate_idx=idx-1;
+  }
+
+  return dev_f_K_array[idx] * weight + dev_f_K_array[interpolate_idx] * interpolate_weight;
 }
 
-__device__ void compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff)
+__device__ void compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff, double *ncur)
 {
-  *D1 = dev_D1_array[idx] * (1 - didx) + dev_D1_array[idx + 1] * didx;
-  *r_sigma = dev_r_sigma_array[idx] * (1 - didx) + dev_r_sigma_array[idx + 1] * didx;
-  *n_eff = dev_n_eff_array[idx] * (1 - didx) + dev_n_eff_array[idx + 1] * didx;
+  int interpolate_idx = idx;
+  double weight = 1-abs(didx - 0.5);
+  double interpolate_weight = 1-weight;
+  if(didx>0.5){
+    if(idx==dev_n_redshift_bins-1){
+      interpolate_idx=idx;
+      interpolate_weight=0.0;
+    }
+    else{
+      interpolate_idx=idx+1;
+    }
+  }
+  else if(didx<0.5){
+    interpolate_idx=idx-1;
+  }
+  
+  *D1 = dev_D1_array[idx] * weight + dev_D1_array[interpolate_idx] * interpolate_weight;
+  *r_sigma = dev_r_sigma_array[idx] * weight + dev_r_sigma_array[interpolate_idx] * interpolate_weight;
+  *n_eff = dev_n_eff_array[idx] * weight + dev_n_eff_array[interpolate_idx] * interpolate_weight;
+  *ncur = dev_ncur_array[idx] * weight + dev_ncur_array[interpolate_idx] * interpolate_weight;
 }
 
 __device__ double dev_om_m_of_z(double z)
@@ -373,8 +423,6 @@ __global__ void limber_integrand_wrapper(const double *vars, unsigned ndim, size
   // index of thread
   int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
 
-
-  // return;
   // Grid-Stride loop, so I get npts evaluations
   for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
   {
@@ -410,16 +458,12 @@ int limber_integrand_wrapper(unsigned ndim, size_t npts, const double *vars, voi
 
   // Calculate values
   limber_integrand_wrapper<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, *ell, dev_value);
-  // std::cerr << "test " << npts << std::endl;
   CudaCheckError();
 
   cudaFree(dev_vars); // Free variables
 
   // Copy results to host
   CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
-
-  // std::cerr<<std::endl;
-  // std::cerr << value[5] << std::endl;
 
   cudaFree(dev_value); // Free values
 
@@ -446,7 +490,6 @@ double Pell(double ell)
 
     hcubature_v(1, limber_integrand_wrapper, &ell, 1, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
 
-    // std::cerr<<ell<<" "<<result<<" "<<error<<" "<<P_shapenoise<<std::endl;
     return result + P_shapenoise;
   }
 }
@@ -488,32 +531,16 @@ __device__ double P_k_nonlinear(double k, double z)
   double didx = z / dev_z_max * (dev_n_redshift_bins - 1);
   int idx = didx;
   didx = didx - idx;
-  if (idx == dev_n_redshift_bins - 1)
-  {
-    idx = dev_n_redshift_bins - 2;
-    didx = 1.;
-  }
 
-  double r_sigma, n_eff, D1;
-  compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff);
-  // printf("D1: %.3f, rsigma: %.3f, neff: %.3f \n",D1,r_sigma,n_eff);
+  double r_sigma, n_eff, D1, ncur;
+  compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff, &ncur);
 
   double a, b, c, gam, alpha, beta, xnu, y, ysqr, ph, pq, f1, f2, f3;
   double f1a, f2a, f3a, f1b, f2b, f3b, frac;
   double plin, delta_nl;
   double om_m, om_v;
-  double nsqr, ncur;
+  double nsqr = n_eff*n_eff;
 
-  // f1 = pow(dev_om, -0.0307);
-  // f2 = pow(dev_om, -0.0585);
-  // f3 = pow(dev_om, 0.0743);
-
-  nsqr = n_eff * n_eff;
-  ncur = dev_ncur_array[idx] * (1 - didx) + dev_ncur_array[idx + 1] * didx; // interpolate ncur
-  // ncur = (n_eff+3)*(n_eff+3)+4.*pow(D1,2)*sigmam(r_sigma,3)/pow(sigmam(r_sigma,1),2);
-  // printf("n_eff, ncur, knl = %.3f, %.3f, %.3f \n",n_eff,ncur,1./r_sigma);
-
-  // ncur = 0.;
 
   if (abs(dev_om + dev_ow - 1) > 1e-4)
   {
@@ -803,13 +830,10 @@ double sigmam(double r, int j) // r[Mpc/h]
 
       xx *= hh;
 
-      // if(j==3) std::cout << xx << std::endl;
       if (fabs((xx - xxp) / xx) < eps)
         break;
       xxp = xx;
-      // printf("\033[2J");
-      // printf("%lf",(xx-xxp)/xx);
-      // fflush(stdout);
+
     }
 
     if (fabs((xx - xxpp) / xx) < eps)
@@ -938,17 +962,27 @@ __device__ double dev_limber_integrand_power_spectrum(double ell, double z)
   double didx = z / dev_z_max * (dev_n_redshift_bins - 1);
   int idx = didx;
   didx = didx - idx;
-  if (idx == dev_n_redshift_bins - 1)
-  {
-    idx = dev_n_redshift_bins - 2;
-    didx = 1.;
-  }
+
   double g_value = g_interpolated(idx, didx);
 
   double f_K_value = f_K_interpolated(idx, didx);
 
   double prefactor = dev_limber_integrand_prefactor(z, g_value);
-  return prefactor * P_k_nonlinear(ell / f_K_value, z);
+
+  double correction;
+
+  #if T17_CORRECTION // Correction for T17 simulations
+    double k = ell/f_K_value;
+    double c1 = 9.5171e-4;
+    double c2 = 5.1543e-3;
+    double a1 = 1.3063;
+    double a2 = 1.1475;
+    double a3 = 0.62793;
+    correction = pow(1+c1*pow(k,-1.*a1),a1)/pow(1+c2*pow(k,-1.*a2),a3);
+  #endif
+
+
+  return correction*prefactor * P_k_nonlinear(ell / f_K_value, z);
 }
 
 __device__ double dev_limber_integrand_prefactor(double z, double g_value)
