@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 {
   // Read in CLI
   const char *message = R"( 
-calculateMap2Covariance.x : Wrong number of command line parameters (Needed: 10)
+calculateMap2Covariance.x : Wrong number of command line parameters (Needed: 9)
 Argument 1: Filename for cosmological parameters (ASCII, see necessary_files/MR_cosmo.dat for an example)
 Argument 2: Filename with thetas [arcmin]
 Argument 3: Filename with n(z)
@@ -167,6 +167,7 @@ Argument 8: Survey geometry, either circle, square, infinite, or rectangular
         {
           double term1 = Cov_Map2_NonGauss(theta_rad.at(i), theta_rad.at(j));
           Cov_NonGauss.push_back(term1);
+          std::cerr<<term1<<std::endl;
         };
       }
       catch (const std::exception &e)
