@@ -34,10 +34,11 @@ Argument 8: Calculate T4? (0 or 1)
 Argument 9: Calculate T5? (0 or 1)
 Argument 10: Calculate T6? (0 or 1)
 Argument 11: Calculate T7? (0 or 1)
-Argument 12: Survey geometry, either circle, square, infinite, or rectangular
+Argument 12: Calculate T7_2H? (0 or 1)
+Argument 13: Survey geometry, either circle, square, infinite, or rectangular
 )";
 
-  if (argc != 13)
+  if (argc != 14)
   {
     std::cerr << message << std::endl;
     exit(-1);
@@ -54,7 +55,8 @@ Argument 12: Survey geometry, either circle, square, infinite, or rectangular
   bool calculate_T5 = std::stoi(argv[9]);
   bool calculate_T6 = std::stoi(argv[10]);
   bool calculate_T7 = std::stoi(argv[11]);
-  std::string type_str = argv[12];
+  bool calculate_T7_2h = std::stoi(argv[12]);
+  std::string type_str = argv[13];
 
   std::cerr<<"Calculating term1:"<<calculate_T1<<std::endl;
   std::cerr<<"Calculating term2:"<<calculate_T2<<std::endl;
@@ -62,6 +64,8 @@ Argument 12: Survey geometry, either circle, square, infinite, or rectangular
   std::cerr<<"Calculating term5:"<<calculate_T5<<std::endl;
   std::cerr<<"Calculating term6:"<<calculate_T6<<std::endl;
   std::cerr<<"Calculating term7:"<<calculate_T7<<std::endl;
+  std::cerr<<"Calculating term7 (2h):"<<calculate_T7_2h<<std::endl;
+
 
 
   std::cerr << "Using cosmology from " << cosmo_paramfile << std::endl;
@@ -160,7 +164,7 @@ Argument 12: Survey geometry, either circle, square, infinite, or rectangular
 
   int N = thetas.size();
 
-  std::vector<double> Cov_term1s, Cov_term2s, Cov_term4s, Cov_term5s, Cov_term6s, Cov_term7s;
+  std::vector<double> Cov_term1s, Cov_term2s, Cov_term4s, Cov_term5s, Cov_term6s, Cov_term7s, Cov_term7_2hs;
 
   std::vector<std::vector<double>> theta_combis;
   for (int i = 0; i < N; i++)
@@ -220,6 +224,11 @@ Argument 12: Survey geometry, either circle, square, infinite, or rectangular
         {
           double term7 = T7_total(theta_combis.at(i), theta_combis.at(j));
           Cov_term7s.push_back(term7);
+        }
+        if (calculate_T7_2h)
+        {
+          double term7_2h = T7_SSC(theta_combis.at(i), theta_combis.at(j));
+          Cov_term7_2hs.push_back(term7_2h);
         }
       }
       catch (const std::exception &e)
@@ -355,6 +364,24 @@ Argument 12: Survey geometry, either circle, square, infinite, or rectangular
       writeCov(Cov_term7s, N_ind, filename);
     }
   };
+
+    if (calculate_T7_2h)
+  {
+    sprintf(filename, "cov_%s_term7_2h_Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
+            type_str.c_str(), sigma, n_deg, thetaMax_deg);
+
+    try
+    {
+      writeCov(Cov_term7_2hs, N_ind, out_folder + filename);
+    }
+    catch (const std::exception &e)
+    {
+      std::cerr << e.what() << '\n';
+      std::cerr << "Writing instead to current directory!" << std::endl;
+      writeCov(Cov_term7_2hs, N_ind, filename);
+    }
+  };
+
 
   return 0;
 }
