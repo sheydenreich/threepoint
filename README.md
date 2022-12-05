@@ -5,7 +5,7 @@
 <h3 align="center">threepoint
 
 <p align="center">
-    Code for modelling the third-order aperture statistics and the
+    Code for modelling the third-order aperture statistics and the natural components of the shear three-point correlation functions
 
 <!-- TABLE OF CONTENTS -->
 
@@ -29,7 +29,7 @@
 
 ## About The Project
 
-This code models the third-order aperture statistics $\langle M_\mathrm{ap}^3 \rangle$, the natural components of the shear three-point correlation function $\Gamma_i$ and the covariance of the third-order aperture statistics. The model is based on the `BiHalofit`-Bispectrum model by [Takahashi+ (2021)](https://ui.adsabs.harvard.edu/abs/2020ApJ...895..113T/abstract). The modelling of the $\Gamma_i$ uses the integration routine by [Ogata+ (2005)](https://www.kurims.kyoto-u.ac.jp/~prims/pdf/41-4/41-4-40.pdf)
+This code models the third-order aperture statistics $\langle M_\mathrm{ap}^3 \rangle$, the natural components of the shear three-point correlation function $\Gamma_i$ and the covariance of the third-order aperture statistics. The model is based on the `BiHalofit`-Bispectrum model by [Takahashi+ (2021)](https://ui.adsabs.harvard.edu/abs/2020ApJ...895..113T/abstract). The modelling of the $\Gamma_i$ uses the integration routine by [Ogata+ (2005)](https://www.kurims.kyoto-u.ac.jp/~prims/pdf/41-4/41-4-40.pdf) The covariance model uses the halo model to describe the tri- and pentaspectrum.
 
 The modelling of $\langle M_\mathrm{ap}^3 \rangle$ and $\Gamma_i$ is described in detail in Heydenreich+ (2022). The modelling of the covariance is described in Linke+ (2022). Please cite these publications if you use this code in your project.
 
@@ -48,7 +48,7 @@ To use this code these requirements are needed:
 * **cosmosis** Check here for how to install it: [https://cosmosis.readthedocs.io/en/latest/](https://cosmosis.readthedocs.io/en/latest/)
 * **g++** (Tested for version 9.3.0).
   Under Ubuntu this can be installed with
-  
+
   ```sh
   sudo apt install build-essential
   ```
@@ -138,6 +138,25 @@ The code writes the $\Gamma_i$ into the file specified in the function call. Thi
 $r, u,$ and $v$ are the triangle parameters defined by Jarvis+(2004) and implemented in `treecorr`. See here for their definition: [https://rmjarvis.github.io/TreeCorr/_build/html/correlation3.html](https://rmjarvis.github.io/TreeCorr/_build/html/correlation3.html).
 By default, the triangle center is set as the centroid, to ensure compatibility with the definitions in `treecorr` (Jarvis+2004). This can be deactivated when disabling the flag `CONVERT_TO_CENTROID` in the file `gamma.cuh`.
 
+
+### Calculation of covariance of aperture statistics
+
+#### Required Input
+
+The calculation requires the following input:
+
+* A parameter file containing the cosmological parameters (see `exampleCosmology.param` for an example)
+* A parameter file containing the aperture radii for which the statistics shall be calculated in arcmin (see `exampleThetas.dat` for an example)
+* The redshift distribution of source galaxies (see `exampleNz.dat` for an example)
+* An Output directory
+* A parameter file containing the survey fieldsize, shape noise, galaxy density and area (see `exampleCovariance.param`for an example)
+* A Boolean for each covariance term that can be calculated (7 different terms can be calculated simultaneously)
+* The survey geometry, which can be  one of `square`, `infinite`, `circle` and `rectangle`
+
+#### Output
+
+The code writes the desired covariance terms into ASCII files in the output directory. Each number in the file is one element of the covariance term. 
+
 <!-- LICENSE -->
 
 ## License
@@ -153,6 +172,9 @@ If you use the code for a publication, please cite Heydenreich+ (2022) and Linke
 Sven Heydenreich - [sven@astro.uni-bonn.de](mailto:sven@astro.uni-bonn.de)
 Laila Linke -  [llinke@astro.uni-bonn.de](mailto:llinke@astro.uni-bonn.de)
 
+
+
+
 Project Link: [https://github.com/sheydenreich/threepoint](https://github.com/sheydenreich/threepoint)
 
 <!-- ACKNOWLEDGEMENTS -->
@@ -161,4 +183,3 @@ Project Link: [https://github.com/sheydenreich/threepoint](https://github.com/sh
 
 * The integration routines use [cubature](https://github.com/stevengj/cubature) and [Cuba](http://www.feynarts.de/cuba/)
 * This ReadMe is based on [Best-README-Template](https://github.com/othneildrew/Best-README-Template)
-
