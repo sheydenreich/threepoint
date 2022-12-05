@@ -65,7 +65,7 @@ int integrand_Map2(unsigned ndim, size_t npts, const double *vars, void *thisPtr
 
   // Calculate values
   integrand_Map2_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, theta, dev_value);
-  CudaCheckError();
+
 
   cudaFree(dev_vars); // Free variables
 

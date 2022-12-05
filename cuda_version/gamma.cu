@@ -48,11 +48,11 @@ void compute_weights_bessel()
   };
 
   // Copy the weights to the GPU
-  CudaSafeCall(cudaMemcpyToSymbol(dev_array_psi, array_psi, prec_k * sizeof(double)));
-  CudaSafeCall(cudaMemcpyToSymbol(dev_array_product, array_product, prec_k * sizeof(double)));
-  CudaSafeCall(cudaMemcpyToSymbol(dev_array_psi_J2, array_psi_J2, prec_k * sizeof(double)));
-  CudaSafeCall(cudaMemcpyToSymbol(dev_array_product_J2, array_product_J2, prec_k * sizeof(double)));
-  CudaSafeCall(cudaMemcpyToSymbol(dev_prec_k, &prec_k, sizeof(int)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_array_psi, array_psi, prec_k * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_array_product, array_product, prec_k * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_array_psi_J2, array_psi_J2, prec_k * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_array_product_J2, array_product_J2, prec_k * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_prec_k, &prec_k, sizeof(int)));
 }
 
 double inline psi(double t)
@@ -161,11 +161,11 @@ int integrand_gamma0(unsigned ndim, size_t npts, const double *vars, void *fdata
   double *d_value;
 
   // allocate memory
-  CudaSafeCall(cudaMalloc(&d_value, fdim * npts * sizeof(double)));
-  CudaSafeCall(cudaMalloc(&d_vars, ndim * npts * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMalloc(&d_value, fdim * npts * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMalloc(&d_vars, ndim * npts * sizeof(double)));
 
   // copy the parameters
-  CudaSafeCall(cudaMemcpy(d_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice));
+  CUDA_SAFE_CALL(cudaMemcpy(d_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice));
 
 #ifdef PERFORM_SUM_REDUCTION
   dim3 threadsPerBlock(prec_k - 1, THREADS / (prec_k - 1));
@@ -174,7 +174,7 @@ int integrand_gamma0(unsigned ndim, size_t npts, const double *vars, void *fdata
 #else
 
   // set array to zero
-  CudaSafeCall(cudaMemset(d_value, 0, fdim * npts * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemset(d_value, 0, fdim * npts * sizeof(double)));
 
   int threadsPerBlock_k = 4;
   dim3 threadsPerBlock(threadsPerBlock_k, THREADS / threadsPerBlock_k);
@@ -194,14 +194,13 @@ int integrand_gamma0(unsigned ndim, size_t npts, const double *vars, void *fdata
 
   compute_integrand_gamma0<<<blocksPerGrid, threadsPerBlock>>>(d_vars, d_value, npts, x1, x2, x3);
 
-  CudaCheckError();
 
   // copy the result
-  CudaSafeCall(cudaMemcpy(value, d_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
+  CUDA_SAFE_CALL(cudaMemcpy(value, d_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
 
   // free allocated memory
-  CudaSafeCall(cudaFree(d_vars));
-  CudaSafeCall(cudaFree(d_value));
+  CUDA_SAFE_CALL(cudaFree(d_vars));
+  CUDA_SAFE_CALL(cudaFree(d_value));
 
   return 0;
 }
@@ -220,11 +219,11 @@ int integrand_gamma1(unsigned ndim, size_t npts, const double *vars, void *fdata
   double *d_value;
 
   // allocate memory
-  CudaSafeCall(cudaMalloc(&d_value, fdim * npts * sizeof(double)));
-  CudaSafeCall(cudaMalloc(&d_vars, ndim * npts * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMalloc(&d_value, fdim * npts * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMalloc(&d_vars, ndim * npts * sizeof(double)));
 
   // copy the parameters
-  CudaSafeCall(cudaMemcpy(d_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice));
+  CUDA_SAFE_CALL(cudaMemcpy(d_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice));
 
 #ifdef PERFORM_SUM_REDUCTION
   dim3 threadsPerBlock(prec_k - 1, THREADS / (prec_k - 1));
@@ -233,7 +232,7 @@ int integrand_gamma1(unsigned ndim, size_t npts, const double *vars, void *fdata
 #else
 
   // set array to zero
-  CudaSafeCall(cudaMemset(d_value, 0, fdim * npts * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemset(d_value, 0, fdim * npts * sizeof(double)));
 
   int threadsPerBlock_k = 4;
   dim3 threadsPerBlock(threadsPerBlock_k, THREADS / threadsPerBlock_k);
@@ -253,14 +252,12 @@ int integrand_gamma1(unsigned ndim, size_t npts, const double *vars, void *fdata
 
   compute_integrand_gamma1<<<blocksPerGrid, threadsPerBlock>>>(d_vars, d_value, npts, x1, x2, x3);
 
-  CudaCheckError();
-
   // copy the result
-  CudaSafeCall(cudaMemcpy(value, d_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
+  CUDA_SAFE_CALL(cudaMemcpy(value, d_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
 
   // free allocated memory
-  CudaSafeCall(cudaFree(d_vars));
-  CudaSafeCall(cudaFree(d_value));
+  CUDA_SAFE_CALL(cudaFree(d_vars));
+  CUDA_SAFE_CALL(cudaFree(d_value));
 
   return 0;
 }

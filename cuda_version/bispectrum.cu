@@ -496,7 +496,7 @@ int limber_integrand_wrapper(unsigned ndim, size_t npts, const double *vars, voi
 
   // Calculate values
   limber_integrand_wrapper<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, *ell, dev_value);
-  CudaCheckError();
+
 
   cudaFree(dev_vars); // Free variables
 
