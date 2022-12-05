@@ -1035,6 +1035,28 @@ double T7_total(const std::vector<double> &thetas_123, const std::vector<double>
     return result;
 }
 
+double T7_SSC_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456)
+{
+    if (thetas_123.size() != 3 || thetas_456.size() != 3)
+    {
+        throw std::invalid_argument("T7_total: Wrong number of aperture radii");
+    };
+
+    if (type=='infinite') return 0;
+
+    double th0 = thetas_123.at(0);
+    double th1 = thetas_123.at(1);
+    double th2 = thetas_123.at(2);
+    double th3 = thetas_456.at(0);
+    double th4 = thetas_456.at(1);
+    double th5 = thetas_456.at(2);
+
+    double result;
+    result = T7_SSC(th0, th1, th2, th3, th4, th5);
+
+    return result;
+}
+
 double T1(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6)
 {
     // Set maximal l value such, that theta*l <= 10

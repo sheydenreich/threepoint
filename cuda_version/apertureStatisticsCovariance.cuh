@@ -168,6 +168,10 @@ double T6_total(const std::vector<double> &thetas_123, const std::vector<double>
  */
 double T7_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
 
+
+double T7_SSC_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
+
+
 /**
  * @brief First Term of Gaussian Covariance of Map³ for one permutation
  *
