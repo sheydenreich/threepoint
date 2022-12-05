@@ -27,11 +27,17 @@ echo Using GPU $CUDA_VISIBLE_DEVICES
 # ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/Takahashi_cosmo.dat ../necessary_files/Our_thetas_4_to_32.dat ../necessary_files/nofz_kids1000_takahashi.dat $DIR ../necessary_files/Covariance_Takahashi_KiDSlike.dat 0 0 0 1 0 0 infinite &> $DIR/${timestamp}.log
 
 # T_7
-timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
-../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/Takahashi_cosmo.dat ../necessary_files/Our_thetas_4_to_32.dat ../necessary_files/nofz_kids1000_takahashi.dat $DIR ../necessary_files/Covariance_Takahashi_KiDSlike.dat 0 0 0 0 0 1 infinite &> $DIR/${timestamp}.log
+# timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+# ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/Takahashi_cosmo.dat ../necessary_files/Our_thetas_4_to_32.dat ../necessary_files/nofz_kids1000_takahashi.dat $DIR ../necessary_files/Covariance_Takahashi_KiDSlike.dat 0 0 0 0 0 1 infinite &> $DIR/${timestamp}.log
 
 
 # # T_6
 # timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
 # ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/Takahashi_cosmo.dat ../necessary_files/Our_thetas_4_to_32.dat ../necessary_files/nofz_kids1000_takahashi.dat $DIR ../necessary_files/Covariance_Takahashi_KiDSlike.dat 0 0 0 0 1 0 square &> $DIR/${timestamp}.log
 
+# SSC
+timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+#../cuda_version/calculateMap3SSC.x ../necessary_files/Takahashi_cosmo.dat ../necessary_files/Our_thetas_4_to_32.dat ../necessary_files/nofz_kids1000_takahashi.dat $DIR ../necessary_files/Covariance_Takahashi_KiDSlike_changedArea1.dat square &> $DIR/${timestamp}.log
+#../cuda_version/calculateMap3SSC.x ../necessary_files/Takahashi_cosmo.dat ../necessary_files/Our_thetas_4_to_32.dat ../necessary_files/nofz_kids1000_takahashi.dat $DIR ../necessary_files/Covariance_Takahashi_KiDSlike_changedArea2.dat square &> $DIR/${timestamp}.log
+#../cuda_version/calculateMap3SSC.x ../necessary_files/Takahashi_cosmo.dat ../necessary_files/Our_thetas_4_to_32.dat ../necessary_files/nofz_kids1000_takahashi.dat $DIR ../necessary_files/Covariance_Takahashi_KiDSlike_changedArea3.dat square &> $DIR/${timestamp}.log
+../cuda_version/calculateMap3SSC.x ../necessary_files/Takahashi_cosmo.dat ../necessary_files/Our_thetas_4_to_32.dat ../necessary_files/nofz_kids1000_takahashi.dat $DIR ../necessary_files/Covariance_Takahashi_KiDSlike_changedArea4.dat square &> $DIR/${timestamp}.log
