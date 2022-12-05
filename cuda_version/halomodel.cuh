@@ -459,11 +459,39 @@ struct PentaspecContainer
 };
 
 
+__host__ __device__ double integrand_I_40(const double& k1, const double& k2, const double& k3, const double& k4, const double& m, const double& z);
+
+__host__ __device__ double I_40(const double& k1, const double& k2, const double& k3, const double& k4, const double& mmin, const double& mmax, const double& z);
 
 
-__device__ double integrand_I_31(const double& k1, const double& k2, const double& k3, const double& m, const double& z);
 
-__device__ double I_31(const double& k1, const double& k2, const double& k3, const double& a, const double& b, const double& z);
+__host__ __device__ double integrand_I_31(const double& k1, const double& k2, const double& k3, const double& m, const double& z);
+
+__host__ __device__ double I_31(const double& k1, const double& k2, const double& k3, const double& mmin, const double& mmax, const double& z);
 
 
+__host__ __device__ double integrand_I_21(const double& k1, const double& k2, const double& m, const double& z);
+
+
+__host__ __device__ double I_21(const double& k1, const double& k2, const double& mmin, const double& mmax, const double& z);
+
+
+__host__ __device__ double integrand_I_11(const double& k, const double& m, const double& z);
+
+
+__host__ __device__ double I_11(const double& k, const double& mmin, const double& mmax, const double& z);
+
+__host__ __device__ double trispectrum_1halo_integrand(const double& z, const double& mmin, const double& mmax, const double& l1, const double& l2, const double& l3, const double& l4);
+
+__host__ __device__ double trispectrum_1halo(const double& zmin, const double& zmax, const double& mmin, const double& mmax, const double& l1, const double& l2, const double& l3, const double& l4);
+
+__host__ __device__ double trispectrum_2halo_integrand(const double& z, 
+const double& mmin, const double& mmax, const double& l1x, const double& l1y, 
+const double& l2x, const double& l2y, const double& l3x, const double& l3y,
+const double& l4x, const double& l4y);
+
+__host__ __device__ double trispectrum_2halo(const double& zmin, const double& zmax, 
+const double& mmin, const double& mmax, const double& l1x, const double& l1y, 
+const double& l2x, const double& l2y, const double& l3x, const double& l3y,
+const double& l4x, const double& l4y);
 #endif // HALOMODEL_CUH

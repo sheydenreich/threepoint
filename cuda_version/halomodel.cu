@@ -855,11 +855,56 @@ __device__ double tetraspectrum_limber_integrated(double a, double b, double m, 
   return (q * dx);
 }
 
-__device__ double integrand_I_31(const double& k1, const double& k2, const double& k3, const double& m, const double& z)
+__host__ __device__ double integrand_I_40(const double& k1, const double& k2, const double& k3, const double& k4, const double& m, const double& z)
 {
   double rhobar = 2.7754e11; // critical density[Msun*h²/Mpc³]
-  rhobar *= dev_om;
+  #ifdef __CUDA_ARCH__
+    rhobar *= dev_om;
+  #else
+    rhobar *= cosmo.om;
+  #endif
 
+  double result = u_NFW(k1, m, z) * u_NFW(k2, m, z) * u_NFW(k3, m, z) * u_NFW(k4, m, z);
+  result *= pow(m/rhobar, 4)*hmf(m, z);
+  
+  return result;
+
+}
+
+__host__ __device__ double I_40(const double& k1, const double& k2, const double& k3, const double& k4, const double& mmin, const double& mmax, const double& z)
+{
+  double cx, dx, q;
+  double logMmin=log(mmin);
+  double logMmax=log(mmax);
+    cx = (logMmin + logMmax) / 2;
+  dx = (logMmax - logMmin) / 2;
+
+  q = 0;
+  for (int i = 0; i < 48; i++)
+  {
+    #ifdef __CUDA_ARCH__
+    double m1 = exp(cx - dx * dev_A96[i]);
+    double m2 = exp(cx + dx * dev_A96[i]);
+    q += dev_W96[i] * (m1* integrand_I_40(k1, k2, k3, k4, m1, z) + m2*integrand_I_40(k1, k2, k3, k4, m2,z));
+    #else
+        double m1 = exp(cx - dx * A96[i]);
+    double m2 = exp(cx + dx * A96[i]);
+    q += W96[i] * (m1* integrand_I_40(k1, k2, k3, k4, m1, z) + m2*integrand_I_40(k1, k2, k3, k4, m2,z));
+    #endif
+  }
+
+  return (q * dx);
+}
+
+
+__host__ __device__ double integrand_I_31(const double& k1, const double& k2, const double& k3, const double& m, const double& z)
+{
+  double rhobar = 2.7754e11; // critical density[Msun*h²/Mpc³]
+  #ifdef __CUDA_ARCH__
+    rhobar *= dev_om;
+  #else
+    rhobar *= cosmo.om;
+  #endif
 
   double result = u_NFW(k1, m, z) * u_NFW(k2, m, z) * u_NFW(k3, m, z);
   result *= pow(m/rhobar, 3)*hmf(m, z);
@@ -871,21 +916,259 @@ __device__ double integrand_I_31(const double& k1, const double& k2, const doubl
 }
 
 
-__device__ double I_31(const double& k1, const double& k2, const double& k3, const double& a, const double& b, const double& z)
+__host__ __device__ double I_31(const double& k1, const double& k2, const double& k3, const double& mmin, const double& mmax, const double& z)
 {
   double cx, dx, q;
-  double logMmin=log(a);
-  double logMmax=log(b);
+  double logMmin=log(mmin);
+  double logMmax=log(mmax);
     cx = (logMmin + logMmax) / 2;
   dx = (logMmax - logMmin) / 2;
 
   q = 0;
   for (int i = 0; i < 48; i++)
   {
-        double m1 = exp(cx - dx * dev_A96[i]);
+    #ifdef __CUDA_ARCH__
+    double m1 = exp(cx - dx * dev_A96[i]);
     double m2 = exp(cx + dx * dev_A96[i]);
     q += dev_W96[i] * (m1* integrand_I_31(k1, k2, k3, m1, z) + m2*integrand_I_31(k1, k2, k3, m2,z));
+    #else
+        double m1 = exp(cx - dx * A96[i]);
+    double m2 = exp(cx + dx * A96[i]);
+    q += W96[i] * (m1* integrand_I_31(k1, k2, k3, m1, z) + m2*integrand_I_31(k1, k2, k3, m2,z));
+    #endif
   }
 
+  return (q * dx);
+}
+
+__host__ __device__ double integrand_I_21(const double& k1, const double& k2, const double& m, const double& z)
+{
+  double rhobar = 2.7754e11; // critical density[Msun*h²/Mpc³]
+  #ifdef __CUDA_ARCH__
+    rhobar *= dev_om;
+  #else
+    rhobar *= cosmo.om;
+  #endif
+
+  double result = u_NFW(k1, m, z) * u_NFW(k2, m, z);
+  result *= pow(m/rhobar, 2)*hmf(m, z);
+  
+  result *= halo_bias(m, z);
+  return result;
+}
+
+__host__ __device__ double I_21(const double& k1, const double& k2, const double& mmin, const double& mmax, const double& z)
+{
+  double cx, dx, q;
+  double logMmin=log(mmin);
+  double logMmax=log(mmax);
+    cx = (logMmin + logMmax) / 2;
+  dx = (logMmax - logMmin) / 2;
+
+  q = 0;
+  for (int i = 0; i < 48; i++)
+  {
+    #ifdef __CUDA_ARCH__
+      double m1 = exp(cx - dx * dev_A96[i]);
+      double m2 = exp(cx + dx * dev_A96[i]);
+      q += dev_W96[i] * (m1* integrand_I_21(k1, k2, m1, z) + m2*integrand_I_21(k1, k2, m2,z));
+    #else
+      double m1 = exp(cx - dx * A96[i]);
+      double m2 = exp(cx + dx * A96[i]);
+      q += W96[i] * (m1* integrand_I_21(k1, k2, m1, z) + m2*integrand_I_21(k1, k2, m2,z));
+    #endif
+  }
+
+  return (q * dx);
+}
+
+
+__host__ __device__ double integrand_I_11(const double& k, const double& m, const double& z)
+{
+  double rhobar = 2.7754e11; // critical density[Msun*h²/Mpc³]
+  #ifdef __CUDA_ARCH__
+    rhobar *= dev_om;
+  #else
+    rhobar *= cosmo.om;
+  #endif
+
+  double result = u_NFW(k, m, z);
+  result *= m/rhobar*hmf(m, z);
+  
+  result *= halo_bias(m, z);
+  return result;
+}
+
+
+__host__ __device__ double I_11(const double& k, const double& mmin, const double& mmax, const double& z)
+{
+  double cx, dx, q;
+  double logMmin=log(mmin);
+  double logMmax=log(mmax);
+    cx = (logMmin + logMmax) / 2;
+  dx = (logMmax - logMmin) / 2;
+
+  q = 0;
+  for (int i = 0; i < 48; i++)
+  {
+    #ifdef __CUDA_ARCH__
+      double m1 = exp(cx - dx * dev_A96[i]);
+      double m2 = exp(cx + dx * dev_A96[i]);
+      q += dev_W96[i] * (m1* integrand_I_11(k, m1, z) + m2*integrand_I_11(k, m2,z));
+    #else
+      double m1 = exp(cx - dx * A96[i]);
+      double m2 = exp(cx + dx * A96[i]);
+      q += W96[i] * (m1* integrand_I_11(k, m1, z) + m2*integrand_I_11(k, m2,z));
+    #endif
+  }
+
+  return (q * dx);
+}
+
+
+__host__ __device__ double trispectrum_1halo_integrand(const double& z, const double& mmin, const double& mmax, const double& l1, const double& l2, const double& l3, const double& l4)
+{
+#ifdef __CUDA_ARCH__
+  double didx = z / dev_z_max * (n_redshift_bins - 1);
+#else
+double didx = z/z_max * (n_redshift_bins-1);
+#endif
+
+  int idx = didx;
+  didx = didx - idx;
+  if (idx == n_redshift_bins - 1)
+  {
+    idx = n_redshift_bins - 2;
+    didx = 1.;
+  }
+#ifdef __CUDA_ARCH__
+  double g = dev_g_array[idx] * (1 - didx) + dev_g_array[idx + 1] * didx;
+  double chi = dev_f_K_array[idx] * (1 - didx) + dev_f_K_array[idx + 1] * didx;
+    double result = dev_c_over_H0 / dev_E(z);
+  result *= pow(1.5 * dev_om / dev_c_over_H0 / dev_c_over_H0, 4); // Prefactor in h^8
+#else
+  double g = g_array[idx] * (1 - didx) + g_array[idx + 1] * didx;
+  double chi = f_K_array[idx] * (1 - didx) + f_K_array[idx + 1] * didx;
+  double result = c_over_H0 / E(z);
+  result *= pow(1.5 * cosmo.om / c_over_H0 / c_over_H0, 4); // Prefactor in h^8
+#endif
+
+
+
+  result *= g * g * g * g / chi / chi;
+  result *= pow(1 + z, 4);
+  result *= I_40(l1/chi, l2/chi, l3/chi, l4/chi, mmin, mmax, z);
+  //printf("%e\n", z);
+  return result;
+}
+
+__host__ __device__ double trispectrum_1halo(const double& zmin, const double& zmax, const double& mmin, const double& mmax, const double& l1, const double& l2, const double& l3, const double& l4)
+{
+  int i;
+  double cx, dx, q;
+  cx = (zmin + zmax) / 2;
+  dx = (zmax - zmin) / 2;
+  q = 0; 
+  for (i = 0; i < 48; i++)
+  {
+    #ifdef __CUDA_ARCH__
+    q += dev_W96[i] * (trispectrum_1halo_integrand(cx - dx * dev_A96[i], mmin, mmax, l1, l2, l3, l4) + trispectrum_1halo_integrand(cx + dx * dev_A96[i], mmin, mmax, l1, l2, l3, l4));
+   // printf("%e\n", cx-dx*dev_A96[i]);
+    #else
+    q += W96[i] * (trispectrum_1halo_integrand(cx - dx * A96[i],mmin, mmax,  l1, l2, l3, l4) + trispectrum_1halo_integrand(cx + dx * A96[i], mmin, mmax, l1, l2, l3, l4));
+    #endif
+  }
+  return (q * dx);
+}
+
+
+
+__host__ __device__ double trispectrum_2halo_integrand(const double& z, 
+const double& mmin, const double& mmax, const double& l1x, const double& l1y, 
+const double& l2x, const double& l2y, const double& l3x, const double& l3y,
+const double& l4x, const double& l4y)
+{
+
+  double l1=sqrt(l1x*l1x+l1y*l1y);
+  double l2=sqrt(l2x*l2x+l2y*l2y);
+  double l3=sqrt(l3x*l3x+l3y*l3y);
+  double l4=sqrt(l4x*l4x+l4y*l4y);
+
+  double l12=sqrt((l1x+l2x)*(l1x+l2x)+(l1y+l2y)*(l1y+l2y));
+  double l13=sqrt((l1x+l3x)*(l1x+l3x)+(l1y+l3y)*(l1y+l3y));
+  double l14=sqrt((l1x+l4x)*(l1x+l4x)+(l1y+l4y)*(l1y+l4y));
+
+
+#ifdef __CUDA_ARCH__
+  double didx = z / dev_z_max * (n_redshift_bins - 1);
+#else
+double didx = z/z_max * (n_redshift_bins-1);
+#endif
+
+  int idx = didx;
+  didx = didx - idx;
+  if (idx == n_redshift_bins - 1)
+  {
+    idx = n_redshift_bins - 2;
+    didx = 1.;
+  }
+#ifdef __CUDA_ARCH__
+  double g = dev_g_array[idx] * (1 - didx) + dev_g_array[idx + 1] * didx;
+  double chi = dev_f_K_array[idx] * (1 - didx) + dev_f_K_array[idx + 1] * didx;
+    double result = dev_c_over_H0 / dev_E(z);
+  result *= pow(1.5 * dev_om / dev_c_over_H0 / dev_c_over_H0, 4); // Prefactor in h^8
+#else
+  double g = g_array[idx] * (1 - didx) + g_array[idx + 1] * didx;
+  double chi = f_K_array[idx] * (1 - didx) + f_K_array[idx + 1] * didx;
+  double result = c_over_H0 / E(z);
+  result *= pow(1.5 * cosmo.om / c_over_H0 / c_over_H0, 4); // Prefactor in h^8
+#endif
+
+
+  double halomodterms=0;
+#ifdef __CUDA_ARCH__
+  halomodterms+=dev_linear_pk(l12/chi)*I_21(l1/chi, l2/chi, mmin, mmax, z)*I_21(l3/chi, l4/chi, mmin, mmax, z);
+  halomodterms+=dev_linear_pk(l13/chi)*I_21(l1/chi, l3/chi, mmin, mmax, z)*I_21(l2/chi, l4/chi, mmin, mmax, z);
+  halomodterms+=dev_linear_pk(l14/chi)*I_21(l1/chi, l4/chi, mmin, mmax, z)*I_21(l2/chi, l3/chi, mmin, mmax, z);
+  
+  halomodterms+=dev_linear_pk(l1/chi)*I_11(l1/chi, mmin, mmax, z)*I_31(l2/chi, l3/chi, l4/chi, mmin, mmax, z);
+  halomodterms+=dev_linear_pk(l2/chi)*I_11(l2/chi, mmin, mmax, z)*I_31(l1/chi, l3/chi, l4/chi, mmin, mmax, z);
+  halomodterms+=dev_linear_pk(l3/chi)*I_11(l3/chi, mmin, mmax, z)*I_31(l2/chi, l1/chi, l4/chi, mmin, mmax, z);
+  halomodterms+=dev_linear_pk(l4/chi)*I_11(l4/chi, mmin, mmax, z)*I_31(l2/chi, l3/chi, l1/chi, mmin, mmax, z);
+#else
+  halomodterms+=linear_pk(l12/chi)*I_21(l1/chi, l2/chi, mmin, mmax, z)*I_21(l3/chi, l4/chi, mmin, mmax, z);
+  halomodterms+=linear_pk(l13/chi)*I_21(l1/chi, l3/chi, mmin, mmax, z)*I_21(l2/chi, l4/chi, mmin, mmax, z);
+  halomodterms+=linear_pk(l14/chi)*I_21(l1/chi, l4/chi, mmin, mmax, z)*I_21(l2/chi, l3/chi, mmin, mmax, z);
+  
+  halomodterms+=linear_pk(l1/chi)*I_11(l1/chi, mmin, mmax, z)*I_31(l2/chi, l3/chi, l4/chi, mmin, mmax, z);
+  halomodterms+=linear_pk(l2/chi)*I_11(l2/chi, mmin, mmax, z)*I_31(l1/chi, l3/chi, l4/chi, mmin, mmax, z);
+  halomodterms+=linear_pk(l3/chi)*I_11(l3/chi, mmin, mmax, z)*I_31(l2/chi, l1/chi, l4/chi, mmin, mmax, z);
+  halomodterms+=linear_pk(l4/chi)*I_11(l4/chi, mmin, mmax, z)*I_31(l2/chi, l3/chi, l1/chi, mmin, mmax, z);
+#endif
+
+  result *= g * g * g * g / chi / chi;
+  result *= pow(1 + z, 4);
+  result *= halomodterms;
+  return result;
+}
+
+__host__ __device__ double trispectrum_2halo(const double& zmin, const double& zmax, 
+const double& mmin, const double& mmax, const double& l1x, const double& l1y, 
+const double& l2x, const double& l2y, const double& l3x, const double& l3y,
+const double& l4x, const double& l4y)
+{
+int i;
+  double cx, dx, q;
+  cx = (zmin + zmax) / 2;
+  dx = (zmax - zmin) / 2;
+  q = 0;
+  for (i = 0; i < 48; i++)
+  {
+    #ifdef __CUDA_ARCH__
+    q += dev_W96[i] * (trispectrum_2halo_integrand(cx - dx * dev_A96[i], mmin, mmax, l1x, l1y, l2x, l2y, l3x, l3y, l4x, l4y) + trispectrum_2halo_integrand(cx + dx * dev_A96[i], mmin, mmax, l1x, l1y, l2x, l2y, l3x, l3y, l4x, l4y));
+    #else
+    q += W96[i] * (trispectrum_2halo_integrand(cx - dx * A96[i],mmin, mmax,  l1x, l1y, l2x, l2y, l3x, l3y, l4x, l4y) + trispectrum_2halo_integrand(cx + dx * A96[i], mmin, mmax, l1x, l1y, l2x, l2y, l3x, l3y, l4x, l4y));
+    #endif
+  }
   return (q * dx);
 }
