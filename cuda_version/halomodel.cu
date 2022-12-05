@@ -42,11 +42,11 @@ __host__ __device__ double hmf(const double &m, const double &z)
   double dsigma2 = get_dSigma2dm(m, z);
 
   // Get critical density contrast and mean density
+
+  double deltac = 1.686 * (1 + 0.0123 * log10(om_m_of_z(z)));
 #ifdef __CUDA_ARCH__
-  double deltac = 1.686 * (1 + 0.0123 * log10(dev_om_m_of_z(z)));
   double rho_mean = 2.7754e11 * dev_om;
 #else
-  double deltac = 1.686 * (1 + 0.0123 * log10(om_m_of_z(z)));
   double rho_mean = 2.7754e11 * cosmo.om;
 #endif
 
@@ -388,18 +388,11 @@ __device__ __host__ double halo_bias(const double& m, const double& z)
   double p=0.3;
 
   double sig2=get_sigma2(m, z);
-#ifdef __CUDA_ARCH__
-  double om_z=dev_om_m_of_z(z);
-#else
+
   double om_z=om_m_of_z(z);
-#endif
 
   double delta_c=1.686*(1+0.0123*log10(om_z));
   double factor=1;
-  // if( m> 1e14)
-  // {
-  //   factor=3.3*pow(m, -0.04);
-  // }
 
   return( 1+1./delta_c*(q*delta_c*delta_c/sig2 - 1 + 2*p/(1+pow(q*delta_c*delta_c/sig2, p))))*factor;
 
@@ -421,7 +414,7 @@ __device__ double trispectrum_integrand(double m, double z, double l1, double l2
   rhobar *= dev_om;
 
   double result = hmf(m, z) * g * g * g * g / chi / chi;
-  result *= dev_c_over_H0 / dev_E(z);
+  result *= dev_c_over_H0 / E(z);
   result *= u_NFW(l1 / chi, m, z) * u_NFW(l2 / chi, m, z) * u_NFW(l3 / chi, m, z) * u_NFW(l4 / chi, m, z);
   result *= m * m * m * m / rhobar / rhobar / rhobar / rhobar;
   result *= pow(1.5 * dev_om / dev_c_over_H0 / dev_c_over_H0, 4); // Prefactor in h^8
@@ -461,7 +454,7 @@ __device__ double pentaspectrum_integrand(double m, double z, double l1, double 
   result *= pow(g, 6);
   result /= pow(chi, 4);
 
-  result *= dev_c_over_H0 / dev_E(z);
+  result *= dev_c_over_H0 / E(z);
   result *= u_NFW(l1 / chi, m, z) * u_NFW(l2 / chi, m, z) * u_NFW(l3 / chi, m, z);
   result *= u_NFW(l4 / chi, m, z) * u_NFW(l5 / chi, m, z) * u_NFW(l6 / chi, m, z);
   result *= pow(m / rhobar, 6) * hmf(m, z);
@@ -492,7 +485,7 @@ __device__ double pentaspectrum_integrand_ssc(double mmin, double mmax, double z
   result *= pow(g, 6);
   result /= pow(chi, 4);
 
-  result *= dev_c_over_H0 / dev_E(z);
+  result *= dev_c_over_H0 / E(z);
   result *= I_31(l1/chi, l2/chi, l3/chi, mmin, mmax, z);
   result *= I_31(l4/chi, l5/chi, l6/chi, mmin, mmax, z);
   result *= sigma2;
@@ -564,7 +557,7 @@ __device__ double powerspectrum_integrand(double m, double z, double l)
   rhobar *= dev_om;
 
   double result = hmf(m, z) * g * g;
-  result *= dev_c_over_H0 / dev_E(z);
+  result *= dev_c_over_H0 / E(z);
   result *= pow(u_NFW(l / chi, m, z), 2);
   result *= m * m / rhobar / rhobar;
   result *= pow(1.5 * dev_om / dev_c_over_H0 / dev_c_over_H0, 2); // Prefactor in h^4
@@ -831,7 +824,7 @@ __device__ double tetraspectrum_integrand(double m, double z, double l1, double 
   result *= pow(g, 5);
   result /= pow(chi, 3);
 
-  result *= dev_c_over_H0 / dev_E(z);
+  result *= dev_c_over_H0 / E(z);
   result *= u_NFW(l1 / chi, m, z) * u_NFW(l2 / chi, m, z) * u_NFW(l3 / chi, m, z);
   result *= u_NFW(l4 / chi, m, z) * u_NFW(l5 / chi, m, z);
   result *= pow(m / rhobar, 5) * hmf(m, z);
@@ -1044,7 +1037,7 @@ double didx = z/z_max * (n_redshift_bins-1);
 #ifdef __CUDA_ARCH__
   double g = dev_g_array[idx] * (1 - didx) + dev_g_array[idx + 1] * didx;
   double chi = dev_f_K_array[idx] * (1 - didx) + dev_f_K_array[idx + 1] * didx;
-    double result = dev_c_over_H0 / dev_E(z);
+    double result = dev_c_over_H0 / E(z);
   result *= pow(1.5 * dev_om / dev_c_over_H0 / dev_c_over_H0, 4); // Prefactor in h^8
 #else
   double g = g_array[idx] * (1 - didx) + g_array[idx + 1] * didx;
@@ -1115,7 +1108,7 @@ double didx = z/z_max * (n_redshift_bins-1);
 #ifdef __CUDA_ARCH__
   double g = dev_g_array[idx] * (1 - didx) + dev_g_array[idx + 1] * didx;
   double chi = dev_f_K_array[idx] * (1 - didx) + dev_f_K_array[idx + 1] * didx;
-    double result = dev_c_over_H0 / dev_E(z);
+    double result = dev_c_over_H0 / E(z);
   result *= pow(1.5 * dev_om / dev_c_over_H0 / dev_c_over_H0, 4); // Prefactor in h^8
 #else
   double g = g_array[idx] * (1 - didx) + g_array[idx + 1] * didx;
@@ -1126,16 +1119,7 @@ double didx = z/z_max * (n_redshift_bins-1);
 
 
   double halomodterms=0;
-#ifdef __CUDA_ARCH__
-  halomodterms+=dev_linear_pk(l12/chi)*I_21(l1/chi, l2/chi, mmin, mmax, z)*I_21(l3/chi, l4/chi, mmin, mmax, z);
-  halomodterms+=dev_linear_pk(l13/chi)*I_21(l1/chi, l3/chi, mmin, mmax, z)*I_21(l2/chi, l4/chi, mmin, mmax, z);
-  halomodterms+=dev_linear_pk(l14/chi)*I_21(l1/chi, l4/chi, mmin, mmax, z)*I_21(l2/chi, l3/chi, mmin, mmax, z);
-  
-  halomodterms+=dev_linear_pk(l1/chi)*I_11(l1/chi, mmin, mmax, z)*I_31(l2/chi, l3/chi, l4/chi, mmin, mmax, z);
-  halomodterms+=dev_linear_pk(l2/chi)*I_11(l2/chi, mmin, mmax, z)*I_31(l1/chi, l3/chi, l4/chi, mmin, mmax, z);
-  halomodterms+=dev_linear_pk(l3/chi)*I_11(l3/chi, mmin, mmax, z)*I_31(l2/chi, l1/chi, l4/chi, mmin, mmax, z);
-  halomodterms+=dev_linear_pk(l4/chi)*I_11(l4/chi, mmin, mmax, z)*I_31(l2/chi, l3/chi, l1/chi, mmin, mmax, z);
-#else
+
   halomodterms+=linear_pk(l12/chi)*I_21(l1/chi, l2/chi, mmin, mmax, z)*I_21(l3/chi, l4/chi, mmin, mmax, z);
   halomodterms+=linear_pk(l13/chi)*I_21(l1/chi, l3/chi, mmin, mmax, z)*I_21(l2/chi, l4/chi, mmin, mmax, z);
   halomodterms+=linear_pk(l14/chi)*I_21(l1/chi, l4/chi, mmin, mmax, z)*I_21(l2/chi, l3/chi, mmin, mmax, z);
@@ -1144,7 +1128,7 @@ double didx = z/z_max * (n_redshift_bins-1);
   halomodterms+=linear_pk(l2/chi)*I_11(l2/chi, mmin, mmax, z)*I_31(l1/chi, l3/chi, l4/chi, mmin, mmax, z);
   halomodterms+=linear_pk(l3/chi)*I_11(l3/chi, mmin, mmax, z)*I_31(l2/chi, l1/chi, l4/chi, mmin, mmax, z);
   halomodterms+=linear_pk(l4/chi)*I_11(l4/chi, mmin, mmax, z)*I_31(l2/chi, l3/chi, l1/chi, mmin, mmax, z);
-#endif
+
 
   result *= g * g * g * g / chi / chi;
   result *= pow(1 + z, 4);

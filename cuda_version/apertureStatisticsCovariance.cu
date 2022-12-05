@@ -116,19 +116,13 @@ void writeCrossCov(const std::vector<double> &values, const int &Ninner, const i
 }
 
 
-__device__ double G_circle(const double &ell)
+__host__ __device__ double G_circle(const double &ell)
 {
+    #ifdef __CUDA_ARCH__
     double tmp = dev_thetaMax * ell;
-    double result = j1(tmp);
-    result *= result;
-    result *= 4 / tmp / tmp;
-
-    return result;
-}
-
-double host_G_circle(const double &ell)
-{
+    #else
     double tmp = thetaMax * ell;
+#endif
     double result = j1(tmp);
     result *= result;
     result *= 4 / tmp / tmp;
@@ -136,10 +130,16 @@ double host_G_circle(const double &ell)
     return result;
 }
 
-__device__ double G_square(const double &ellX, const double &ellY)
+
+__host__ __device__ double G_square(const double &ellX, const double &ellY)
 {
+    #ifdef __CUDA_ARCH__
     double tmp1 = 0.5 * ellX * dev_thetaMax;
     double tmp2 = 0.5 * ellY * dev_thetaMax;
+    #else
+        double tmp1 = 0.5 * ellX * thetaMax;
+    double tmp2 = 0.5 * ellY * thetaMax;
+    #endif
 
     double j01, j02;
     if (abs(tmp1) <= 1e-6)
@@ -155,10 +155,15 @@ __device__ double G_square(const double &ellX, const double &ellY)
     return j01 * j01 * j02 * j02;
 };
 
-__device__ double G_rectangle(const double &ellX, const double &ellY)
+__host__ __device__ double G_rectangle(const double &ellX, const double &ellY)
 {
+    #ifdef __CUDA_ARCH__
     double tmp1 = 0.5 * ellX * dev_thetaMax;
     double tmp2 = 0.5 * ellY * dev_thetaMax_smaller;
+    #else
+        double tmp1 = 0.5 * ellX * thetaMax;
+    double tmp2 = 0.5 * ellY * thetaMax_smaller;
+    #endif
 
     double j01, j02;
     if (abs(tmp1) <= 1e-6)
@@ -261,8 +266,8 @@ __global__ void integrand_sigma2_from_windowFunction(const double *vars, unsigne
         }
         else
         {
-            result=Gfactor*dev_linear_pk(q/chi);
-           // printf("q, chi, G, P is %e, %e, %e, %e\n",q, chi, Gfactor, dev_linear_pk(q/chi), result);
+            result=Gfactor*linear_pk(q/chi);
+           // printf("q, chi, G, P is %e, %e, %e, %e\n",q, chi, Gfactor, linear_pk(q/chi), result);
         };
         value[i] = result;
     }
@@ -1042,7 +1047,7 @@ double T7_SSC_total(const std::vector<double> &thetas_123, const std::vector<dou
         throw std::invalid_argument("T7_total: Wrong number of aperture radii");
     };
 
-    if (type=='infinite') return 0;
+    if (type== 2) return 0;
 
     double th0 = thetas_123.at(0);
     double th1 = thetas_123.at(1);
@@ -1799,7 +1804,7 @@ __global__ void integrand_T1_circle(const double *vars, unsigned ndim, int npts,
         }
         else
         {
-            double result = dev_Pell(ell1) * dev_Pell(ell2) * dev_Pell(ell3);
+            double result = Pell(ell1) * Pell(ell2) * Pell(ell3);
             result *= uHat(ell1 * theta1) * uHat(ell2 * theta2) * uHat(ell3 * theta3);
             result *= uHat(ell1 * theta4) * uHat(ell2 * theta5) * uHat(ell3 * theta6);
             result *= Gfactor;
@@ -1834,7 +1839,7 @@ __global__ void integrand_T1_square(const double *vars, unsigned ndim, int npts,
         }
         else
         {
-            double result = dev_Pell(ell1) * dev_Pell(ell2) * dev_Pell(ell3);
+            double result = Pell(ell1) * Pell(ell2) * Pell(ell3);
             result *= uHat(ell1 * theta1) * uHat(ell2 * theta2) * uHat(ell3 * theta3);
             result *= uHat(ell1 * theta4) * uHat(ell2 * theta5) * uHat(ell3 * theta6);
             result *= Gfactor;
@@ -1862,7 +1867,7 @@ __global__ void integrand_T1_infinite(const double *vars, unsigned ndim, int npt
         }
         else
         {
-            double result = dev_Pell(l1) * dev_Pell(l2) * dev_Pell(l3);
+            double result = Pell(l1) * Pell(l2) * Pell(l3);
             result *= uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3);
             result *= uHat(l1 * theta4) * uHat(l2 * theta5) * uHat(l3 * theta6);
             result *= l1 * l2;
@@ -1896,7 +1901,7 @@ __global__ void integrand_T1_rectangle(const double *vars, unsigned ndim, int np
         }
         else
         {
-            double result = dev_Pell(ell1) * dev_Pell(ell2) * dev_Pell(ell3);
+            double result = Pell(ell1) * Pell(ell2) * Pell(ell3);
             result *= uHat(ell1 * theta1) * uHat(ell2 * theta2) * uHat(ell3 * theta3);
             result *= uHat(ell1 * theta4) * uHat(ell2 * theta5) * uHat(ell3 * theta6);
             result *= Gfactor;
@@ -1920,7 +1925,7 @@ __global__ void integrand_T2_part1(const double *vars, unsigned ndim, int npts, 
         }
         else
         {
-            double result = ell * dev_Pell(ell);
+            double result = ell * Pell(ell);
             result *= uHat(ell * theta1) * uHat(ell * theta2);
             value[i] = result;
         }
@@ -1943,7 +1948,7 @@ __global__ void integrand_T2_part2_circle(const double *vars, unsigned ndim, int
         else
         {
             double Gfactor = G_circle(ell);
-            double result = dev_Pell(ell);
+            double result = Pell(ell);
             result *= ell * uHat(ell * theta1) * uHat(ell * theta2);
             result *= Gfactor;
             value[i] = result;
@@ -1970,7 +1975,7 @@ __global__ void integrand_T2_part2_square(const double *vars, unsigned ndim, int
         }
         else
         {
-            double result = dev_Pell(ell);
+            double result = Pell(ell);
             result *= uHat(ell * theta1) * uHat(ell * theta2);
             result *= Gfactor;
             value[i] = result;
@@ -1997,7 +2002,7 @@ __global__ void integrand_T2_part2_rectangle(const double *vars, unsigned ndim, 
         }
         else
         {
-            double result = dev_Pell(ell);
+            double result = Pell(ell);
             result *= uHat(ell * theta1) * uHat(ell * theta2);
             result *= Gfactor;
             value[i] = result;
@@ -2064,7 +2069,7 @@ __global__ void integrand_T5_infinite(const double *vars, unsigned ndim, int npt
 
             double result = uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3) * uHat(l4 * theta4) * uHat(l5 * theta5) * uHat(l6 * theta6);
 
-            result *= dev_Pell(l1);
+            result *= Pell(l1);
             result *= trispectrum_limber_integrated(0, dev_z_max, m, l2, l3, l5, l6);
             result *= l1 * l2 * l5;
             result *= l1 * l2 * l5;
@@ -2528,7 +2533,7 @@ __global__ void integrand_Cov_Map2_Gauss_infinite(const double *vars, unsigned n
     for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
     {
         double ell = vars[i * ndim];
-        double result = dev_Pell(ell);
+        double result = Pell(ell);
         result *= uHat(ell * theta1) * uHat(ell * theta2);
         result *= result * 2;
         result *= ell;
@@ -2554,7 +2559,7 @@ __global__ void integrand_Cov_Map2_Gauss_square(const double *vars, unsigned ndi
         double ell1 = sqrt(ell1_x * ell1_x + ell1_y * ell1_y);
         double ell2 = sqrt(ell2_x * ell2_x + ell2_y * ell2_y);
 
-        double result = dev_Pell(ell1) * dev_Pell(ell2) * Gfactor;
+        double result = Pell(ell1) * Pell(ell2) * Gfactor;
         result *= uHat(ell1 * theta1) * uHat(ell1 * theta2) * uHat(ell2 * theta1) * uHat(ell2 * theta2);
         result *= 2;
         value[i] = result;
@@ -2912,7 +2917,7 @@ __global__ void integrand_Map2Map3_T3_infinite(const double *vars, unsigned ndim
             double result = uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3) * uHat(l1 * theta4) * uHat(l1 * theta4);
 
             result *= bkappa(l1, l2, l3);
-            result *= dev_Pell(l1);
+            result *= Pell(l1);
             result *= l1 * l2; //one time for the log-integration
             result *= l1 * l2;
 

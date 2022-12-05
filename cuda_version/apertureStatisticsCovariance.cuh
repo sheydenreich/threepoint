@@ -71,14 +71,14 @@ void writeCrossCov(const std::vector<double> &values, const int &Ninner, const i
  *
  * @param ell |ellvec|
  */
-__device__ double G_circle(const double &ell);
+__host__ __device__ double G_circle(const double &ell);
 
-/**
- * @brief Geometric factor for circular survey
- *
- * @param ell |ellvec|
- */
-double host_G_circle(const double &ell);
+// /**
+//  * @brief Geometric factor for circular survey
+//  *
+//  * @param ell |ellvec|
+//  */
+// double host_G_circle(const double &ell);
 
 /**
  * @brief Geometric factor for square survey
@@ -86,7 +86,7 @@ double host_G_circle(const double &ell);
  * @param ellX ell_x
  * @param ellY ell_y
  */
-__device__ double G_square(const double &ellX, const double &ellY);
+__host__ __device__ double G_square(const double &ellX, const double &ellY);
 
 /**
  * @brief Geometric factor for rectangular survey
@@ -94,7 +94,7 @@ __device__ double G_square(const double &ellX, const double &ellY);
  * @param ellX ell_x
  * @param ellY ell_y
  */
-__device__ double G_rectangle(const double &ellX, const double &ellY);
+__host__ __device__ double G_rectangle(const double &ellX, const double &ellY);
 
 
 

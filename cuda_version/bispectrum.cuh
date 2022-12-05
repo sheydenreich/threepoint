@@ -49,6 +49,9 @@ extern bool Pk_given;
 
 // Pre-computed non-linear scales necessary for the (Bi)Halofit routines
 extern double D1_array[n_redshift_bins];
+extern double r_sigma_array[n_redshift_bins];
+extern double n_eff_array[n_redshift_bins];
+extern double ncur_array[n_redshift_bins];
 extern __constant__ double dev_D1_array[n_redshift_bins];      // Array for growth factor
 extern __constant__ double dev_r_sigma_array[n_redshift_bins]; // Array for r(sigma)
 extern __constant__ double dev_n_eff_array[n_redshift_bins];   // Array for n_eff
@@ -135,7 +138,7 @@ __device__ double integrand_bkappa(double z, double ell1, double ell2, double el
  * @param idx index of redshift bin (lower border), int(z/z_max*(nbins-1))
  * @param didx distance between redshift and redshift bin, (z/z_max*(nbins-1))-idx
  */
-__device__ double g_interpolated(int idx, double didx);
+__host__ __device__ double g_interpolated(int idx, double didx);
 
 /**
  * Gives f_k at redshift corresponding to idx+didx.
@@ -144,7 +147,7 @@ __device__ double g_interpolated(int idx, double didx);
  * @param didx distance between redshift and redshift bin, (z/z_max*(nbins-1))-idx
  * @return f_K [h/Mpc]
  */
-__device__ double f_K_interpolated(int idx, double didx);
+__host__ __device__ double f_K_interpolated(int idx, double didx);
 
 /**
  * Computes coefficients by interpolating on a grid. Grid was computed during initialization
@@ -155,7 +158,7 @@ __device__ double f_K_interpolated(int idx, double didx);
  * @param n_eff will store n_eff at redshift corresponding to idx+didx
  * @param n_cur will store n_cur at redshift correspinding to idx+didx
  */
-__device__ void compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff, double *ncur);
+__host__ __device__ void compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff, double *ncur);
 
 /**
  * @brief Matter density parameter as a function of redshift
@@ -163,8 +166,7 @@ __device__ void compute_coefficients(int idx, double didx, double *D1, double *r
  * @param z redshift
  * @return Omega_m(z) 
  */
-__device__ double dev_om_m_of_z(double z);
-double om_m_of_z(double z);
+__host__ __device__ double om_m_of_z(double z);
 
 /**
  * @brief Dark energy density parameter as a function of redshift
@@ -172,7 +174,7 @@ double om_m_of_z(double z);
  * @param z redshift
  * @return Omega_Lambda(z) 
  */
-__device__ double om_v_of_z(double z);
+__host__ __device__ double om_v_of_z(double z);
 
 
 /**
@@ -205,25 +207,8 @@ int limber_integrand_wrapper(unsigned ndim, size_t npts, const double *vars, voi
  * @param ell l-mode
  * @return P(ell) 
  */
-double Pell(double ell);
+__host__ __device__ double Pell(double ell);
 
-/**
- * @brief Calculate the non-linear power spectrum for an array of k- and z-values
- * @param k array containing all k-values
- * @param z array containing all z-values
- * @param value array for the output P(k_i,z_i)
- * @param npts length of the k- and z-arrays
- * @return 0 on success 
- */
-double get_P_k_nonlinear(double *k, double *z, double *value, int npts);
-
-/**
- * @brief Wrapper to calculate the output of get_P_k_nonlinear
- * @param k array containing all k-values
- * @param z array containing all z-values
- * @param value array for the output P(k_i,z_i)
- */
-__global__ void global_get_P_k_nonlinear(double *k, double *z, double *values);
 
 /**
  * Non-linear power spectrum from the revised Halofit formula (Takahashi et al. 2012)
@@ -231,7 +216,7 @@ __global__ void global_get_P_k_nonlinear(double *k, double *z, double *values);
  * @param z redshift
  * @return non-linear power spectrum at k [Mpc^3/h^3]
  */
-__device__ double P_k_nonlinear(double k, double z);
+__host__ __device__ double P_k_nonlinear(double k, double z);
 
 /**
  * If dev_Pk_given==True, this gives the value of the precomputed powerspectrum at k (linearly interpolated between bins)
@@ -239,15 +224,8 @@ __device__ double P_k_nonlinear(double k, double z);
  * @param k Mode [h/Mpc]
  * @return Power spectrum at k [(Mpc/h)^3]
  */
-__device__ double dev_linear_pk(double k);
+__host__ __device__ double linear_pk(double k);
 
-/**
- * If Pk_given==True, this gives the value of the precomputed powerspectrum at k (linearly interpolated between bins)
- * Else: gives Eisenstein & Hu Powerspectrum (without wiggle). Based on Eisenstein & Hu (1998).
- * @param k Mode [h/Mpc]
- * @return Power spectrum at k [(Mpc/h)^3]
- */
-double linear_pk(double k);
 
 /**
  * Gives tree-level bispectrum
@@ -340,27 +318,20 @@ double calc_r_sigma(double D1);
  * @param b upper border of redshift integral
  * @return  \f$\int_a^b dz \frac{1}{E(z)}\f$
  */
-double GQ96_of_Einv(double a, double b);
+__host__ __device__ double GQ96_of_Einv(double a, double b);
 
 /**
  * Expansion function, for flat Universe
  *  \f$ E(z) = \sqrt{\Omega_m (1+z)^3 + \Omega_\Lambda}\f$
  * @param z redshift
  */
-double E(double z);
-
-/**
- * Expansion function, for flat Universe for device
- *  \f$ E(z) = \sqrt{\Omega_m (1+z)^3 + \Omega_\Lambda}\f$
- * @param z redshift
- */
-__device__ double dev_E(double z);
+__host__ __device__ double E(double z);
 
 /**
  * Inverse of Expansion function, for flat Universe
  * @param z redshift
  */
-double E_inv(double z);
+__host__ __device__ double E_inv(double z);
 
 /**
  * @brief Calculates the convergence power spectrum via 96-point Gaussian Quadrature
@@ -369,14 +340,7 @@ double E_inv(double z);
  * @param ell l-mode
  * @return P_kappa(ell) 
  */
-__device__ double dev_GQ96_of_Pk(double a, double b, double ell);
-
-/**
- * @brief Convergence power spectrum from 96-point Gaussian Quadrature
- * @param ell l-mode
- * @return P_kappa(ell) 
- */
-__device__ double dev_Pell(double ell);
+__host__ __device__ double GQ96_of_Pk(double a, double b, double ell);
 
 /**
  * @brief Integrand for the limber-integration of the matter power spectrum
@@ -384,7 +348,7 @@ __device__ double dev_Pell(double ell);
  * @param ell l-mode
  * @param z redshift
  */
-__device__ double dev_limber_integrand_power_spectrum(double ell, double z);
+__host__ __device__ double limber_integrand_power_spectrum(double ell, double z);
 
 /**
  * @brief prefactor for the limber-integration of the matter power spectrum
@@ -392,7 +356,7 @@ __device__ double dev_limber_integrand_power_spectrum(double ell, double z);
  * @param z redshift
  * @param g_value lensing efficiency at redshift z
  */
-__device__ double dev_limber_integrand_prefactor(double z, double g_value);
-double limber_integrand_prefactor(double z, double g_value);
+__host__ __device__ double limber_integrand_prefactor(double z, double g_value);
+
 
 #endif // BISPECTRUM_CUH
