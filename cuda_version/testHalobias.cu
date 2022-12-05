@@ -55,21 +55,33 @@ Argument 6: Survey geometry, either circle, square, infinite, or rectangular
     }
 
     set_cosmology(cosmo, &nz);
-
-    std::vector<double> ms{1.00000000e+12, 1.83298071e+12, 3.35981829e+12, 6.15848211e+12,
-       1.12883789e+13, 2.06913808e+13, 3.79269019e+13, 6.95192796e+13,
-       1.27427499e+14, 2.33572147e+14, 4.28133240e+14, 7.84759970e+14,
-       1.43844989e+15, 2.63665090e+15, 4.83293024e+15, 8.85866790e+15,
-       1.62377674e+16, 2.97635144e+16, 5.45559478e+16, 1.00000000e+17};
-
-
-
     initHalomodel();
 
-    for (int i = 0; i < ms.size(); i++)
+
+    double mmin=1e9;
+    double mmax=1e17;
+    //double z=0.1;
+    double zmin=0.001;
+    double zmax=3;
+
+    std::vector<double> ks{  1.00000000e+00, 1.46779927e+00, 2.15443469e+00, 3.16227766e+00,
+       4.64158883e+00, 6.81292069e+00, 1.00000000e+01, 1.46779927e+01,
+       2.15443469e+01, 3.16227766e+01, 4.64158883e+01, 6.81292069e+01,
+       1.00000000e+02, 1.46779927e+02, 2.15443469e+02, 3.16227766e+02,
+       4.64158883e+02, 6.81292069e+02, 1.00000000e+03, 1.46779927e+03,
+       2.15443469e+03, 3.16227766e+03, 4.64158883e+03, 6.81292069e+03,
+       1.00000000e+04   };
+
+
+    for (int i=0; i<ks.size(); i++)
     {
-        std::cout << ms[i] << " " << halo_bias(ms[i], 0) << std::endl;
-    };
+        double k=ks[i];
+        std::cout<<k<<" "
+        <<trispectrum_1halo(zmin, zmax, mmin, mmax, k, k, k, k)<<" "
+        <<trispectrum_2halo(zmin, zmax, mmin, mmax, k, k, k, k, k, k, k, k)<<" "
+        <<std::endl;
+    }
+
 
     return 0;
 }
