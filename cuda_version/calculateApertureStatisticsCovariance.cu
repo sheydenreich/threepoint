@@ -149,7 +149,7 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
   initCovariance();
 
   // For T5, T6 and T7, halomodel calculations are needed, so this needs to be initialized.
-  if (calculate_T5 || calculate_T6 || calculate_T7)
+  if (calculate_T5 || calculate_T6 || calculate_T7 || calculate_T7_2h)
   {
     initHalomodel();
   }
@@ -227,7 +227,7 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
         }
         if (calculate_T7_2h)
         {
-          double term7_2h = T7_SSC_total(theta_combis.at(i), theta_combis.at(j));
+          double term7_2h = T7_2h_total(theta_combis.at(i), theta_combis.at(j));
           Cov_term7_2hs.push_back(term7_2h);
         }
       }

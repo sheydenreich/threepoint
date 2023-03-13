@@ -603,7 +603,7 @@ __global__ void integrand_T7_infinite(const double *vars, unsigned ndim, int npt
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T7_SSC(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
+__global__ void integrand_T7_2h(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
                                       double theta4, double theta5, double theta6, 
                                       double *value, double mMin, double mMax, double zMin, double zMax);
 
