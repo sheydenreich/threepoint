@@ -491,7 +491,7 @@ __device__ double pentaspectrum_integrand_ssc(double mmin, double mmax, double z
   result *= sigma2;
   result *= pow(1.5 * dev_om / dev_c_over_H0 / dev_c_over_H0, 6);
   result *= pow(1 + z, 6);
-
+  //printf("%e,%e,%e,%e,%e,%e\n", g, chi, dev_c_over_H0, E(z), sigma2, I_31(l1/chi, l2/chi, l3/chi, mmin, mmax, z));
   return result;
 }
 
@@ -536,8 +536,9 @@ __device__ double pentaspectrum_limber_integrated_ssc(double zmin, double zmax, 
   for (int i = 0; i < 48; i++)
   {
     q += dev_W96[i] * (pentaspectrum_integrand_ssc(mmin, mmax, cx - dx * dev_A96[i], l1, l2, l3, l4, l5, l6) + pentaspectrum_integrand_ssc(mmin, mmax, cx + dx * dev_A96[i], l1, l2, l3, l4, l5, l6));
+    //printf("%e, %e, %e\n", dev_W96[i], pentaspectrum_integrand_ssc(mmin, mmax, cx - dx * dev_A96[i], l1, l2, l3, l4, l5, l6), pentaspectrum_integrand_ssc(mmin, mmax, cx + dx * dev_A96[i], l1, l2, l3, l4, l5, l6));
   }
-
+  //printf("%e, %e\n", q, dx);
   return (q * dx);
 }
 

@@ -53,6 +53,8 @@ extern __constant__ double dev_sigma2_from_windowfunction_array[n_redshift_bins]
  */
 void initCovariance();
 
+void init2Halo();
+
 /**
  * @brief Writes a covariance matrix to a file
  * Exceptions are thrown, if file cannot be created or not the right number of values is given

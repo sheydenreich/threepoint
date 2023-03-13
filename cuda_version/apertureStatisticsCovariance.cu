@@ -44,6 +44,17 @@ void initCovariance()
     };
 };
 
+void init2Halo()
+{
+    double sigma2_from_windowfunction_array[n_redshift_bins];
+    for (int i=0; i<n_redshift_bins; i++)
+    {
+        sigma2_from_windowfunction_array[i]=sigma2_from_windowFunction(f_K_array[i]);
+    };
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma2_from_windowfunction_array, &sigma2_from_windowfunction_array, n_redshift_bins*sizeof(double)));
+
+}
+
 void writeCov(const std::vector<double> &values, const int &N, const std::string &filename)
 {
     // Check if there are the correct number of values for an NxN Covariance
@@ -1343,7 +1354,7 @@ double T7_2h(const double &theta1, const double &theta2, const double &theta3, c
         double vals_min[6] = {log(lMin), log(lMin), 0, log(lMin), log(lMin), 0};
         double vals_max[6] = {log(lMax), log(lMax), 2 * M_PI, log(lMax), log(lMax), 2 * M_PI};
 
-        hcubature_v(1, integrand_T7_2h, &container, 6, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
+        hcubature_v(1, integrand_T7_2h, &container, 6, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
         result = result / pow(2 * M_PI, 6);
     }
     else
@@ -2342,6 +2353,7 @@ __global__ void integrand_T7_2h(const double *vars, unsigned ndim, int npts, dou
             double result = uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3) * uHat(l4 * theta4) * uHat(l5 * theta5) * uHat(l6 * theta6);
 
             double pentaspec = pentaspectrum_limber_integrated_ssc(zMin, zMax, mMin, mMax, l1, l2, l3, l4, l5, l6);
+           // printf("%e, %e, %e, %e, %e, %e, %e\n", pentaspec, l1, l2, l3, l4, l5, l6);
             result *= pentaspec;
             result *= l1 * l2 * l4 * l5;
             result *= l1 * l2 * l4 * l5;

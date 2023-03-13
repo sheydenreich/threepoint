@@ -154,6 +154,11 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
     initHalomodel();
   }
 
+  if(calculate_T7_2h)
+  {
+    init2Halo();
+  }
+
   std::cerr << "Finished copying constants" << std::endl;
 
   std::cerr << "Using n(z) from " << nzfn << std::endl;
@@ -228,6 +233,7 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
         if (calculate_T7_2h)
         {
           double term7_2h = T7_2h_total(theta_combis.at(i), theta_combis.at(j));
+          std::cerr<<term7_2h<<std::endl;
           Cov_term7_2hs.push_back(term7_2h);
         }
       }

@@ -12,7 +12,7 @@ export CUDA_VISIBLE_DEVICES=$(nvidia-smi --query-gpu=memory.free,index --format=
 echo Using GPU $CUDA_VISIBLE_DEVICES
 
 
-../cuda_version/calculateMap3SSC.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas_4_to_16.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS.dat square 
+#../cuda_version/calculateMap3SSC.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas_4_to_16.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS.dat square 
 
 # T_1^\infty
 # timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
@@ -40,3 +40,6 @@ echo Using GPU $CUDA_VISIBLE_DEVICES
 # timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
 # ../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas_4_to_32.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS.dat 0 0 0 0 1 0 square &> $DIR/${timestamp}.log
 
+# # T_7
+timestamp="$(date +"%Y_%m_%d_%H_%M_%S")"
+../cuda_version/calculateApertureStatisticsCovariance.x ../necessary_files/SLICS_cosmo.dat ../necessary_files/Our_thetas_4_to_32.dat ../necessary_files/n_z_SLICS_euclid_nz_cosmos15_i24.5cut_fu08fit_dz0.01.cat $DIR ../necessary_files/Covariance_SLICS.dat 0 0 0 0 0 0 1 square &> $DIR/${timestamp}.log
