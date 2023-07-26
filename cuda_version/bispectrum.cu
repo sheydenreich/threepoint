@@ -99,11 +99,11 @@ void copyConstants()
 
 void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<double> *P_k, double dk, double kmin, double kmax)
 {
-#if T17_CORRECTION
-  std::cerr << "*****************************************************" << std::endl;
-  std::cerr << "WARNING: Applying T+17 corrections to power spectrum!" << std::endl;
-  std::cerr << "*****************************************************" << std::endl;
-#endif
+// #if T17_CORRECTION
+//   std::cerr << "*****************************************************" << std::endl;
+//   std::cerr << "WARNING: Applying T+17 corrections to power spectrum!" << std::endl;
+//   std::cerr << "*****************************************************" << std::endl;
+// #endif
   bool nz_from_file = (nz != NULL);
   if (nz_from_file)
   {
@@ -966,17 +966,17 @@ __host__ __device__ double limber_integrand_power_spectrum(double ell, double z)
 
   double prefactor = limber_integrand_prefactor(z, g_value);
 
-  double correction;
+  double correction = 1;
 
-#if T17_CORRECTION // Correction for T17 simulations
-  double k = ell / f_K_value;
-  double c1 = 9.5171e-4;
-  double c2 = 5.1543e-3;
-  double a1 = 1.3063;
-  double a2 = 1.1475;
-  double a3 = 0.62793;
-  correction = pow(1 + c1 * pow(k, -1. * a1), a1) / pow(1 + c2 * pow(k, -1. * a2), a3);
-#endif
+// #if T17_CORRECTION // Correction for T17 simulations
+//   double k = ell / f_K_value;
+//   double c1 = 9.5171e-4;
+//   double c2 = 5.1543e-3;
+//   double a1 = 1.3063;
+//   double a2 = 1.1475;
+//   double a3 = 0.62793;
+//   correction = pow(1 + c1 * pow(k, -1. * a1), a1) / pow(1 + c2 * pow(k, -1. * a2), a3);
+// #endif
 
   return correction * prefactor * P_k_nonlinear(ell / f_K_value, z);
 }

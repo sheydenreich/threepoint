@@ -38,6 +38,7 @@ Example:
     exit(1);
   };
 
+
   std::string cosmo_paramfile, thetasfn, outfn, nzfn;
 
   cosmo_paramfile = argv[1];

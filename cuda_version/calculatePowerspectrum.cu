@@ -28,8 +28,8 @@ Example:
 )";
 
   // Read in command line
-  double lk_min = -5;
-  double lk_max = 1;
+  double lk_min = log10(45.7292);
+  double lk_max = log10(46826.7);
   const int n_k = 100;
   double *k = new double[n_k];
   double *z = new double[n_k];

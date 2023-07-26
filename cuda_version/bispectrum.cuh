@@ -1,7 +1,7 @@
 #ifndef BISPECTRUM_CUH
 #define BISPECTRUM_CUH
 
-#define T17_CORRECTION true
+//#define T17_CORRECTION false // true
 
 #include "cosmology.cuh"
 
