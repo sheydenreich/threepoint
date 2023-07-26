@@ -14,21 +14,33 @@ bool constant_powerspectrum;
 __constant__ bool dev_constant_powerspectrum;
 
 // Cosmological Parameters
-__constant__ double dev_h, dev_sigma8, dev_omb, dev_omc, dev_ns, dev_w, dev_om, dev_ow, dev_norm;
+__constant__ double dev_h, dev_sigma8, dev_omb, dev_omc, dev_ns, dev_w, dev_om, dev_ow, dev_norm, dev_A_IA;
 cosmology cosmo;
 double norm_P;
 
-__constant__ double dev_sigma;
-__constant__ double dev_n;
-double sigma, n;
+__constant__ double dev_sigma_epsilon_per_bin[5];
+__constant__ double dev_ngal_per_bin[5];
 
 __constant__ double dev_eps = 1.0e-4; //< Integration accuracy
 const double eps = 1.0e-4;
 
 __constant__ double dev_f_K_array[n_redshift_bins]; // Array for comoving distance
-__constant__ double dev_g_array[n_redshift_bins];   // Array for lensing efficacy g
-double g_array[n_redshift_bins];
-double f_K_array[n_redshift_bins];
+//__constant__ double dev_g_array[n_redshift_bins];   // Array for lensing efficacy g
+
+__constant__ double dev_g_array_1[n_redshift_bins];   // Array for lensing efficacy g
+__constant__ double dev_g_array_2[n_redshift_bins];   // Array for lensing efficacy g
+__constant__ double dev_g_array_3[n_redshift_bins];   // Array for lensing efficacy g
+__constant__ double dev_g_array_4[n_redshift_bins];   // Array for lensing efficacy g
+__constant__ double dev_g_array_5[n_redshift_bins];   // Array for lensing efficacy g
+
+__constant__ double dev_p_array_1[n_redshift_bins];   // Array for lensing efficacy g
+__constant__ double dev_p_array_2[n_redshift_bins];   // Array for lensing efficacy g
+__constant__ double dev_p_array_3[n_redshift_bins];   // Array for lensing efficacy g
+__constant__ double dev_p_array_4[n_redshift_bins];   // Array for lensing efficacy g
+__constant__ double dev_p_array_5[n_redshift_bins];   // Array for lensing efficacy g
+
+double g_array[5][n_redshift_bins];
+double p_array[5][n_redshift_bins];
 
 __constant__ bool dev_Pk_given;
 __constant__ double dev_Pk[n_kbins];
@@ -36,9 +48,6 @@ double Pk[n_kbins];
 bool Pk_given;
 
 double D1_array[n_redshift_bins];
-double r_sigma_array[n_redshift_bins];
-double n_eff_array[n_redshift_bins];
-double ncur_array[n_redshift_bins];
 __constant__ double dev_D1_array[n_redshift_bins];      // Array for growth factor
 __constant__ double dev_r_sigma_array[n_redshift_bins]; // Array for r(sigma)
 __constant__ double dev_n_eff_array[n_redshift_bins];   // Array for n_eff
@@ -97,24 +106,16 @@ void copyConstants()
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n_kbins, &n_kbins, sizeof(int)));
 }
 
-void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<double> *P_k, double dk, double kmin, double kmax)
+void set_cosmology(cosmology cosmo_arg, std::vector<std::vector<double>> *nz, std::vector<double> *sigma_epsilon_per_bin, std::vector<double> *ngal_per_bin, std::vector<double> *P_k, double dk, double kmin, double kmax)
 {
-#if T17_CORRECTION
-  std::cerr << "*****************************************************" << std::endl;
-  std::cerr << "WARNING: Applying T+17 corrections to power spectrum!" << std::endl;
-  std::cerr << "*****************************************************" << std::endl;
-#endif
-  bool nz_from_file = (nz != NULL);
-  if (nz_from_file)
+   if(T17_CORRECTION)
   {
-    std::cout << "Using n(z) from file" << std::endl;
+    std::cerr << "*****************************************************" << std::endl;
+    std::cerr << "WARNING: Applying T+17 corrections to power spectrum!" << std::endl;
+    std::cerr << "*****************************************************" << std::endl;
   }
-  else
-  {
-    std::cerr << "No n(z) file found. Exiting." << std::endl;
-    exit(-1);
-  };
 
+   
   // set cosmology
   cosmo = cosmo_arg;
 
@@ -127,6 +128,7 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_w, &cosmo.w, sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_om, &cosmo.om, sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_ow, &cosmo.ow, sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_A_IA, &cosmo.A_IA, sizeof(double)));
 
   // Copy P_k and binning
   bool Pk_given = (P_k != NULL);
@@ -140,10 +142,10 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_k_max, &kmax, sizeof(double)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_Pk, (P_k->data()), n_kbins * sizeof(double)));
   }
-  else
-  {
-    std::cerr << "Computing linear power spectrum on the fly (using Eisenstein & Hu)" << std::endl;
-  }
+  // else
+  // {
+  //   std::cerr << "Computing linear power spectrum on the fly (using Eisenstein & Hu)" << std::endl;
+  // }
 
   // Calculate Norm and copy
   norm_P = 1; // Initial setting, is overridden in next step
@@ -156,67 +158,102 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_z_max, &z_max, sizeof(double)));
 
   // Calculate f_K(z) and g(z)
+  double f_K_array[n_redshift_bins];
 
   // First: f_K
 #pragma omp parallel for
   for (int i = 0; i < n_redshift_bins; i++)
   {
-    double z_now = (i + 0.5) * dz;
+    double z_now = (i+0.5) * dz;
     f_K_array[i] = f_K_at_z(z_now);
   };
 
-    // Second: g
+    // Second: g and p
+int N_of_z_dists = nz->size();
 #pragma omp parallel for
-  for (int i = 0; i < n_redshift_bins; i++)
-  {
-    g_array[i] = 0;
-    // perform trapezoidal integration
-    for (int j = i; j < n_redshift_bins; j++)
+  for (int k = 0; k < N_of_z_dists; k++){
+    for (int i = 0; i < n_redshift_bins; i++)
     {
-      // double z_now = j * dz;
-      double nz_znow;
-      nz_znow = nz->at(j);
-      if (j == i || j == n_redshift_bins - 1)
+      g_array[k][i] = 0;
+      p_array[k][i] = nz->at(k).at(i);
+      // perform trapezoidal integration
+      for (int j = i; j < n_redshift_bins; j++)
       {
-        g_array[i] += nz_znow * (f_K_array[j] - f_K_array[i]) / f_K_array[j] / 2;
+        double nz_znow;
+        nz_znow = nz->at(k).at(j);
+        if (j == i || j == n_redshift_bins - 1)
+        {
+          g_array[k][i] += nz_znow * (f_K_array[j] - f_K_array[i]) / f_K_array[j] / 2;
+        }
+        else
+        {
+          g_array[k][i] += nz_znow * (f_K_array[j] - f_K_array[i]) / f_K_array[j];
+        }
       }
-      else
-      {
-        g_array[i] += nz_znow * (f_K_array[j] - f_K_array[i]) / f_K_array[j];
-      }
+      g_array[k][i] = g_array[k][i] * dz;
+      //std::cerr << k << "\t" << i << "\t" <<  g_array[k][i] << std::endl;
     }
-    g_array[i] = g_array[i] * dz;
+    g_array[k][0] = 1.;
   }
-  g_array[0] = 1.;
-  std::cerr << "Finished calculating f_k and g" << std::endl;
+  std::cerr << "Finished calculating f_k, p and g" << std::endl;
+
 
   // Copy f_k and g to device (constant memory)
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_f_K_array, f_K_array, n_redshift_bins * sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_g_array, g_array, n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_g_array_1, g_array[0], n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_g_array_2, g_array[1], n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_g_array_3, g_array[2], n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_g_array_4, g_array[3], n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_g_array_5, g_array[4], n_redshift_bins * sizeof(double)));
+
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_p_array_1, p_array[0], n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_p_array_2, p_array[1], n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_p_array_3, p_array[2], n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_p_array_4, p_array[3], n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_p_array_5, p_array[4], n_redshift_bins * sizeof(double)));
+
+
+  double sigma_epsilon_per_bin_temp[n_redshift_bins];
+  double ngal_per_bin_temp[n_redshift_bins];
+  for (int i = 0; i < 5; i++){
+    sigma_epsilon_per_bin_temp[i] = sigma_epsilon_per_bin->at(i);
+    ngal_per_bin_temp[i] = ngal_per_bin->at(i);
+    std::cout << i << "sigma= " << sigma_epsilon_per_bin->at(i) << " " << ": neff= " << ngal_per_bin->at(i)  << std::endl; 
+  };
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma_epsilon_per_bin, &sigma_epsilon_per_bin_temp, 5 * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_ngal_per_bin, &ngal_per_bin_temp, 5 * sizeof(double)));
+
 
   // Calculating Non-linear scales
-  // double r_sigma_array[n_redshift_bins];
-  // double n_eff_array[n_redshift_bins];
-  // double ncur_array[n_redshift_bins];
+  double r_sigma_array[n_redshift_bins];
+  double n_eff_array[n_redshift_bins];
+  double ncur_array[n_redshift_bins];
+
+//std::cout << lgr(3.2)  << "\t" <<  lgr(0.) << std::endl;  
 
 #pragma omp parallel for
-  for (int i = 0; i < n_redshift_bins; i++)
-  {
-    double z_now = (i + 0.5) * dz;
-
+  for (int i = 0; i < n_redshift_bins; i++){
+    double z_now = (i+0.5) * dz;
     D1_array[i] = lgr(z_now) / lgr(0.);           // linear growth factor
     r_sigma_array[i] = calc_r_sigma(D1_array[i]); // =1/k_NL [Mpc/h] in Eq.(B1)
     double d1 = -2. * pow(D1_array[i] * sigmam(r_sigma_array[i], 2), 2);
     n_eff_array[i] = -3. + 2. * pow(D1_array[i] * sigmam(r_sigma_array[i], 2), 2); // n_eff in Eq.(B2)
     ncur_array[i] = d1 * d1 + 4. * sigmam(r_sigma_array[i], 3) * pow(D1_array[i], 2);
   }
-  std::cerr << "Finished calculating non linear scales" << std::endl;
+
+  //for (int i = 0; i < n_redshift_bins; i++){
+  //  std::cout << D1_array[i] << "\t" << r_sigma_array[i] << "\t" << n_eff_array[i] << "\t" << ncur_array[i] << std::endl;
+  //}
+
+  //std::cerr << "Finished calculating non linear scales" << std::endl;
   // Copy non-linear scales to device
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_D1_array, D1_array, n_redshift_bins * sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_r_sigma_array, r_sigma_array, n_redshift_bins * sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n_eff_array, n_eff_array, n_redshift_bins * sizeof(double)));
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_ncur_array, ncur_array, n_redshift_bins * sizeof(double)));
 }
+
+
 
 __device__ double bispec(double k1, double k2, double k3, double z, int idx, double didx)
 {
@@ -278,7 +315,7 @@ __device__ double bispec(double k1, double k2, double k3, double z, int idx, dou
 
   for (i = 1; i <= 3; i++)
   {
-    PSE[i] = (1. + fn * pow(q[i], 2)) / (1. + gn * q[i] + hn * pow(q[i], 2)) * pow(D1, 2) * linear_pk(q[i] / r_sigma) + 1. / (mn * pow(q[i], mun) + nn * pow(q[i], nun)) / (1. + pow(pn * q[i], -3)); // enhanced P(k) in Eq.(B6)
+    PSE[i] = (1. + fn * pow(q[i], 2)) / (1. + gn * q[i] + hn * pow(q[i], 2)) * pow(D1, 2) * dev_linear_pk(q[i] / r_sigma) + 1. / (mn * pow(q[i], mun) + nn * pow(q[i], nun)) / (1. + pow(pn * q[i], -3)); // enhanced P(k) in Eq.(B6)
   }
 
   // 3-halo term bispectrum in Eq.(B5)
@@ -290,25 +327,24 @@ __device__ double bispec(double k1, double k2, double k3, double z, int idx, dou
   // else return 0;
 }
 
-__device__ double bkappa(double ell1, double ell2, double ell3)
+__device__ double bkappa(double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3)
 {
   if (ell1 == 0 || ell2 == 0 || ell3 == 0)
     return 0; // WARNING! THIS MIGHT SCREW WITH THE INTEGRATION ROUTINE!
-  double prefactor = 27. / 8. * pow(dev_om, 3) * pow(dev_H0_over_c, 5);
-  return prefactor * GQ96_of_bdelta(0, dev_z_max, ell1, ell2, ell3);
+  return GQ96_of_bdelta(0, dev_z_max, ell1, ell2, ell3, zbin1, zbin2, zbin3);
 }
 
-__device__ double GQ96_of_bdelta(double a, double b, double ell1, double ell2, double ell3)
+__device__ double GQ96_of_bdelta(double a, double b, double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3)
 {
   double cx = (a + b) / 2;
   double dx = (b - a) / 2;
   double q = 0;
   for (int i = 0; i < 48; i++)
-    q += dev_W96[i] * (integrand_bkappa(cx - dx * dev_A96[i], ell1, ell2, ell3) + integrand_bkappa(cx + dx * dev_A96[i], ell1, ell2, ell3));
+    q += dev_W96[i] * (integrand_bkappa(cx - dx * dev_A96[i], ell1, ell2, ell3, zbin1, zbin2, zbin3) + integrand_bkappa(cx + dx * dev_A96[i], ell1, ell2, ell3, zbin1, zbin2, zbin3));
   return q * dx;
 }
 
-__device__ double integrand_bkappa(double z, double ell1, double ell2, double ell3)
+__device__ double integrand_bkappa(double z, double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3)
 {
   if (z < 1.0e-7)
     return 0.;
@@ -320,152 +356,248 @@ __device__ double integrand_bkappa(double z, double ell1, double ell2, double el
   double didx = z / dev_z_max * (dev_n_redshift_bins);
   int idx = didx;
   didx = didx - idx;
+  // if(idx==dev_n_redshift_bins-1){
+  //     idx = dev_n_redshift_bins-2;
+  //     didx = 1.;
+  // }
 
-  double g_value = g_interpolated(idx, didx);
+  double r_sigma, n_eff, D1, ncur;
+  compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff, &ncur);
+
+  double g_value_1 = g_interpolated(idx, didx, zbin1);
+  double g_value_2 = g_interpolated(idx, didx, zbin2);
+  double g_value_3 = g_interpolated(idx, didx, zbin3);
+  double p_value_1 = p_interpolated(idx, didx, zbin1);
+  double p_value_2 = p_interpolated(idx, didx, zbin2);
+  double p_value_3 = p_interpolated(idx, didx, zbin3);
   double f_K_value = f_K_interpolated(idx, didx);
-  double result = pow(g_value * (1. + z), 3) * bispec(ell1 / f_K_value, ell2 / f_K_value, ell3 / f_K_value, z, idx, didx) / f_K_value / E(z);
+
+  double C1_rho_crit = 0.013873073650776856;
+  double f_IA = - dev_A_IA * dev_om * C1_rho_crit / D1;
+
+  // double P_k1 = P_k_nonlinear(ell1 / f_K_value, z);
+  // double P_k2 = P_k_nonlinear(ell2 / f_K_value, z);
+  // double P_k3 = P_k_nonlinear(ell3 / f_K_value, z);
+
+  // double F2_tree_123 = F2_tree(ell1 / f_K_value, ell2 / f_K_value, ell3 / f_K_value);
+  // double F2_tree_231 = F2_tree(ell2 / f_K_value, ell3 / f_K_value, ell1 / f_K_value);
+  // double F2_tree_312 = F2_tree(ell3 / f_K_value, ell1 / f_K_value, ell2 / f_K_value);
+
+  double W_1 = dev_limber_integrand_prefactor_delta(z, g_value_1);
+  double W_2 = dev_limber_integrand_prefactor_delta(z, g_value_2);
+  double W_3 = dev_limber_integrand_prefactor_delta(z, g_value_3);
+
+  double dz_dchi = dev_E(z)*dev_H0_over_c;
+
+  double bispectrum = bispec(ell1 / f_K_value, ell2 / f_K_value, ell3 / f_K_value, z, idx, didx);
+
+  double B_G_G_G = W_1 * W_2 * W_3 / f_K_value / dz_dchi * bispectrum;
+
+  // double B_G_G_I = W_1 * W_2 * p_value_3 / pow(f_K_value,2) * 2 * (pow(f_IA,2) * F2_tree_123 * P_k1 * P_k2 + pow(f_IA,1) * F2_tree_231 * P_k2 * P_k3 + pow(f_IA,1) * F2_tree_312 * P_k3 * P_k1);
+  // double B_G_I_G = W_1 * p_value_2 * W_3 / pow(f_K_value,2) * 2 * (pow(f_IA,1) * F2_tree_123 * P_k1 * P_k2 + pow(f_IA,1) * F2_tree_231 * P_k2 * P_k3 + pow(f_IA,2) * F2_tree_312 * P_k3 * P_k1);
+  // double B_I_G_G = p_value_1 * W_2 * W_3 / pow(f_K_value,2) * 2 * (pow(f_IA,1) * F2_tree_123 * P_k1 * P_k2 + pow(f_IA,2) * F2_tree_231 * P_k2 * P_k3 + pow(f_IA,1) * F2_tree_312 * P_k3 * P_k1);
+  
+  // double B_G_I_I = W_1 * p_value_2 * p_value_3 / pow(f_K_value,3) * dz_dchi * 2 * (pow(f_IA,3) * F2_tree_123 * P_k1 * P_k2 + pow(f_IA,2) * F2_tree_231 * P_k2 * P_k3 + pow(f_IA,3) * F2_tree_312 * P_k3 * P_k1);
+  // double B_I_G_I = p_value_1 * W_2 * p_value_3 / pow(f_K_value,3) * dz_dchi * 2 * (pow(f_IA,3) * F2_tree_123 * P_k1 * P_k2 + pow(f_IA,3) * F2_tree_231 * P_k2 * P_k3 + pow(f_IA,2) * F2_tree_312 * P_k3 * P_k1);
+  // double B_I_I_G = p_value_1 * p_value_2 * W_3 / pow(f_K_value,3) * dz_dchi * 2 * (pow(f_IA,2) * F2_tree_123 * P_k1 * P_k2 + pow(f_IA,3) * F2_tree_231 * P_k2 * P_k3 + pow(f_IA,3) * F2_tree_312 * P_k3 * P_k1);
+
+  // double B_I_I_I =  p_value_1 * p_value_2 * p_value_3 / pow(f_K_value,4) * pow(dz_dchi,2) * pow(f_IA,4) * bispectrum;
+
+  double B_G_G_I = W_1 * W_2 * p_value_3 / pow(f_K_value,2) * f_IA * bispectrum;
+  double B_G_I_G = W_1 * p_value_2 * W_3 / pow(f_K_value,2) * f_IA * bispectrum;
+  double B_I_G_G = p_value_1 * W_2 * W_3 / pow(f_K_value,2) * f_IA * bispectrum;
+  
+  double B_G_I_I = W_1 * p_value_2 * p_value_3 / pow(f_K_value,3) * dz_dchi * f_IA * f_IA * bispectrum;
+  double B_I_G_I = p_value_1 * W_2 * p_value_3 / pow(f_K_value,3) * dz_dchi * f_IA * f_IA * bispectrum;
+  double B_I_I_G = p_value_1 * p_value_2 * W_3 / pow(f_K_value,3) * dz_dchi * f_IA * f_IA * bispectrum;
+
+  double B_I_I_I =  p_value_1 * p_value_2 * p_value_3 / pow(f_K_value,4) * pow(dz_dchi,2) * f_IA * f_IA * f_IA * bispectrum;
+
+  double result = (B_G_G_G + B_I_I_I + B_G_I_I + B_I_G_I + B_I_I_G + B_G_G_I + B_G_I_G + B_I_G_G);
+  
   if (isnan(result))
   {
-    printf("nan in bispec!"); // %lf, %lf, %lf, %lf, %.3f, %lf, %lf, %lf \n", f_K_value, ell1, ell2, ell3, z, idx, didx, dev_n_redshift_bins);
+        //  printf("%lf, %lf, %lf \n", z, dev_z_max, dev_n_redshift_bins);
+        //  printf("%lf, %lf \n", idx, didx);
+    printf("nan in bispec!, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %.3f, %lf, %lf, %lf \n", g_value_1, g_value_2, g_value_3, f_K_value, ell1, ell2, ell3, z, idx, didx, dev_n_redshift_bins);
     return 0;
   }
   return result;
 }
 
-__host__ __device__ double g_interpolated(int idx, double didx)
+__device__ double g_interpolated(int idx, double didx, int zbin)
 {
   int interpolate_idx = idx;
-  double weight = 1 - abs(didx - 0.5);
-  double interpolate_weight = 1 - weight;
-  if (didx > 0.5)
-  {
-  #ifdef __CUDA_ARCH__
-    if (idx == dev_n_redshift_bins - 1)
-  #else
-    if (idx == n_redshift_bins - 1)
-#endif
-    {
-      interpolate_idx = idx;
-      interpolate_weight = 0.0;
+  double weight = 1-abs(didx - 0.5);
+  double interpolate_weight = 1-weight;
+  if(didx>0.5){
+    if(idx==dev_n_redshift_bins-1){
+      interpolate_idx=idx;
+      interpolate_weight=0.0;
     }
-    else
-    {
-      interpolate_idx = idx + 1;
+    else{
+      interpolate_idx=idx+1;
     }
   }
-  else if (didx < 0.5)
-  {
-    interpolate_idx = idx - 1;
+  else if(didx<0.5){
+    if(idx==0){
+      interpolate_idx=idx;
+      interpolate_weight=0.0;
+    }
+    else{
+      interpolate_idx=idx-1;
+    }
   }
-#ifdef __CUDA_ARCH__
-  return dev_g_array[idx] * weight + dev_g_array[interpolate_idx] * interpolate_weight;
-#else
-  return g_array[idx] * weight + g_array[interpolate_idx] * interpolate_weight;
-#endif
-
+  
+  if(zbin==1){
+    return dev_g_array_1[idx] * weight + dev_g_array_1[interpolate_idx] * interpolate_weight;
+  }
+  if(zbin==2){
+    return dev_g_array_2[idx] * weight + dev_g_array_2[interpolate_idx] * interpolate_weight;
+  }
+  if(zbin==3){
+    return dev_g_array_3[idx] * weight + dev_g_array_3[interpolate_idx] * interpolate_weight;
+  }
+  if(zbin==4){
+    return dev_g_array_4[idx] * weight + dev_g_array_4[interpolate_idx] * interpolate_weight;
+  }
+  if(zbin==5){
+    return dev_g_array_5[idx] * weight + dev_g_array_5[interpolate_idx] * interpolate_weight;
+  }
 }
 
-__host__ __device__ double f_K_interpolated(int idx, double didx)
+
+__device__ double p_interpolated(int idx, double didx, int zbin)
 {
   int interpolate_idx = idx;
-  double weight = 1 - abs(didx - 0.5);
-  double interpolate_weight = 1 - weight;
-  if (didx > 0.5)
-  {
-  #ifdef __CUDA_ARCH__
-    if (idx == dev_n_redshift_bins - 1)
-  #else
-    if (idx == n_redshift_bins - 1)
-#endif
-    {
-      interpolate_idx = idx;
-      interpolate_weight = 0.0;
+  double weight = 1-abs(didx - 0.5);
+  double interpolate_weight = 1-weight;
+  if(didx>0.5){
+    if(idx==dev_n_redshift_bins-1){
+      interpolate_idx=idx;
+      interpolate_weight=0.0;
     }
-    else
-    {
-      interpolate_idx = idx + 1;
+    else{
+      interpolate_idx=idx+1;
     }
   }
-  else if (didx < 0.5)
-  {
-    interpolate_idx = idx - 1;
+  else if(didx<0.5){
+    if(idx==0){
+      interpolate_idx=idx;
+      interpolate_weight=0.0;
+    }
+    else{
+      interpolate_idx=idx-1;
+    }
   }
-#ifdef __CUDA_ARCH__
-  return dev_f_K_array[idx] * weight + dev_f_K_array[interpolate_idx] * interpolate_weight;
-#else
-  return f_K_array[idx] * weight + f_K_array[interpolate_idx] * interpolate_weight;
-#endif
+
+  if(zbin==1){
+    return dev_p_array_1[idx] * weight + dev_p_array_1[interpolate_idx] * interpolate_weight;
+  }
+  if(zbin==2){
+    return dev_p_array_2[idx] * weight + dev_p_array_2[interpolate_idx] * interpolate_weight;
+  }
+  if(zbin==3){
+    return dev_p_array_3[idx] * weight + dev_p_array_3[interpolate_idx] * interpolate_weight;
+  }
+  if(zbin==4){
+    return dev_p_array_4[idx] * weight + dev_p_array_4[interpolate_idx] * interpolate_weight;
+  }
+  if(zbin==5){
+    return dev_p_array_5[idx] * weight + dev_p_array_5[interpolate_idx] * interpolate_weight;
+  }
 }
 
-__host__ __device__ void compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff, double *ncur)
+__device__ double f_K_interpolated(int idx, double didx)
 {
   int interpolate_idx = idx;
-  double weight = 1 - abs(didx - 0.5);
-  double interpolate_weight = 1 - weight;
-  if (didx > 0.5)
-  {
-#ifdef __CUDA_ARCH__
-    if (idx == dev_n_redshift_bins - 1)
-#else
-    if (idx == n_redshift_bins - 1)
-#endif
-    {
-      interpolate_idx = idx;
-      interpolate_weight = 0.0;
+  double weight = 1-abs(didx - 0.5);
+  double interpolate_weight = 1-weight;
+  if(didx>0.5){
+    if(idx==dev_n_redshift_bins-1){
+      interpolate_idx=idx;
+      interpolate_weight=0.0;
     }
-    else
-    {
-      interpolate_idx = idx + 1;
+    else{
+      interpolate_idx=idx+1;
     }
   }
-  else if (didx < 0.5)
-  {
-    interpolate_idx = idx - 1;
+  else if(didx<0.5){
+    if(idx==0){
+      interpolate_idx=idx;
+      interpolate_weight=0.0;
+    }
+    else{
+      interpolate_idx=idx-1;
+    }
   }
 
-#ifdef __CUDA_ARCH__
+  double res = dev_f_K_array[idx] * weight + dev_f_K_array[interpolate_idx] * interpolate_weight;
+  return res;
+}
+
+__device__ void compute_coefficients(int idx, double didx, double *D1, double *r_sigma, double *n_eff, double *ncur)
+{
+  int interpolate_idx = idx;
+  double weight = 1-abs(didx - 0.5);
+  double interpolate_weight = 1-weight;
+  if(didx>0.5){
+    if(idx==dev_n_redshift_bins-1){
+      interpolate_idx=idx;
+      interpolate_weight=0.0;
+    }
+    else{
+      interpolate_idx=idx+1;
+    }
+  }
+  else if(didx<0.5){
+    if(idx==0){
+      interpolate_idx=idx;
+      interpolate_weight=0.0;
+    }
+    else{
+      interpolate_idx=idx-1;
+    }
+  }
+
+  
+  
   *D1 = dev_D1_array[idx] * weight + dev_D1_array[interpolate_idx] * interpolate_weight;
   *r_sigma = dev_r_sigma_array[idx] * weight + dev_r_sigma_array[interpolate_idx] * interpolate_weight;
   *n_eff = dev_n_eff_array[idx] * weight + dev_n_eff_array[interpolate_idx] * interpolate_weight;
   *ncur = dev_ncur_array[idx] * weight + dev_ncur_array[interpolate_idx] * interpolate_weight;
-#else
-  *D1 = D1_array[idx] * weight + D1_array[interpolate_idx] * interpolate_weight;
-  *r_sigma = r_sigma_array[idx] * weight + r_sigma_array[interpolate_idx] * interpolate_weight;
-  *n_eff = n_eff_array[idx] * weight + n_eff_array[interpolate_idx] * interpolate_weight;
-  *ncur = ncur_array[idx] * weight + ncur_array[interpolate_idx] * interpolate_weight;
-#endif
 }
 
-__host__ __device__ double om_m_of_z(double z)
+__device__ double dev_om_m_of_z(double z)
 {
   double aa = 1. / (1 + z);
-#ifndef __CUDA_ARCH__
-  return cosmo.om / (cosmo.om + aa * (aa * aa * cosmo.ow + (1. - cosmo.om - cosmo.ow)));
-#else
   return dev_om / (dev_om + aa * (aa * aa * dev_ow + (1. - dev_om - dev_ow)));
-#endif
 }
 
-__host__ __device__ double om_v_of_z(double z)
+double om_m_of_z(double z)
 {
   double aa = 1. / (1 + z);
-#ifndef __CUDA_ARCH__
-  return cosmo.ow * aa * aa * aa / (cosmo.om + aa * (aa * aa * cosmo.ow + (1. - cosmo.om - cosmo.ow)));
-#else
-  return dev_ow * aa * aa * aa / (dev_om + aa * (aa * aa * dev_ow + (1. - dev_om - dev_ow)));
-#endif
+  return cosmo.om / (cosmo.om + aa * (aa * aa * cosmo.ow + (1. - cosmo.om - cosmo.ow)));
 }
 
-__global__ void limber_integrand_wrapper(const double *vars, unsigned ndim, size_t npts, double ell, double *value)
+__device__ double om_v_of_z(double z)
+{
+  double aa = 1. / (1 + z);
+  return dev_ow * aa * aa * aa / (dev_om + aa * (aa * aa * dev_ow + (1. - dev_om - dev_ow)));
+}
+
+
+__global__ void limber_integrand_wrapper_kernel(const double *vars, unsigned ndim, size_t npts, int zbin1, int zbin2, double ell, double *value)
 {
   // index of thread
   int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
 
+  // return;
   // Grid-Stride loop, so I get npts evaluations
   for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
   {
     double z = vars[i * ndim];
-    value[i] = limber_integrand_power_spectrum(ell, z);
+    value[i] = dev_limber_integrand_power_spectrum(ell, z, zbin1, zbin2);
   }
 }
 
@@ -482,8 +614,15 @@ int limber_integrand_wrapper(unsigned ndim, size_t npts, const double *vars, voi
     exit(1);
   };
 
+  SpectraContainer *container = (SpectraContainer *)thisPtr;
+
+  int zbin1 = container->zbins.at(0);
+  int zbin2 = container->zbins.at(1);
+
   // Read data for integration
-  double *ell = (double *)thisPtr;
+  double ell = container->ell;
+
+  //std::cout << ell << "\t" << zbin1 << "\t" << zbin2 << std::endl;
 
   // Allocate memory on device for integrand values
   double *dev_value;
@@ -495,52 +634,88 @@ int limber_integrand_wrapper(unsigned ndim, size_t npts, const double *vars, voi
   CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); // copying
 
   // Calculate values
-  limber_integrand_wrapper<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, *ell, dev_value);
-
+  limber_integrand_wrapper_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, zbin1, zbin2, ell, dev_value);
+  // std::cerr << "test " << npts << std::endl;
+  CudaCheckError();
 
   cudaFree(dev_vars); // Free variables
 
   // Copy results to host
   CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
 
+  // std::cerr<<std::endl;
+  // std::cerr << value[5] << std::endl;
+
   cudaFree(dev_value); // Free values
 
   return 0; // Success :)
 }
 
-double Pell(double ell)
+double Pell(double ell, int zbin1, int zbin2)
 {
-#ifndef __CUDA_ARCH__
-  double P_shapenoise = 0.5 * sigma * sigma / n;
-  if (constant_powerspectrum)
-    return P_shapenoise;
+    SpectraContainer container;
+    container.zbins = {zbin1, zbin2};
+    container.ell = ell;
 
-  double vals_min[1] = {0};
-  double vals_max[1] = {z_max};
-  double result, error;
-  hcubature_v(1, limber_integrand_wrapper, &ell, 1, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
-#else
-  double P_shapenoise = 0.5 * dev_sigma * dev_sigma / dev_n;
-  if (dev_constant_powerspectrum)
-    return P_shapenoise;
-  double result = GQ96_of_Pk(0, dev_z_max, ell);
-#endif
-  return result + P_shapenoise;
+    double vals_min[1] = {0};
+    double vals_max[1] = {z_max};
+    double result, error;
+
+
+    hcubature_v(1, limber_integrand_wrapper, &container, 1, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
+
+    //std::cerr<<ell<<" "<<result<<" "<<error<<" "<<P_shapenoise<<std::endl;
+    return result;
 }
 
-__host__ __device__ double P_k_nonlinear(double k, double z)
+
+
+
+double get_P_k_nonlinear(double *k, double *z, double *value, int npts)
 {
-/* get the interpolation coefficients */
-#ifdef __CUDA_ARCH__
-  double didx = z / dev_z_max * (dev_n_redshift_bins - 1);
-#else
-  double didx = z / z_max * (n_redshift_bins - 1);
-#endif
+  double *dev_value;
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value, npts * sizeof(double)));
+
+  double *dev_k;
+  double *dev_z;
+  CUDA_SAFE_CALL(cudaMalloc(&dev_k, npts * sizeof(double)));                           // alocate memory
+  CUDA_SAFE_CALL(cudaMalloc(&dev_z, npts * sizeof(double)));                           // alocate memory
+  CUDA_SAFE_CALL(cudaMemcpy(dev_k, k, npts * sizeof(double), cudaMemcpyHostToDevice)); // copying
+  CUDA_SAFE_CALL(cudaMemcpy(dev_z, z, npts * sizeof(double), cudaMemcpyHostToDevice)); // copying
+
+  global_get_P_k_nonlinear<<<1, npts>>>(dev_k, dev_z, dev_value);
+
+  cudaFree(dev_k); // Free variables
+  cudaFree(dev_z); // Free variables
+
+  // Copy results to host
+  CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, npts * sizeof(double), cudaMemcpyDeviceToHost));
+
+  cudaFree(dev_value); // Free values
+
+  return 0; // Success :)
+}
+
+__global__ void global_get_P_k_nonlinear(double *k, double *z, double *values)
+{
+  int idx = threadIdx.x;
+  values[idx] = P_k_nonlinear(k[idx], z[idx]);
+}
+
+__device__ double P_k_nonlinear(double k, double z)
+{
+  /* get the interpolation coefficients */
+  double didx = z / dev_z_max * (dev_n_redshift_bins);
   int idx = didx;
   didx = didx - idx;
+  // if(idx==dev_n_redshift_bins-1){
+  //     idx = dev_n_redshift_bins-2;
+  //     didx = 1.;
+  // }
 
   double r_sigma, n_eff, D1, ncur;
   compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff, &ncur);
+  // printf("D1: %.3f, rsigma: %.3f, neff: %.3f \n",D1,r_sigma,n_eff);
 
   double a, b, c, gam, alpha, beta, xnu, y, ysqr, ph, pq, f1, f2, f3;
   double f1a, f2a, f3a, f1b, f2b, f3b, frac;
@@ -548,22 +723,16 @@ __host__ __device__ double P_k_nonlinear(double k, double z)
   double om_m, om_v;
   double nsqr = n_eff * n_eff;
 
-#ifdef __CUDA_ARCH__
   if (abs(dev_om + dev_ow - 1) > 1e-4)
   {
     printf("Warning: omw as a function of redshift only implemented for flat universes yet!");
   }
-  double w = dev_w;
-#else
-  if (abs(cosmo.om + cosmo.ow - 1) > 1e-4)
-  {
-    std::cerr << "Warning: omw as a function of redshift only implemented for flat universes yet!" << std::endl;
-  }
-  double w = cosmo.w;
-#endif
 
-  om_m = om_m_of_z(z);
-  om_v = om_v_of_z(z);
+  double scalefactor = 1. / (1. + z);
+
+  om_m = dev_om / (dev_om + scalefactor * (scalefactor * scalefactor * dev_ow + (1 - dev_om - dev_ow)));
+
+  om_v = dev_ow * pow(scalefactor, 3) / (dev_om + scalefactor * (scalefactor * scalefactor * dev_ow + (1 - dev_om - dev_ow)));
 
   f1a = pow(om_m, (-0.0732));
   f2a = pow(om_m, (-0.1423));
@@ -575,18 +744,16 @@ __host__ __device__ double P_k_nonlinear(double k, double z)
   f1 = frac * f1b + (1 - frac) * f1a;
   f2 = frac * f2b + (1 - frac) * f2a;
   f3 = frac * f3b + (1 - frac) * f3a;
-  a = 1.5222 + 2.8553 * n_eff + 2.3706 * nsqr + 0.9903 * n_eff * nsqr + 0.2250 * nsqr * nsqr - 0.6038 * ncur + 0.1749 * om_v * (1.0 + w);
+  a = 1.5222 + 2.8553 * n_eff + 2.3706 * nsqr + 0.9903 * n_eff * nsqr + 0.2250 * nsqr * nsqr - 0.6038 * ncur + 0.1749 * om_v * (1.0 + dev_w);
   a = pow(10.0, a);
-  b = pow(10.0, -0.5642 + 0.5864 * n_eff + 0.5716 * nsqr - 1.5474 * ncur + 0.2279 * om_v * (1.0 + w));
+  b = pow(10.0, -0.5642 + 0.5864 * n_eff + 0.5716 * nsqr - 1.5474 * ncur + 0.2279 * om_v * (1.0 + dev_w));
   c = pow(10.0, 0.3698 + 2.0404 * n_eff + 0.8161 * nsqr + 0.5869 * ncur);
   gam = 0.1971 - 0.0843 * n_eff + 0.8460 * ncur;
   alpha = fabs(6.0835 + 1.3373 * n_eff - 0.1959 * nsqr - 5.5274 * ncur);
   beta = 2.0379 - 0.7354 * n_eff + 0.3157 * nsqr + 1.2490 * n_eff * nsqr + 0.3980 * nsqr * nsqr - 0.1682 * ncur;
   xnu = pow(10.0, 5.2105 + 3.6902 * n_eff);
 
-
-  plin = linear_pk(k) * D1 * D1 * k * k * k / (2 * M_PI * M_PI);
-
+  plin = dev_linear_pk(k) * D1 * D1 * k * k * k / (2 * M_PI * M_PI);
 
   y = k * r_sigma;
   ysqr = y * y;
@@ -596,12 +763,13 @@ __host__ __device__ double P_k_nonlinear(double k, double z)
 
   delta_nl = pq + ph;
 
-  return (2 * M_PI * M_PI * delta_nl / (k * k * k));
+  double P_k = (2 * M_PI * M_PI * delta_nl / (k * k * k));
+
+  return P_k;
 }
 
-__host__ __device__ double linear_pk(double k)
+__device__ double dev_linear_pk(double k)
 {
-#ifdef __CUDA_ARCH__
   if (dev_Pk_given)
   {
     if (k >= dev_k_max)
@@ -619,7 +787,40 @@ __host__ __device__ double linear_pk(double k)
 
     return dev_Pk[idx] * (1 - didx) + dev_Pk[idx + 1] * didx;
   };
-#else
+
+  // Use Eisenstein & Hu if the linear P(k) is not given
+  double pk, delk, alnu, geff, qeff, L, C;
+  k *= dev_h; // unit conversion from [h/Mpc] to [1/Mpc]
+
+  double fc = dev_omc / dev_om;
+  double fb = dev_omb / dev_om;
+  double theta = 2.728 / 2.7;
+  double pc = 0.25 * (5.0 - sqrt(1.0 + 24.0 * fc));
+  double omh2 = dev_om * dev_h * dev_h;
+  double ombh2 = dev_omb * dev_h * dev_h;
+  double zeq = 2.5e+4 * omh2 / pow(theta, 4);
+  double b1 = 0.313 * pow(omh2, -0.419) * (1.0 + 0.607 * pow(omh2, 0.674));
+  double b2 = 0.238 * pow(omh2, 0.223);
+  double zd = 1291.0 * pow(omh2, 0.251) / (1.0 + 0.659 * pow(omh2, 0.828)) * (1.0 + b1 * pow(ombh2, b2));
+  double yd = (1.0 + zeq) / (1.0 + zd);
+  double sh = 44.5 * log(9.83 / (omh2)) / sqrt(1.0 + 10.0 * pow(ombh2, 0.75));
+
+  alnu = fc * (5.0 - 2.0 * pc) / 5.0 * (1.0 - 0.553 * fb + 0.126 * fb * fb * fb) * pow(1.0 + yd, -pc) * (1.0 + 0.5 * pc * (1.0 + 1.0 / (7.0 * (3.0 - 4.0 * pc))) / (1.0 + yd));
+
+  geff = omh2 * (sqrt(alnu) + (1.0 - sqrt(alnu)) / (1.0 + pow(0.43 * k * sh, 4)));
+  qeff = k / geff * theta * theta;
+
+  L = log(2.718281828 + 1.84 * sqrt(alnu) * qeff / (1.0 - 0.949 * fb));
+  C = 14.4 + 325.0 / (1.0 + 60.5 * pow(qeff, 1.11));
+
+  delk = pow(dev_norm, 2) * pow(k * 2997.9 / dev_h, 3. + dev_ns) * pow(L / (L + C * qeff * qeff), 2);
+  pk = 2.0 * M_PI * M_PI / (k * k * k) * delk;
+
+  return dev_h * dev_h * dev_h * pk;
+}
+
+double linear_pk(double k)
+{
   if (Pk_given)
   {
     if (k >= k_max)
@@ -637,32 +838,17 @@ __host__ __device__ double linear_pk(double k)
 
     return Pk[idx] * (1 - didx) + Pk[idx + 1] * didx;
   };
-#endif
 
   // Use Eisenstein & Hu if the linear P(k) is not given
   double pk, delk, alnu, geff, qeff, L, C;
-#ifdef __CUDA_ARCH__
-  k *= dev_h; // unit conversion from [h/Mpc] to [1/Mpc]
-#else
-  k*=cosmo.h;
-#endif
+  k *= cosmo.h; // unit conversion from [h/Mpc] to [1/Mpc]
 
-#ifdef __CUDA_ARCH__
-  double fc = dev_omc / dev_om;
-  double fb = dev_omb / dev_om;
-#else
   double fc = cosmo.omc / cosmo.om;
   double fb = cosmo.omb / cosmo.om;
-#endif
   double theta = 2.728 / 2.7;
   double pc = 0.25 * (5.0 - sqrt(1.0 + 24.0 * fc));
-#ifdef __CUDA_ARCH__
-  double omh2 = dev_om * dev_h * dev_h;
-  double ombh2 = dev_omb * dev_h * dev_h;
-#else
   double omh2 = cosmo.om * cosmo.h * cosmo.h;
   double ombh2 = cosmo.omb * cosmo.h * cosmo.h;
-#endif
   double zeq = 2.5e+4 * omh2 / pow(theta, 4);
   double b1 = 0.313 * pow(omh2, -0.419) * (1.0 + 0.607 * pow(omh2, 0.674));
   double b2 = 0.238 * pow(omh2, 0.223);
@@ -678,23 +864,15 @@ __host__ __device__ double linear_pk(double k)
   L = log(2.718281828 + 1.84 * sqrt(alnu) * qeff / (1.0 - 0.949 * fb));
   C = 14.4 + 325.0 / (1.0 + 60.5 * pow(qeff, 1.11));
 
-#ifdef __CUDA_ARCH__
-  delk = pow(dev_norm, 2) * pow(k * 2997.9 / dev_h, 3. + dev_ns) * pow(L / (L + C * qeff * qeff), 2);
-#else
   delk = pow(norm_P, 2) * pow(k * 2997.9 / cosmo.h, 3. + cosmo.ns) * pow(L / (L + C * qeff * qeff), 2);
-#endif
   pk = 2.0 * M_PI * M_PI / (k * k * k) * delk;
 
-#ifdef __CUDA_ARCH__
-  return dev_h * dev_h * dev_h * pk;
-#else
   return cosmo.h * cosmo.h * cosmo.h * pk;
-#endif
 }
 
 __device__ double bispec_tree(double k1, double k2, double k3, double z, double D1) // tree-level BS [(Mpc/h)^6]
 {
-  return pow(D1, 4) * 2. * (F2_tree(k1, k2, k3) * linear_pk(k1) * linear_pk(k2) + F2_tree(k2, k3, k1) * linear_pk(k2) * linear_pk(k3) + F2_tree(k3, k1, k2) * linear_pk(k3) * linear_pk(k1));
+  return pow(D1, 4) * 2. * (F2_tree(k1, k2, k3) * dev_linear_pk(k1) * dev_linear_pk(k2) + F2_tree(k2, k3, k1) * dev_linear_pk(k2) * dev_linear_pk(k3) + F2_tree(k3, k1, k2) * dev_linear_pk(k3) * dev_linear_pk(k1));
 }
 
 __device__ double F2(double k1, double k2, double k3, double z, double D1, double r_sigma)
@@ -835,9 +1013,13 @@ double sigmam(double r, int j) // r[Mpc/h]
 
       xx *= hh;
 
+      // if(j==3) std::cout << xx << std::endl;
       if (fabs((xx - xxp) / xx) < eps)
         break;
       xxp = xx;
+      // printf("\033[2J");
+      // printf("%lf",(xx-xxp)/xx);
+      // fflush(stdout);
     }
 
     if (fabs((xx - xxpp) / xx) < eps)
@@ -902,95 +1084,112 @@ double calc_r_sigma(double D1) // return r_sigma[Mpc/h] (=1/k_sigma)
   return 1. / k;
 }
 
-__host__ __device__ double GQ96_of_Einv(double a, double b)
+double GQ96_of_Einv(double a, double b)
 { /* 96-pt Gauss qaudrature integrates E^-1(x) from a to b */
   double cx = (a + b) / 2;
   double dx = (b - a) / 2;
   double q = 0;
   for (int i = 0; i < 48; i++)
   {
-  #ifndef __CUDA_ARCH__
     q += W96[i] * (E_inv(cx - dx * A96[i]) + E_inv(cx + dx * A96[i]));
-  #else
-    q += dev_W96[i] * (E_inv(cx - dx * dev_A96[i]) + E_inv(cx + dx * dev_A96[i]));
-  #endif
   };
   return (q * dx);
 }
 
-__host__ __device__ double E(double z)
+double E(double z)
 { // assuming flat universe
-#ifndef __CUDA_ARCH__
   return sqrt(cosmo.om * pow(1 + z, 3) + cosmo.ow * pow(1 + z, 3 * (1.0 + cosmo.w)));
-#else
-  return sqrt(dev_om * pow(1 + z, 3) + dev_ow * pow(1 + z, 3 * (1.0 + dev_w)));
-#endif
 }
 
-__host__ __device__ double E_inv(double z)
+__device__ double dev_E(double z)
+{ // assuming flat universe
+  return sqrt(dev_om * pow(1 + z, 3) + dev_ow * pow(1 + z, 3 * (1.0 + dev_w)));
+}
+
+double E_inv(double z)
 {
   return 1. / E(z);
 }
 
-__host__ __device__ double GQ96_of_Pk(double a, double b, double ell)
+__device__ double dev_GQ96_of_Pk(double a, double b, double ell)
 { /* 96-pt Gauss qaudrature integrates bdelta(x,ells) from x=a to b */
   int i;
   double cx, dx, q;
   cx = (a + b) / 2;
   dx = (b - a) / 2;
   q = 0;
+  
   for (i = 0; i < 48; i++)
-#ifndef __CUDA_ARCH__
-    q += W96[i] * (limber_integrand_power_spectrum(ell, cx - dx * A96[i]) + limber_integrand_power_spectrum(ell, cx + dx * A96[i]));
-#else
-    q += dev_W96[i] * (limber_integrand_power_spectrum(ell, cx - dx * dev_A96[i]) + limber_integrand_power_spectrum(ell, cx + dx * dev_A96[i]));
-#endif
+    q += dev_W96[i] * (dev_limber_integrand_power_spectrum(ell, cx - dx * dev_A96[i], 0, 0) + dev_limber_integrand_power_spectrum(ell, cx + dx * dev_A96[i], 0, 0));
   return (q * dx);
 }
 
-__host__ __device__ double limber_integrand_power_spectrum(double ell, double z)
+
+__device__ double dev_limber_integrand_power_spectrum(double ell, double z, int zbin1, int zbin2)
 {
-  if (z < 1e-5)
-    return 0;
-    #ifndef __CUDA_ARCH__
-  double didx = z / z_max * (n_redshift_bins - 1);
-    #else
-  double didx = z / dev_z_max * (dev_n_redshift_bins - 1);
-  #endif
+  if(z<1e-5) return 0;
+  double didx = z/dev_z_max*(dev_n_redshift_bins);
   int idx = didx;
   didx = didx - idx;
+  // if(idx==dev_n_redshift_bins-1){
+  //     idx = dev_n_redshift_bins-2;
+  //     didx = 1.;
+  // }
 
-  double g_value = g_interpolated(idx, didx);
+  double r_sigma, n_eff, D1, ncur;
+  compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff, &ncur);
 
-  double f_K_value = f_K_interpolated(idx, didx);
+  double p_value_1 = p_interpolated(idx,didx,zbin1);
+  double p_value_2 = p_interpolated(idx,didx,zbin2);
+  double g_value_1 = g_interpolated(idx,didx,zbin1);
+  double g_value_2 = g_interpolated(idx,didx,zbin2);
+  double f_K_value = f_K_interpolated(idx,didx);
 
-  double prefactor = limber_integrand_prefactor(z, g_value);
+  double A_IA = dev_A_IA;
+  double C1_rho_crit = 0.013873073650776856;//0.0134;
+  double f_IA = - A_IA * dev_om * C1_rho_crit / D1;
+  
+  double k = ell/f_K_value;
+  double P_k = P_k_nonlinear(k, z);
 
-  double correction;
+  double Pell_G_G = dev_limber_integrand_prefactor_delta(z, g_value_1) * dev_limber_integrand_prefactor_delta(z, g_value_2) * P_k / (dev_E(z)*dev_H0_over_c);
+  
+  double Pell_G_I = dev_limber_integrand_prefactor_delta(z, g_value_1) * p_value_2 * P_k * f_IA / f_K_value;
 
-#if T17_CORRECTION // Correction for T17 simulations
-  double k = ell / f_K_value;
-  double c1 = 9.5171e-4;
-  double c2 = 5.1543e-3;
-  double a1 = 1.3063;
-  double a2 = 1.1475;
-  double a3 = 0.62793;
-  correction = pow(1 + c1 * pow(k, -1. * a1), a1) / pow(1 + c2 * pow(k, -1. * a2), a3);
-#endif
+  double Pell_I_G = dev_limber_integrand_prefactor_delta(z, g_value_2) * p_value_1 * P_k * f_IA / f_K_value;
 
-  return correction * prefactor * P_k_nonlinear(ell / f_K_value, z);
+  double Pell_I_I = p_value_1 * p_value_2 * P_k * f_IA * f_IA *(dev_E(z)*dev_H0_over_c) / (f_K_value*f_K_value); 
+
+  //if (isnan(C_delta_I))
+  //if(C_I_I<0)
+  //  printf("%i, %e, %e, %e, %e, %d, %d , %e, %e , %e, %e, %e , %e, %e\n", idx, didx, C_delta_delta, C_delta_I, C_I_I, zbin1, zbin2, dev_limber_integrand_prefactor_delta(z, g_value_1), dev_limber_integrand_prefactor_delta(z, g_value_2), p_value_1, p_value_2, f_IA ,z , P_k);
+ 
+  if(T17_CORRECTION)
+  {
+    double c1 = 9.5171e-4;
+    double c2 = 5.1543e-3;
+    double a1 = 1.3063;
+    double a2 = 1.1475;
+    double a3 = 0.62793;
+    double correction = pow(1+c1*pow(k,-1.*a1),a1)/pow(1+c2*pow(k,-1.*a2),a3);
+    
+    return (Pell_G_G+Pell_G_I+Pell_I_G+Pell_I_I)*correction;
+    
+  }
+  else{
+      return Pell_G_G+Pell_G_I+Pell_I_G+Pell_I_I;
+  }
+    
 }
 
-__host__ __device__ double limber_integrand_prefactor(double z, double g_value)
+
+__device__ double dev_limber_integrand_prefactor_delta(double z, double g_value)
 {
-#ifndef __CUDA_ARCH__
-  return 9. / 4. * H0_over_c * H0_over_c * H0_over_c * cosmo.om * cosmo.om * (1. + z) * (1. + z) * g_value * g_value / E(z);
-#else
-  return 9. / 4. * dev_H0_over_c * dev_H0_over_c * dev_H0_over_c * dev_om * dev_om * (1. + z) * (1. + z) * g_value * g_value / E(z);
-#endif
+  return 3. / 2. * dev_H0_over_c * dev_H0_over_c * dev_om * (1. + z) * g_value; // 1/fk(chi) missing 
 }
 
-// double limber_integrand_prefactor(double z, double g_value)
-// {
-//   return 9. / 4. * H0_over_c * H0_over_c * H0_over_c * cosmo.om * cosmo.om * (1. + z) * (1. + z) * g_value * g_value / E(z);
-// }
+
+double limber_integrand_prefactor_delta(double z, double g_value)
+{
+  return 3. / 2. * H0_over_c * H0_over_c * cosmo.om * (1. + z) * g_value; // 1/fk(chi) missing 
+}

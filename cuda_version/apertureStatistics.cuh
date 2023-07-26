@@ -42,7 +42,7 @@ __device__ double uHat_product(const double &l1, const double &l2, const double 
  * @param theta Aperture radius [rad]
  * @param value value of integrand
  */
-__global__ void integrand_Map2_kernel(const double *vars, unsigned ndim, int npts, double theta, double *value);
+__global__ void integrand_Map2_kernel(const double *vars, unsigned ndim, int npts, double theta, int zbin1, int zbin2, double *value);
 
 /**
  * @brief Integrand of <Map²> for cubature library
@@ -65,7 +65,7 @@ static int integrand_Map2(unsigned ndim, size_t npts, const double *vars, void *
  * @param theta aperture radius [rad]
  * @return value of <Map²> for aperture radius theta
  */
-double Map2(double theta);
+double Map2(double theta, const std::vector<int> &zbins);
 
 /**
  * @brief Integrand of <Map³>, interface to GPU
@@ -79,7 +79,7 @@ double Map2(double theta);
  * @param theta3 Aperture radii [rad]
  * @param value value of integrand
  */
-__global__ void integrand_Map3_kernel(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double *value);
+__global__ void integrand_Map3_kernel(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, int zbin1, int zbin2, int zbin3, double *value);
 
 /**
  * @brief Integrand for cubature library
@@ -103,7 +103,8 @@ int integrand_Map3(unsigned ndim, size_t npts, const double *vars, void *thisPtr
  * @param phiMax Maximal phi [rad] (optional, default: 2pi)
  * @param lMin Minimal ell (optional, default: 1)
  */
-double MapMapMap(const std::vector<double> &thetas, const double &phiMin = 0, const double &phiMax = 2 * M_PI, const double &lMin = 1);
+double MapMapMap(const std::vector<double> &thetas, const std::vector<int> &zbins, const double &phiMin = 0, const double &phiMax = 2 * M_PI, const double &lMin = 1);
+// double MapMapMap(const std::vector<double> &combis, const double &phiMin = 0, const double &phiMax = 2 * M_PI, const double &lMin = 1);
 
 /**
  * @brief Integrand of <Map⁴>, interface to GPU
@@ -126,93 +127,13 @@ double MapMapMap(const std::vector<double> &thetas, const double &phiMin = 0, co
  * @param zMin minimal redshift
  * @param zMax maximal redshift
  */
-__global__ void integrand_Map4_kernel(const double *vars, unsigned ndim, int npts,
-                                      double theta1, double theta2, double theta3, double theta4, double *value,
-                                      double lMin, double lMax, double phiMin, double phiMax,
-                                      double mMin, double mMax, double zMin, double zMax);
 
-/**
- * @brief Wrapper of integrand_Map4_kernel for the cuba library
- * See http://www.feynarts.de/cuba/ for documentation
- * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
- * @param xx Array containing integration variables
- * @param ncomp Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
- * @param ff Value of integral
- * @param userdata Pointer to ApertureStatisticsContainer instance
- * @param nvec Number of integration points that are evaluated at the same time (automatically determined by integration)
- * @return 0 on success
- */
-static int integrand_Map4(const int *ndim, const double *xx,
-                          const int *ncomp, double *ff, void *userdata, const int *nvec);
-
-/**
- * @brief <Map⁴>, modelled with Trispectrum from halomodel. Trispectrum contains only 1-halo term!
- * This uses CUBA for the integration
- * @param thetas Aperture Radii [rad], array should contain 4 values, program stops if other number of values is given
- * @param phiMin Minimal phi [rad] (optional, default: 0)
- * @param phiMax Maximal phi [rad] (optional, default: 2pi)
- * @param lMin Minimal ell (optional, default: 1)
- */
-double Map4(const std::vector<double> &thetas, const double &phiMin = 0, const double &phiMax = 2 * M_PI, const double &lMin = 1);
-
-/**
- * @brief Integrand of <Map⁶>, interface to GPU
- * @param vars Integration parameters (ell1 [1/rad], ell2 [1/rad], ell3 [1/rad], ell4 [1/rad], ell5 [1/rad], phi1 [rad], phi2 [rad], phi3 [rad], phi4[rad], phi5[rad], m [Msun/h], z)
- * @param ndim Number of dimensions of integral (here: 12)
- * @param npts Number of integration points
- * @param theta1 Aperture radii [rad]
- * @param theta2 Aperture radii [rad]
- * @param theta3 Aperture radii [rad]
- * @param theta4 Aperture radii [rad]
- * @param theta5 Aperture radii [rad]
- * @param theta6 Aperture radii [rad]
- * @param value value of integrand
- * @param lMin minimal ell of integration [1/rad]
- * @param lMax maximal ell of integration [1/rad]
- * @param phiMin minimal phi of integration [rad]
- * @param phiMax maximal phi of integration [rad]
- * @param mMin minimal halo mass [Msun/h]
- * @param mMax maximal halo mass [Msun/h]
- * @param zMin minimal redshift
- * @param zMax maximal redshift
- */
-__global__ void integrand_Map6_kernel(const double *vars, unsigned ndim, int npts,
-                                      double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double *value,
-                                      double lMin, double lMax, double phiMin, double phiMax,
-                                      double mMin, double mMax, double zMin, double zMax);
-
-/**
- * @brief Wrapper of integrand_Map6_kernel for the cuba library
- * See http://www.feynarts.de/cuba/ for documentation
- * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
- * @param xx Array containing integration variables
- * @param ncomp Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
- * @param ff Value of integral
- * @param userdata Pointer to ApertureStatisticsContainer instance
- * @param nvec Number of integration points that are evaluated at the same time (automatically determined by integration)
- * @return 0 on success
- */
-static int integrand_Map6(const int *ndim, const double *xx,
-                          const int *ncomp, double *ff, void *userdata, const int *nvec);
-
-/**
- * @brief <Map⁶>, modelled with Pentaspectrum from halomodel. Pentaspectrum contains only 1-halo term!
- * This uses CUBA for the integration
- * @param thetas Aperture Radii [rad], array should contain 4 values, program stops if other number of values is given
- * @param phiMin Minimal phi [rad] (optional, default: 0)
- * @param phiMax Maximal phi [rad] (optional, default: 2pi)
- * @param lMin Minimal ell (optional, default: 1)
- */
-double Map6(const std::vector<double> &thetas, const double &phiMin = 0, const double &phiMax = 6.283185307, const double &lMin = 1);
-
-/**
- * @brief Container for variables needed in the aperture statistics integrations
- *
- */
 struct ApertureStatisticsContainer
 {
   /** Apertureradii [rad]*/
   std::vector<double> thetas;
+
+  std::vector<int> zbins;
 
   // Integration borders
   double lMin, lMax;     //[1/rad]

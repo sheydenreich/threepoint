@@ -13,7 +13,7 @@
  * This executable gives out the Limberintegrated Revised Halofit Powerspectrum
  * The cosmology is read from file
  * @warning ellMin and ellMax are hardcoded
- * @author Sven Heydenreich
+ * @author Pierre Burger
  */
 int main(int argc, char *argv[])
 {
@@ -27,19 +27,6 @@ Example:
 ./calculatePowerspectrum.x ../necessary_files/MR_cosmo.dat ../../results_MR/powerspectrum_MR.dat ../necessary_files/nz_MR.dat
 )";
 
-  // Read in command line
-  double lk_min = -5;
-  double lk_max = 1;
-  const int n_k = 100;
-  double *k = new double[n_k];
-  double *z = new double[n_k];
-  for (int i = 0; i < n_k; i++)
-  {
-    double k_temp = lk_min + (lk_max - lk_min) * (i + 0.5) / n_k;
-    k[i] = pow(10, k_temp);
-    z[i] = 1.;
-  }
-  double *value = new double[n_k];
 
   if (argc < 4) // Give out error message if too few CLI arguments
   {
@@ -47,49 +34,77 @@ Example:
     exit(1);
   };
 
-  std::string cosmo_paramfile, thetasfn, outfn, nzfn;
+  std::string cosmo_paramfile = argv[1];
+  int zbin1 = std::stoi(argv[2]);
+  int zbin2 = std::stoi(argv[3]);
+  std::string output_file = argv[4];
 
-  cosmo_paramfile = argv[1];
-  outfn = argv[2];
-  nzfn = argv[3];
+  std::string nzfn_1 = argv[5];
+  std::string nzfn_2 = argv[6];
+  std::string nzfn_3 = argv[7];
+  std::string nzfn_4 = argv[8];
+  std::string nzfn_5 = argv[9];
+
+  std::string shape_noise_file = argv[10];
+
+  std::cerr << output_file << std::endl;
+  std::cerr << nzfn_1 << std::endl;
+  std::cerr << nzfn_2 << std::endl;
+  std::cerr << nzfn_3 << std::endl;
+  std::cerr << nzfn_4 << std::endl;
+  std::cerr << nzfn_5 << std::endl;
+
+  // Check if output file can be opened
+  std::ofstream out;
+  out.open(output_file.c_str());
+  if (!out.is_open())
+  {
+    std::cerr << "Couldn't open " << output_file << std::endl;
+    exit(1);
+  };
 
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);
 
-  sigma = 0;
-  n = 1;
-
   // Read in n_z
-  std::vector<double> nz;
-  read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
+  std::vector<double> nz_1;
+  read_n_of_z(nzfn_1, n_redshift_bins, cosmo.zmax, nz_1);
+  std::vector<double> nz_2;
+  read_n_of_z(nzfn_2, n_redshift_bins, cosmo.zmax, nz_2);
+  std::vector<double> nz_3;
+  read_n_of_z(nzfn_3, n_redshift_bins, cosmo.zmax, nz_3);
+  std::vector<double> nz_4;
+  read_n_of_z(nzfn_4, n_redshift_bins, cosmo.zmax, nz_4);
+  std::vector<double> nz_5;
+  read_n_of_z(nzfn_5, n_redshift_bins, cosmo.zmax, nz_5);
 
-  // Check if output file can be opened
-  std::ofstream out;
-  out.open(outfn.c_str());
-  if (!out.is_open())
-  {
-    std::cerr << "Couldn't open " << outfn << std::endl;
-    exit(1);
-  };
+  std::vector<std::vector<double>> nz;
+  nz.push_back(nz_1);
+  nz.push_back(nz_2);
+  nz.push_back(nz_3);
+  nz.push_back(nz_4);
+  nz.push_back(nz_5);
 
-  // User output
-  std::cerr << "Using cosmology from " << cosmo_paramfile << ":" << std::endl;
-  std::cerr << cosmo;
-  std::cerr << "Writing to:" << outfn << std::endl;
+  std::vector<double> sigma_epsilon_per_bin;
+  std::vector<double> ngal_per_bin;
+  read_shapenoise(shape_noise_file, sigma_epsilon_per_bin, ngal_per_bin);
 
+  set_cosmology(cosmo, &nz, &sigma_epsilon_per_bin, &ngal_per_bin);
+ 
   // Initialize Bispectrum
-
   copyConstants();
-
-  std::cerr << "Using n(z) from " << nzfn << std::endl;
-  set_cosmology(cosmo, &nz);
 
   for (double ell = 1; ell < 5. * pow(10, 4); ell *= 1.05)
   {
-    // double ell = ells[i];
-    printf("\b\b\b\b\b\b\b\b\b\b\b\b [%.3e]", ell);
-    // Output
-    out << ell << " " << Pell(ell) << " " << std::endl;
+
+    double spectra = 0.0;
+    if(zbin1==zbin2)
+    {
+      spectra = sigma_epsilon_per_bin[zbin1-1]*sigma_epsilon_per_bin[zbin1-1]/(ngal_per_bin[zbin1-1]/pow(2.9088820866e-4,2));
+    }
+    spectra += Pell(ell, zbin1, zbin2);
+    std::cout << ell << "\t" << spectra << std::endl;
+      out << ell << " " << spectra << " " << std::endl;
   }
   out.close();
 
