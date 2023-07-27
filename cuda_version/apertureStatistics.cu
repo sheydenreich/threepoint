@@ -154,6 +154,7 @@ int integrand_Map3(unsigned ndim, size_t npts, const double *vars, void *thisPtr
     std::cerr << "integrand: Wrong number of function dimensions" << std::endl;
     exit(1);
   };
+  // printf("%d\n", npts);
   // Read data for integration
   ApertureStatisticsContainer *container = (ApertureStatisticsContainer *)thisPtr;
 
@@ -181,10 +182,11 @@ int integrand_Map3(unsigned ndim, size_t npts, const double *vars, void *thisPtr
   // Calculate values
   integrand_Map3_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, theta1, theta2, theta3, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo, dev_value);
 
-  cudaFree(dev_vars); // Free variables
 
   // Copy results to host
   CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
+  
+  cudaFree(dev_vars); // Free variables
 
   cudaFree(dev_value); // Free values
 
