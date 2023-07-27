@@ -326,6 +326,7 @@ std::ostream &operator<<(std::ostream &out, const configGamma &config)
 }
 
 void read_combis(const std::string &z_combi_file, const std::string &theta_combi_file, std::vector<std::vector<int>> &z_combis, std::vector<std::vector<double>> &theta_combis, int &n_combis)
+//@todo At some point this needs to be changed, so you don't need to have three thetas in the theta combi file per row!
 {
 // Open file
     std::ifstream input_z(z_combi_file.c_str());
