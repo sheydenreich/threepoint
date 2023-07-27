@@ -27,7 +27,6 @@ Example:
 ./calculatePowerspectrum.x ../necessary_files/MR_cosmo.dat ../../results_MR/powerspectrum_MR.dat ../necessary_files/nz_MR.dat
 )";
 
-
   if (argc < 4) // Give out error message if too few CLI arguments
   {
     std::cerr << message << std::endl;
@@ -39,20 +38,16 @@ Example:
   int zbin2 = std::stoi(argv[3]);
   std::string output_file = argv[4];
 
-  std::string nzfn_1 = argv[5];
-  std::string nzfn_2 = argv[6];
-  std::string nzfn_3 = argv[7];
-  std::string nzfn_4 = argv[8];
-  std::string nzfn_5 = argv[9];
+  int Ntomo = std::stoi(argv[5]);
 
-  std::string shape_noise_file = argv[10];
+  std::vector<std::string> nzfns;
+  for (int i = 0; i < Ntomo; i++)
+  {
+    std::string nzfn = argv[6 + i];
+    nzfns.push_back(nzfn);
+  }
 
-  std::cerr << output_file << std::endl;
-  std::cerr << nzfn_1 << std::endl;
-  std::cerr << nzfn_2 << std::endl;
-  std::cerr << nzfn_3 << std::endl;
-  std::cerr << nzfn_4 << std::endl;
-  std::cerr << nzfn_5 << std::endl;
+  std::string shape_noise_file = argv[6 + Ntomo];
 
   // Check if output file can be opened
   std::ofstream out;
@@ -67,46 +62,40 @@ Example:
   cosmology cosmo(cosmo_paramfile);
 
   // Read in n_z
-  std::vector<double> nz_1;
-  read_n_of_z(nzfn_1, n_redshift_bins, cosmo.zmax, nz_1);
-  std::vector<double> nz_2;
-  read_n_of_z(nzfn_2, n_redshift_bins, cosmo.zmax, nz_2);
-  std::vector<double> nz_3;
-  read_n_of_z(nzfn_3, n_redshift_bins, cosmo.zmax, nz_3);
-  std::vector<double> nz_4;
-  read_n_of_z(nzfn_4, n_redshift_bins, cosmo.zmax, nz_4);
-  std::vector<double> nz_5;
-  read_n_of_z(nzfn_5, n_redshift_bins, cosmo.zmax, nz_5);
-
-  std::vector<std::vector<double>> nz;
-  nz.push_back(nz_1);
-  nz.push_back(nz_2);
-  nz.push_back(nz_3);
-  nz.push_back(nz_4);
-  nz.push_back(nz_5);
+  std::vector<std::vector<double>> nzs;
+  for (int i = 0; i < Ntomo; i++)
+  {
+    std::vector<double> nz;
+    read_n_of_z(nzfns.at(i), n_redshift_bins, cosmo.zmax, nz);
+    nzs.push_back(nz);
+  }
 
   std::vector<double> sigma_epsilon_per_bin;
   std::vector<double> ngal_per_bin;
   read_shapenoise(shape_noise_file, sigma_epsilon_per_bin, ngal_per_bin);
 
-  set_cosmology(cosmo, &nz, &sigma_epsilon_per_bin, &ngal_per_bin);
- 
-  // Initialize Bispectrum
   copyConstants();
+  double *dev_g_array, *dev_p_array;
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_g_array, Ntomo * n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_p_array, Ntomo * n_redshift_bins * sizeof(double)));
+
+  double *dev_sigma_epsilon, *dev_ngal;
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_sigma_epsilon, Ntomo * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_ngal, Ntomo * sizeof(double)));
+
+  set_cosmology(cosmo, dev_g_array, dev_p_array, &nzs, &sigma_epsilon_per_bin, &ngal_per_bin, dev_sigma_epsilon, dev_ngal);
 
   for (double ell = 1; ell < 5. * pow(10, 4); ell *= 1.05)
   {
 
-    double spectra = 0.0;
-    if(zbin1==zbin2)
-    {
-      spectra = sigma_epsilon_per_bin[zbin1-1]*sigma_epsilon_per_bin[zbin1-1]/(ngal_per_bin[zbin1-1]/pow(2.9088820866e-4,2));
-    }
-    spectra += Pell(ell, zbin1, zbin2);
+    double spectra = Pell(ell, zbin1, zbin2, dev_g_array, dev_p_array, Ntomo, &sigma_epsilon_per_bin, &ngal_per_bin);
     std::cout << ell << "\t" << spectra << std::endl;
-      out << ell << " " << spectra << " " << std::endl;
+    out << ell << " " << spectra << " " << std::endl;
   }
   out.close();
+
+  cudaFree(dev_g_array);
+  cudaFree(dev_p_array);
 
   return 0;
 }

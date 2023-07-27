@@ -18,29 +18,11 @@ __constant__ double dev_h, dev_sigma8, dev_omb, dev_omc, dev_ns, dev_w, dev_om, 
 cosmology cosmo;
 double norm_P;
 
-__constant__ double dev_sigma_epsilon_per_bin[5];
-__constant__ double dev_ngal_per_bin[5];
-
 __constant__ double dev_eps = 1.0e-4; //< Integration accuracy
 const double eps = 1.0e-4;
 
 __constant__ double dev_f_K_array[n_redshift_bins]; // Array for comoving distance
-//__constant__ double dev_g_array[n_redshift_bins];   // Array for lensing efficacy g
 
-__constant__ double dev_g_array_1[n_redshift_bins];   // Array for lensing efficacy g
-__constant__ double dev_g_array_2[n_redshift_bins];   // Array for lensing efficacy g
-__constant__ double dev_g_array_3[n_redshift_bins];   // Array for lensing efficacy g
-__constant__ double dev_g_array_4[n_redshift_bins];   // Array for lensing efficacy g
-__constant__ double dev_g_array_5[n_redshift_bins];   // Array for lensing efficacy g
-
-__constant__ double dev_p_array_1[n_redshift_bins];   // Array for lensing efficacy g
-__constant__ double dev_p_array_2[n_redshift_bins];   // Array for lensing efficacy g
-__constant__ double dev_p_array_3[n_redshift_bins];   // Array for lensing efficacy g
-__constant__ double dev_p_array_4[n_redshift_bins];   // Array for lensing efficacy g
-__constant__ double dev_p_array_5[n_redshift_bins];   // Array for lensing efficacy g
-
-double g_array[5][n_redshift_bins];
-double p_array[5][n_redshift_bins];
 
 __constant__ bool dev_Pk_given;
 __constant__ double dev_Pk[n_kbins];
@@ -106,7 +88,7 @@ void copyConstants()
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n_kbins, &n_kbins, sizeof(int)));
 }
 
-void set_cosmology(cosmology cosmo_arg, std::vector<std::vector<double>> *nz, std::vector<double> *sigma_epsilon_per_bin, std::vector<double> *ngal_per_bin, std::vector<double> *P_k, double dk, double kmin, double kmax)
+void set_cosmology(cosmology cosmo_arg, double* dev_g_array, double* dev_p_array, std::vector<std::vector<double>> *nz, std::vector<double> *sigma_epsilon_per_bin, std::vector<double> *ngal_per_bin, double * dev_sigma_epsilon, double * dev_ngal, std::vector<double> *P_k, double dk, double kmin, double kmax)
 {
    if(T17_CORRECTION)
   {
@@ -169,13 +151,19 @@ void set_cosmology(cosmology cosmo_arg, std::vector<std::vector<double>> *nz, st
   };
 
     // Second: g and p
-int N_of_z_dists = nz->size();
+int Ntomo = nz->size();
+double g_array_allTomo[Ntomo*n_redshift_bins];
+double p_array_allTomo[Ntomo*n_redshift_bins];
+
+
 #pragma omp parallel for
-  for (int k = 0; k < N_of_z_dists; k++){
+  for (int k = 0; k < Ntomo; k++){
     for (int i = 0; i < n_redshift_bins; i++)
     {
-      g_array[k][i] = 0;
-      p_array[k][i] = nz->at(k).at(i);
+      g_array_allTomo[k*n_redshift_bins+i] = 0;
+
+      p_array_allTomo[k*n_redshift_bins+i] = nz->at(k).at(i);
+
       // perform trapezoidal integration
       for (int j = i; j < n_redshift_bins; j++)
       {
@@ -183,46 +171,43 @@ int N_of_z_dists = nz->size();
         nz_znow = nz->at(k).at(j);
         if (j == i || j == n_redshift_bins - 1)
         {
-          g_array[k][i] += nz_znow * (f_K_array[j] - f_K_array[i]) / f_K_array[j] / 2;
+
+          g_array_allTomo[k*n_redshift_bins+i] += nz_znow * (f_K_array[j] - f_K_array[i]) / f_K_array[j] / 2;
+
         }
         else
         {
-          g_array[k][i] += nz_znow * (f_K_array[j] - f_K_array[i]) / f_K_array[j];
+
+          g_array_allTomo[k*n_redshift_bins+i] += nz_znow * (f_K_array[j] - f_K_array[i]) / f_K_array[j];
+
         }
       }
-      g_array[k][i] = g_array[k][i] * dz;
+
+      g_array_allTomo[k*n_redshift_bins+i] = g_array_allTomo[k*n_redshift_bins+i] * dz;
+
       //std::cerr << k << "\t" << i << "\t" <<  g_array[k][i] << std::endl;
     }
-    g_array[k][0] = 1.;
+
+    g_array_allTomo[k*n_redshift_bins] = 1.;
   }
   std::cerr << "Finished calculating f_k, p and g" << std::endl;
 
 
   // Copy f_k and g to device (constant memory)
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_f_K_array, f_K_array, n_redshift_bins * sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_g_array_1, g_array[0], n_redshift_bins * sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_g_array_2, g_array[1], n_redshift_bins * sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_g_array_3, g_array[2], n_redshift_bins * sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_g_array_4, g_array[3], n_redshift_bins * sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_g_array_5, g_array[4], n_redshift_bins * sizeof(double)));
+  
+  CUDA_SAFE_CALL(cudaMemcpy(dev_g_array, g_array_allTomo, Ntomo*n_redshift_bins*sizeof(double), cudaMemcpyHostToDevice ));
+  CUDA_SAFE_CALL(cudaMemcpy(dev_p_array, p_array_allTomo, Ntomo*n_redshift_bins*sizeof(double), cudaMemcpyHostToDevice ));
 
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_p_array_1, p_array[0], n_redshift_bins * sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_p_array_2, p_array[1], n_redshift_bins * sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_p_array_3, p_array[2], n_redshift_bins * sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_p_array_4, p_array[3], n_redshift_bins * sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_p_array_5, p_array[4], n_redshift_bins * sizeof(double)));
-
-
-  double sigma_epsilon_per_bin_temp[n_redshift_bins];
-  double ngal_per_bin_temp[n_redshift_bins];
-  for (int i = 0; i < 5; i++){
-    sigma_epsilon_per_bin_temp[i] = sigma_epsilon_per_bin->at(i);
-    ngal_per_bin_temp[i] = ngal_per_bin->at(i);
-    std::cout << i << "sigma= " << sigma_epsilon_per_bin->at(i) << " " << ": neff= " << ngal_per_bin->at(i)  << std::endl; 
-  };
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma_epsilon_per_bin, &sigma_epsilon_per_bin_temp, 5 * sizeof(double)));
-  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_ngal_per_bin, &ngal_per_bin_temp, 5 * sizeof(double)));
-
+  if (sigma_epsilon_per_bin!=NULL & ngal_per_bin!=NULL)
+  {
+    CUDA_SAFE_CALL(cudaMemcpy(dev_sigma_epsilon, sigma_epsilon_per_bin, Ntomo*sizeof(double), cudaMemcpyHostToDevice));
+    CUDA_SAFE_CALL(cudaMemcpy(dev_ngal, ngal_per_bin, Ntomo*sizeof(double), cudaMemcpyHostToDevice));
+  }
+  else
+  {
+    std::cerr<<"Warning: Shapenoise is not set!"<<std::endl;
+  }
 
   // Calculating Non-linear scales
   double r_sigma_array[n_redshift_bins];
@@ -327,24 +312,25 @@ __device__ double bispec(double k1, double k2, double k3, double z, int idx, dou
   // else return 0;
 }
 
-__device__ double bkappa(double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3)
+__device__ double bkappa(double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3, double* dev_g, double* dev_p, int Ntomo)
 {
   if (ell1 == 0 || ell2 == 0 || ell3 == 0)
     return 0; // WARNING! THIS MIGHT SCREW WITH THE INTEGRATION ROUTINE!
-  return GQ96_of_bdelta(0, dev_z_max, ell1, ell2, ell3, zbin1, zbin2, zbin3);
+  return GQ96_of_bdelta(0, dev_z_max, ell1, ell2, ell3, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo);
 }
 
-__device__ double GQ96_of_bdelta(double a, double b, double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3)
+__device__ double GQ96_of_bdelta(double a, double b, double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3, double* dev_g, double* dev_p, int Ntomo)
 {
   double cx = (a + b) / 2;
   double dx = (b - a) / 2;
   double q = 0;
   for (int i = 0; i < 48; i++)
-    q += dev_W96[i] * (integrand_bkappa(cx - dx * dev_A96[i], ell1, ell2, ell3, zbin1, zbin2, zbin3) + integrand_bkappa(cx + dx * dev_A96[i], ell1, ell2, ell3, zbin1, zbin2, zbin3));
+    q += dev_W96[i] * (integrand_bkappa(cx - dx * dev_A96[i], ell1, ell2, ell3, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo) 
+    + integrand_bkappa(cx + dx * dev_A96[i], ell1, ell2, ell3, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo));
   return q * dx;
 }
 
-__device__ double integrand_bkappa(double z, double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3)
+__device__ double integrand_bkappa(double z, double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3, double* dev_g, double* dev_p, int Ntomo)
 {
   if (z < 1.0e-7)
     return 0.;
@@ -364,12 +350,12 @@ __device__ double integrand_bkappa(double z, double ell1, double ell2, double el
   double r_sigma, n_eff, D1, ncur;
   compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff, &ncur);
 
-  double g_value_1 = g_interpolated(idx, didx, zbin1);
-  double g_value_2 = g_interpolated(idx, didx, zbin2);
-  double g_value_3 = g_interpolated(idx, didx, zbin3);
-  double p_value_1 = p_interpolated(idx, didx, zbin1);
-  double p_value_2 = p_interpolated(idx, didx, zbin2);
-  double p_value_3 = p_interpolated(idx, didx, zbin3);
+  double g_value_1 = g_interpolated(idx, didx, zbin1, dev_g, Ntomo);
+  double g_value_2 = g_interpolated(idx, didx, zbin2, dev_g, Ntomo);
+  double g_value_3 = g_interpolated(idx, didx, zbin3, dev_g, Ntomo);
+  double p_value_1 = p_interpolated(idx, didx, zbin1, dev_p, Ntomo);
+  double p_value_2 = p_interpolated(idx, didx, zbin2, dev_p, Ntomo);
+  double p_value_3 = p_interpolated(idx, didx, zbin3, dev_p, Ntomo);
   double f_K_value = f_K_interpolated(idx, didx);
 
   double C1_rho_crit = 0.013873073650776856;
@@ -419,13 +405,13 @@ __device__ double integrand_bkappa(double z, double ell1, double ell2, double el
   {
         //  printf("%lf, %lf, %lf \n", z, dev_z_max, dev_n_redshift_bins);
         //  printf("%lf, %lf \n", idx, didx);
-    printf("nan in bispec!, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %.3f, %lf, %lf, %lf \n", g_value_1, g_value_2, g_value_3, f_K_value, ell1, ell2, ell3, z, idx, didx, dev_n_redshift_bins);
+    // printf("nan in bispec!, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %.3f, %lf, %lf, %lf \n", g_value_1, g_value_2, g_value_3, f_K_value, ell1, ell2, ell3, z, idx, didx, dev_n_redshift_bins);
     return 0;
   }
   return result;
 }
 
-__device__ double g_interpolated(int idx, double didx, int zbin)
+__device__ double g_interpolated(int idx, double didx, int zbin, double* dev_g, int Ntomo)
 {
   int interpolate_idx = idx;
   double weight = 1-abs(didx - 0.5);
@@ -448,26 +434,13 @@ __device__ double g_interpolated(int idx, double didx, int zbin)
       interpolate_idx=idx-1;
     }
   }
-  
-  if(zbin==1){
-    return dev_g_array_1[idx] * weight + dev_g_array_1[interpolate_idx] * interpolate_weight;
-  }
-  if(zbin==2){
-    return dev_g_array_2[idx] * weight + dev_g_array_2[interpolate_idx] * interpolate_weight;
-  }
-  if(zbin==3){
-    return dev_g_array_3[idx] * weight + dev_g_array_3[interpolate_idx] * interpolate_weight;
-  }
-  if(zbin==4){
-    return dev_g_array_4[idx] * weight + dev_g_array_4[interpolate_idx] * interpolate_weight;
-  }
-  if(zbin==5){
-    return dev_g_array_5[idx] * weight + dev_g_array_5[interpolate_idx] * interpolate_weight;
-  }
+
+  return dev_g[zbin*n_redshift_bins+idx] * weight + dev_g[zbin*n_redshift_bins+interpolate_idx] * interpolate_weight;
+
 }
 
 
-__device__ double p_interpolated(int idx, double didx, int zbin)
+__device__ double p_interpolated(int idx, double didx, int zbin, double* dev_p, int Ntomo)
 {
   int interpolate_idx = idx;
   double weight = 1-abs(didx - 0.5);
@@ -491,21 +464,8 @@ __device__ double p_interpolated(int idx, double didx, int zbin)
     }
   }
 
-  if(zbin==1){
-    return dev_p_array_1[idx] * weight + dev_p_array_1[interpolate_idx] * interpolate_weight;
-  }
-  if(zbin==2){
-    return dev_p_array_2[idx] * weight + dev_p_array_2[interpolate_idx] * interpolate_weight;
-  }
-  if(zbin==3){
-    return dev_p_array_3[idx] * weight + dev_p_array_3[interpolate_idx] * interpolate_weight;
-  }
-  if(zbin==4){
-    return dev_p_array_4[idx] * weight + dev_p_array_4[interpolate_idx] * interpolate_weight;
-  }
-  if(zbin==5){
-    return dev_p_array_5[idx] * weight + dev_p_array_5[interpolate_idx] * interpolate_weight;
-  }
+  return dev_p[zbin*n_redshift_bins+idx] * weight + dev_p[zbin*n_redshift_bins+interpolate_idx] * interpolate_weight;
+
 }
 
 __device__ double f_K_interpolated(int idx, double didx)
@@ -587,7 +547,7 @@ __device__ double om_v_of_z(double z)
 }
 
 
-__global__ void limber_integrand_wrapper_kernel(const double *vars, unsigned ndim, size_t npts, int zbin1, int zbin2, double ell, double *value)
+__global__ void limber_integrand_wrapper_kernel(const double *vars, unsigned ndim, size_t npts, int zbin1, int zbin2, double ell, double * dev_g, double * dev_p, int Ntomo, double *value)
 {
   // index of thread
   int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -597,7 +557,7 @@ __global__ void limber_integrand_wrapper_kernel(const double *vars, unsigned ndi
   for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
   {
     double z = vars[i * ndim];
-    value[i] = dev_limber_integrand_power_spectrum(ell, z, zbin1, zbin2);
+    value[i] = dev_limber_integrand_power_spectrum(ell, z, zbin1, zbin2, dev_g, dev_p, Ntomo);
   }
 }
 
@@ -622,6 +582,11 @@ int limber_integrand_wrapper(unsigned ndim, size_t npts, const double *vars, voi
   // Read data for integration
   double ell = container->ell;
 
+  double * dev_g = container->dev_g;
+  double * dev_p = container->dev_p;
+
+  int Ntomo = container->Ntomo;
+
   //std::cout << ell << "\t" << zbin1 << "\t" << zbin2 << std::endl;
 
   // Allocate memory on device for integrand values
@@ -634,7 +599,7 @@ int limber_integrand_wrapper(unsigned ndim, size_t npts, const double *vars, voi
   CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); // copying
 
   // Calculate values
-  limber_integrand_wrapper_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, zbin1, zbin2, ell, dev_value);
+  limber_integrand_wrapper_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, zbin1, zbin2, ell, dev_g, dev_p, Ntomo, dev_value);
   // std::cerr << "test " << npts << std::endl;
   CudaCheckError();
 
@@ -651,21 +616,29 @@ int limber_integrand_wrapper(unsigned ndim, size_t npts, const double *vars, voi
   return 0; // Success :)
 }
 
-double Pell(double ell, int zbin1, int zbin2)
+double Pell(double ell, int zbin1, int zbin2, double *dev_g, double * dev_p, int Ntomo, std::vector<double>* sigma_epsilon,  std::vector<double>* ngal)
 {
     SpectraContainer container;
     container.zbins = {zbin1, zbin2};
     container.ell = ell;
+    container.dev_g = dev_g;
+    container.dev_p = dev_p;
+    container.Ntomo = Ntomo;
 
     double vals_min[1] = {0};
     double vals_max[1] = {z_max};
     double result, error;
 
+    double Pshapenoise=0;
+    if (zbin1==zbin2)
+    {
+      Pshapenoise=0.5*pow(sigma_epsilon->at(zbin1),2)/ngal->at(zbin1);
+    };
 
     hcubature_v(1, limber_integrand_wrapper, &container, 1, vals_min, vals_max, 0, 0, 1e-6, ERROR_L1, &result, &error);
 
     //std::cerr<<ell<<" "<<result<<" "<<error<<" "<<P_shapenoise<<std::endl;
-    return result;
+    return result+Pshapenoise;
 }
 
 
@@ -1111,7 +1084,7 @@ double E_inv(double z)
   return 1. / E(z);
 }
 
-__device__ double dev_GQ96_of_Pk(double a, double b, double ell)
+__device__ double dev_GQ96_of_Pk(double a, double b, double ell, double * dev_g, double * dev_p, int Ntomo)
 { /* 96-pt Gauss qaudrature integrates bdelta(x,ells) from x=a to b */
   int i;
   double cx, dx, q;
@@ -1120,12 +1093,12 @@ __device__ double dev_GQ96_of_Pk(double a, double b, double ell)
   q = 0;
   
   for (i = 0; i < 48; i++)
-    q += dev_W96[i] * (dev_limber_integrand_power_spectrum(ell, cx - dx * dev_A96[i], 0, 0) + dev_limber_integrand_power_spectrum(ell, cx + dx * dev_A96[i], 0, 0));
+    q += dev_W96[i] * (dev_limber_integrand_power_spectrum(ell, cx - dx * dev_A96[i], 0, 0, dev_g, dev_p, Ntomo) + dev_limber_integrand_power_spectrum(ell, cx + dx * dev_A96[i], 0, 0, dev_g, dev_p, Ntomo));
   return (q * dx);
 }
 
 
-__device__ double dev_limber_integrand_power_spectrum(double ell, double z, int zbin1, int zbin2)
+__device__ double dev_limber_integrand_power_spectrum(double ell, double z, int zbin1, int zbin2, double* dev_g, double* dev_p, int Ntomo)
 {
   if(z<1e-5) return 0;
   double didx = z/dev_z_max*(dev_n_redshift_bins);
@@ -1139,10 +1112,10 @@ __device__ double dev_limber_integrand_power_spectrum(double ell, double z, int 
   double r_sigma, n_eff, D1, ncur;
   compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff, &ncur);
 
-  double p_value_1 = p_interpolated(idx,didx,zbin1);
-  double p_value_2 = p_interpolated(idx,didx,zbin2);
-  double g_value_1 = g_interpolated(idx,didx,zbin1);
-  double g_value_2 = g_interpolated(idx,didx,zbin2);
+  double p_value_1 = p_interpolated(idx,didx,zbin1, dev_p, Ntomo);
+  double p_value_2 = p_interpolated(idx,didx,zbin2, dev_p, Ntomo);
+  double g_value_1 = g_interpolated(idx,didx,zbin1, dev_g, Ntomo);
+  double g_value_2 = g_interpolated(idx,didx,zbin2, dev_g, Ntomo);
   double f_K_value = f_K_interpolated(idx,didx);
 
   double A_IA = dev_A_IA;

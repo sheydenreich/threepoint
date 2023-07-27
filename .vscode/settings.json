@@ -56,7 +56,8 @@
         "map": "cpp",
         "*.cu": "cpp",
         "*.cuh": "cpp",
-        "list": "cpp"
+        "list": "cpp",
+        "numbers": "cpp"
     },
     "python.pythonPath": "/home/laila/anaconda3/bin/python"
 }

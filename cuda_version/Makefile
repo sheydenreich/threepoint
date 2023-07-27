@@ -32,8 +32,7 @@ SRCS_CU = $(wildcard *.cu)
 SRCS_CPP = $(wildcard *.cpp)
 
 # define the CUDA executables (ADD ALL HERE)
-EXECS_CU = calculate_Map_n_KiDS10000.x calculatePowerspectrum.x
-
+EXECS_CU = calculateApertureStatistics.x calculateMap2.x calculatePowerspectrum.x 
 
 # define cpp object files
 OBJS_CPP = $(SRCS_CPP:.cpp=.o)

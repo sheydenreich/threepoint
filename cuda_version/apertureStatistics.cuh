@@ -40,9 +40,17 @@ __device__ double uHat_product(const double &l1, const double &l2, const double 
  * @param ndim Number of dimensions of integral (here: 1)
  * @param npts Number of integration points
  * @param theta Aperture radius [rad]
+ * @param zbin1 Redshift bin for first Map (numbering starts from zero)
+ * @param zbin2 Redshift bin for second Map (numbering starts from zero)
+ * @param dev_g Pointer to precomputed lensing efficiencies on GPU, calculated in set_cosmology
+ * @param dev_p Pointer to precomputed normalized redshift distributions on GPU, calculated in set_cosmology
+ * @param Ntomo total number of tomographic bins
+ * @param dev_sigma_epsilon Pointer to shape noise per tomo bin on GPU, written in set_cosmology
+ * @param dev_ngal Pointer to number density per tomo bin on GPU, written in set_cosmology
  * @param value value of integrand
  */
-__global__ void integrand_Map2_kernel(const double *vars, unsigned ndim, int npts, double theta, int zbin1, int zbin2, double *value);
+__global__ void integrand_Map2_kernel(const double *vars, unsigned ndim, int npts, double theta, int zbin1, int zbin2, double* dev_g, double* dev_p, int Ntomo, 
+double * dev_sigma_epsilon, double * dev_ngal, double *value);
 
 /**
  * @brief Integrand of <Map²> for cubature library
@@ -63,9 +71,15 @@ static int integrand_Map2(unsigned ndim, size_t npts, const double *vars, void *
  * Assumes Flat-Sky
  * Uses hcubature_v routine from the cubature library
  * @param theta aperture radius [rad]
+ * @param zbins Redshift bins, contains 2 values. Numbering starts from zero.
+ * @param dev_g Pointer to precomputed lensing efficiencies on GPU, calculated in set_cosmology
+ * @param dev_p Pointer to precomputed normalized redshift distributions on GPU, calculated in set_cosmology
+ * @param Ntomo total number of tomographic bins
+ * @param dev_sigma_epsilon Pointer to shape noise per tomo bin on GPU, written in set_cosmology
+ * @param dev_ngal Pointer to number density per tomo bin on GPU, written in set_cosmology
  * @return value of <Map²> for aperture radius theta
  */
-double Map2(double theta, const std::vector<int> &zbins);
+double Map2(double theta, const std::vector<int> &zbins, double* dev_g, double* dev_p, int Ntomo, double * dev_sigma_epsilon, double * dev_ngal);
 
 /**
  * @brief Integrand of <Map³>, interface to GPU
@@ -77,9 +91,15 @@ double Map2(double theta, const std::vector<int> &zbins);
  * @param theta1 Aperture radii [rad]
  * @param theta2 Aperture radii [rad]
  * @param theta3 Aperture radii [rad]
+ * @param zbin1 Tomographic bin, numbering starts from 0.
+ * @param zbin2 Tomographic bin, numbering starts from 0.
+ * @param zbin3 Tomographic bin, numbering starts from 0.
+ * @param dev_g Pointer to precomputed lensing efficiencies on GPU, calculated in set_cosmology
+ * @param dev_p Pointer to precomputed normalized redshift distributions on GPU, calculated in set_cosmology
+ * @param Ntomo total number of tomographic bins
  * @param value value of integrand
  */
-__global__ void integrand_Map3_kernel(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, int zbin1, int zbin2, int zbin3, double *value);
+__global__ void integrand_Map3_kernel(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, int zbin1, int zbin2, int zbin3, double* dev_g, double* dev_p, int Ntomo, double *value);
 
 /**
  * @brief Integrand for cubature library
@@ -99,41 +119,31 @@ int integrand_Map3(unsigned ndim, size_t npts, const double *vars, void *thisPtr
  * @warning This is NOT Eq 58 from Schneider, Kilbinger & Lombardi (2003), but a third of that, due to the bispectrum definition
  * This uses the hcubature_v routine from the cubature library
  * @param thetas Aperture Radii [rad], array should contain 3 values, program stops if other number of values is given
+ * @param zbins Tomographic bins, should contain 3 values.
+ * @param dev_g Pointer to precomputed lensing efficiencies on GPU, calculated in set_cosmology
+ * @param dev_p Pointer to precomputed normalized redshift distributions on GPU, calculated in set_cosmology
+ * @param Ntomo total number of tomographic bins
  * @param phiMin Minimal phi [rad] (optional, default: 0)
  * @param phiMax Maximal phi [rad] (optional, default: 2pi)
  * @param lMin Minimal ell (optional, default: 1)
  */
-double MapMapMap(const std::vector<double> &thetas, const std::vector<int> &zbins, const double &phiMin = 0, const double &phiMax = 2 * M_PI, const double &lMin = 1);
-// double MapMapMap(const std::vector<double> &combis, const double &phiMin = 0, const double &phiMax = 2 * M_PI, const double &lMin = 1);
+double MapMapMap(const std::vector<double> &thetas, const std::vector<int> &zbins, double* dev_g, double* dev_p, int Ntomo,  const double &phiMin = 0, const double &phiMax = 2 * M_PI, const double &lMin = 1);
 
-/**
- * @brief Integrand of <Map⁴>, interface to GPU
- * \f$ \ell_1 \ell_2 \ell_3 T(\ell_1, \ell_2, \ell_3, \ell_4)[\hat{u}(\theta_1\ell_1)\hat{u}(\theta_2\ell_2)\hat{u}(\theta_3\ell_3)\hat{u}(\theta_4\ell_4)]\f$
- * where $\ell_4=\ell_1^2 + \ell_2^2 + \ell_3^2 + 2 \ell_1\ell_2\cos(\phi_2 - \phi_1) + 2 \ell_2\ell_3\cos(\phi_2 - \phi_3) + 2 \ell_1\ell_3\cos(\phi_3 - \phi_1)\f$
- * @param vars Integration parameters (ell1 [1/rad], ell2 [1/rad], ell3 [1/rad], phi1 [rad], phi2 [rad], phi3 [rad], m [Msun/h], z)
- * @param ndim Number of dimensions of integral (here: 8)
- * @param npts Number of integration points
- * @param theta1 Aperture radii [rad]
- * @param theta2 Aperture radii [rad]
- * @param theta3 Aperture radii [rad]
- * @param theta4 Aperture radii [rad]
- * @param value value of integrand
- * @param lMin minimal ell of integration [1/rad]
- * @param lMax maximal ell of integration [1/rad]
- * @param phiMin minimal phi of integration [rad]
- * @param phiMax maximal phi of integration [rad]
- * @param mMin minimal halo mass [Msun/h]
- * @param mMax maximal halo mass [Msun/h]
- * @param zMin minimal redshift
- * @param zMax maximal redshift
- */
 
 struct ApertureStatisticsContainer
 {
   /** Apertureradii [rad]*/
   std::vector<double> thetas;
 
+  /** Tomographic redshift bins*/
   std::vector<int> zbins;
+
+  // Precomputed lensing efficiency and redshift distribution on device (from set_cosmology)
+  double *dev_g, *dev_p;
+  int Ntomo; // Total number of tomographic bins
+
+  // Shape noise and number density per bin [1/rad²] on device (written in set_cosmology)
+  double *dev_sigma_epsilon, *dev_ngal;
 
   // Integration borders
   double lMin, lMax;     //[1/rad]

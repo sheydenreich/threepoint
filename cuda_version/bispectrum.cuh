@@ -1,7 +1,6 @@
 #ifndef BISPECTRUM_CUH
 #define BISPECTRUM_CUH
 
-
 #include "cosmology.cuh"
 
 #include <vector>
@@ -15,7 +14,7 @@
 
 // Declarations of  constant variables
 // Extern keyword is needed, so that the actual definition can happen in bispectrum.cu!
-extern bool constant_powerspectrum; //flag to calculate a shapenoise-only power spectrum
+extern bool constant_powerspectrum; // flag to calculate a shapenoise-only power spectrum
 extern __constant__ bool dev_constant_powerspectrum;
 
 // Cosmological Parameters
@@ -31,22 +30,7 @@ const int n_redshift_bins = 256;
 extern __constant__ int dev_n_kbins;
 const int n_kbins = 256;
 
-//galaxy shapenoise and number density for the shapenoise contribution to the power spectrum
-extern __constant__ double dev_sigma_epsilon_per_bin[5];
-extern __constant__ double dev_ngal_per_bin[5];
-
 extern __constant__ double dev_f_K_array[n_redshift_bins]; // Array for comoving distance
-extern __constant__ double dev_g_array_1[n_redshift_bins];   // Array for lensing efficacy g1
-extern __constant__ double dev_g_array_2[n_redshift_bins];   // Array for lensing efficacy g2
-extern __constant__ double dev_g_array_3[n_redshift_bins];   // Array for lensing efficacy g3
-extern __constant__ double dev_g_array_4[n_redshift_bins];   // Array for lensing efficacy g4
-extern __constant__ double dev_g_array_5[n_redshift_bins];   // Array for lensing efficacy g5
-
-extern __constant__ double dev_p_array_1[n_redshift_bins];   // Array for p(z1)
-extern __constant__ double dev_p_array_2[n_redshift_bins];   // Array for p(z2)
-extern __constant__ double dev_p_array_3[n_redshift_bins];   // Array for p(z3)
-extern __constant__ double dev_p_array_4[n_redshift_bins];   // Array for p(z4)
-extern __constant__ double dev_p_array_5[n_redshift_bins];   // Array for p(z5)
 
 // In case the power spectrum is given by an external module (e.g. CAMB): Array to store the power spectrum
 extern __constant__ bool dev_Pk_given;
@@ -93,7 +77,7 @@ void copyConstants();
  * @param nz_from_file If true: Uses lookup table for n(z), if false: uses analytical formula (Optional, default: False)
  * @param nz Vector containing values of n(z) for the redshiftbins used for all functions (Optional, but needs to be provided if nz_from_file==True)
  */
-void set_cosmology(cosmology cosmo, std::vector<std::vector<double>> *nz = NULL, std::vector<double> *sigma_epsilon_per_bin = NULL, std::vector<double> *ngal_per_bin = NULL, std::vector<double> *P_k = NULL, double dk = 0, double kmin = 0,
+void set_cosmology(cosmology cosmo, double *dev_g_array, double *dev_p_array, std::vector<std::vector<double>> *nz = NULL, std::vector<double> *sigma_epsilon_per_bin = NULL, std::vector<double> *ngal_per_bin = NULL, double *dev_sigma_epsilon = NULL, double *dev_ngal = NULL, std::vector<double> *P_k = NULL, double dk = 0, double kmin = 0,
                    double kmax = 1e4);
 
 /**
@@ -114,7 +98,7 @@ __device__ double bispec(double k1, double k2, double k3, double z, int idx, dou
  * @param ell2 l_mode 2
  * @param ell3 l-mode 3
  */
-__device__ double bkappa(double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3);
+__device__ double bkappa(double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3, double *dev_g, double *dev_p, int Ntomo);
 
 /**
  * 96 pt Gaussian Quadrature of integrand_bkappa along redshift
@@ -125,7 +109,7 @@ __device__ double bkappa(double ell1, double ell2, double ell3, int zbin1, int z
  * @param ell2 lmode 2
  * @param ell3 lmode 3
  */
-__device__ double GQ96_of_bdelta(double a, double b, double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3);
+__device__ double GQ96_of_bdelta(double a, double b, double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3, double *dev_g, double *dev_p, int Ntomo);
 
 /**
  * Integrand of two-dimensional bispectrum in Limber equation
@@ -134,7 +118,7 @@ __device__ double GQ96_of_bdelta(double a, double b, double ell1, double ell2, d
  * @param ell2 lmode 2
  * @param ell3 lmode 3
  */
-__device__ double integrand_bkappa(double z, double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3);
+__device__ double integrand_bkappa(double z, double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3, double *dev_g, double *dev_p, int Ntomo);
 
 /**
  * Gives the lens efficiency g at redshift corresponding to idx+didx.
@@ -142,8 +126,8 @@ __device__ double integrand_bkappa(double z, double ell1, double ell2, double el
  * @param idx index of redshift bin (lower border), int(z/z_max*(nbins-1))
  * @param didx distance between redshift and redshift bin, (z/z_max*(nbins-1))-idx
  */
-__device__ double g_interpolated(int idx, double didx, int zbin);
-__device__ double p_interpolated(int idx, double didx, int zbin);
+__device__ double g_interpolated(int idx, double didx, int zbin, double *dev_g, int Ntomo);
+__device__ double p_interpolated(int idx, double didx, int zbin, double *dev_p, int Ntomo);
 /**
  * Gives f_k at redshift corresponding to idx+didx.
  * Uses interpolation of grid
@@ -165,32 +149,31 @@ __device__ void compute_coefficients(int idx, double didx, double *D1, double *r
 
 /**
  * @brief Matter density parameter as a function of redshift
- * 
+ *
  * @param z redshift
- * @return Omega_m(z) 
+ * @return Omega_m(z)
  */
 __device__ double dev_om_m_of_z(double z);
 double om_m_of_z(double z);
 
 /**
  * @brief Dark energy density parameter as a function of redshift
- * 
+ *
  * @param z redshift
- * @return Omega_Lambda(z) 
+ * @return Omega_Lambda(z)
  */
 __device__ double om_v_of_z(double z);
 
-
 /**
  * @brief Wrapper to call the integration of the function dev_limber_integrand_power_spectrum on the GPU
- * 
+ *
  * @param vars Integration parameter ell [1/rad]
  * @param ndim Number of dimensions of integral (here: 1)
  * @param npts Number of integration points
  * @param ell l-mode
  * @param value value of integrand
  */
-__global__ void limber_integrand_wrapper_kernel(const double *vars, unsigned ndim, size_t npts, double ell, double *value);
+__global__ void limber_integrand_wrapper_kernel(const double *vars, unsigned ndim, size_t npts, double ell, double *dev_g, double *dev_p, int Ntomo, double *value);
 
 /**
  * @brief Integrand of P_kappa for cubature library
@@ -207,12 +190,11 @@ int limber_integrand_wrapper(unsigned ndim, size_t npts, const double *vars, voi
 
 /**
  * @brief Convergence power spectrum P(ell) from a limber-integration of the matter power spectrum
- * 
+ *
  * @param ell l-mode
- * @return P(ell) 
+ * @return P(ell)
  */
-double Pell(double ell, int zbin1, int zbin2);
-
+double Pell(double ell, int zbin1, int zbin2, double *dev_g, double *dev_p, int Ntomo, std::vector<double>* sigma_epsilon,  std::vector<double>* ngal);
 
 /**
  * @brief Calculate the non-linear power spectrum for an array of k- and z-values
@@ -220,7 +202,7 @@ double Pell(double ell, int zbin1, int zbin2);
  * @param z array containing all z-values
  * @param value array for the output P(k_i,z_i)
  * @param npts length of the k- and z-arrays
- * @return 0 on success 
+ * @return 0 on success
  */
 double get_P_k_nonlinear(double *k, double *z, double *value, int npts);
 
@@ -269,7 +251,7 @@ __device__ double bispec_tree(double k1, double k2, double k3, double z, double 
 
 /**
  * @brief Term to calculate the 3-halo term in the BiHalofit bispectrum
- * 
+ *
  * @param k1 first k-mode
  * @param k2 second k-mode
  * @param k3 third k-mode
@@ -310,7 +292,7 @@ double lgr(double z);
  * @brief Helper function for the linear growth function
  * @param j calculation mode
  * @param x natural logarithm of scale factor
- * @param y 
+ * @param y
  */
 double lgr_func(int j, double x, double y[2]);
 
@@ -319,7 +301,7 @@ double lgr_func(int j, double x, double y[2]);
  * Calculation is performed by integration over the power spectrum smoothed with a window function
  * @param r smoothing length scale [h/Mpc]
  * @param j shape of window function 0: FT top hat, 1: Gaussian, 2: first derivative of Gaussian, 4: first derivative of FT top hat
- * @return double 
+ * @return double
  */
 double sigmam(double r, int j);
 
@@ -333,10 +315,10 @@ double sigmam(double r, int j);
 double window(double x, int i);
 
 /**
- * @brief calculates the nonlinear scale r_sigma 
+ * @brief calculates the nonlinear scale r_sigma
  * Compare Eq. (B1) of Takahashi+(2020)
  * @param D1 growth factur
- * @return r_sigma[Mpc/h] (=1/k_sigma) 
+ * @return r_sigma[Mpc/h] (=1/k_sigma)
  */
 double calc_r_sigma(double D1);
 
@@ -374,19 +356,17 @@ double E_inv(double z);
  * @param a minimum redshift
  * @param b maximum redshift
  * @param ell l-mode
- * @return P_kappa(ell) 
+ * @return P_kappa(ell)
  */
-__device__ double dev_GQ96_of_Pk(double a, double b, double ell);
-
-
+__device__ double dev_GQ96_of_Pk(double a, double b, double ell, double *dev_g, double *dev_p, int Ntomo);
 
 /**
  * @brief Integrand for the limber-integration of the matter power spectrum
- * 
+ *
  * @param ell l-mode
  * @param z redshift
  */
-__device__ double dev_limber_integrand_power_spectrum(double ell, double z, int zbin1, int zbin2);
+__device__ double dev_limber_integrand_power_spectrum(double ell, double z, int zbin1, int zbin2, double *dev_g, double *dev_p, int Ntomo);
 
 /**
  * @brief prefactor for the limber-integration of the matter power spectrum
@@ -397,13 +377,15 @@ __device__ double dev_limber_integrand_power_spectrum(double ell, double z, int 
 __device__ double dev_limber_integrand_prefactor_delta(double z, double g_value);
 double limber_integrand_prefactor_delta(double z, double g_value);
 
-
 struct SpectraContainer
 {
   /** Apertureradii [rad]*/
   std::vector<int> zbins;
 
   double ell;
+
+  double *dev_g, *dev_p;
+  int Ntomo;
 
   // Integration borders
   double lMin, lMax;     //[1/rad]
