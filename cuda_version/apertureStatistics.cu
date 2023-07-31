@@ -4,6 +4,7 @@
 #include "cuda_helpers.cuh"
 #include "cubature.h"
 #include "halomodel.cuh"
+
 #include "cuba.h"
 
 #include <math.h>
