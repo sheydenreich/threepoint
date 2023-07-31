@@ -1,7 +1,10 @@
 # define the Compiler to use
-# NVCC = /usr/local/cuda-11.6/bin/nvcc -std=c++17 -rdc=true -Xcompiler -fopenmp -O3 -arch=sm_86
+#NVCC = /usr/local/cuda-11.6/bin/nvcc -std=c++17 -rdc=true -Xcompiler -fopenmp -O3 -arch=sm_86
+NVCC = /usr/local/cuda-12.1/bin/nvcc -std=c++17 -rdc=true -Xcompiler -fopenmp -O3 -arch=sm_86
+
 #NVCC = nvcc -std=c++17 -rdc=true -Xcompiler -fopenmp -O3 -arch=sm_86
-NVCC = nvcc -std=c++11 -rdc=true -Xcompiler -fopenmp -O3 
+#NVCC = nvcc -rdc=true -Xcompiler -fopenmp -O3
+
 
 # define the C++ compiler to use
 GCC = g++
@@ -17,7 +20,7 @@ NVCCFLAGS = -g -Xcompiler -fPIC
 LFLAGS= -L /home/laila/cosmosis/cosmosis/datablock/ -Xcompiler \"-Wl,-R,/home/laila/cosmosis/cosmosis/datablock/\"  -L /usr/local/lib/ -L /usr/local/Cuba-4.2.2/
 
 # define any libraries
-LIBS = -lm -lgsl -lgslcblas -lcosmosis -lcuba
+LIBS = -lm -lgsl -lgslcblas -lcuba
 
 # define Path for includes
 INCLUDES = -I /home/laila/cosmosis/cosmosis/datablock/
@@ -29,8 +32,7 @@ SRCS_CU = $(wildcard *.cu)
 SRCS_CPP = $(wildcard *.cpp)
 
 # define the CUDA executables (ADD ALL HERE)
-EXECS_CU = calculateApertureStatistics.x calculateApertureStatisticsCovariance.x calculateGamma.x calculateMap2Covariance.x calculateHMF.x calculateMap4.x calculateMap6.x calculateNFW.x calculatePentaspectrum_halomodel.x calculatePowerspectrum_halomodel.x calculatePowerspectrum.x calculateSecondOrderAperturestatistics.x calculateTrispectrum_halomodel.x calculateMap2Map3Covariance.x testHalobias.x
-
+EXECS_CU = calculateApertureStatistics.x calculateMap2.x calculatePowerspectrum.x 
 
 # define cpp object files
 OBJS_CPP = $(SRCS_CPP:.cpp=.o)
