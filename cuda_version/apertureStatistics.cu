@@ -3,12 +3,7 @@
 #include "cosmology.cuh"
 #include "cuda_helpers.cuh"
 #include "cubature.h"
-<<<<<<< HEAD
-#include "halomodel.cuh"
-
-=======
-// #include "halomodel.cuh"
->>>>>>> 33c389b0732fa5b7e13aa63efae17634d39fb68c
+//#include "halomodel.cuh"
 #include "cuba.h"
 
 #include <math.h>
@@ -39,7 +34,7 @@ __global__ void integrand_Map2_kernel(const double *vars, unsigned ndim, int npt
     if (T17_CORRECTION)
     {
       double correction = 1 + pow(ell / (1.6 * 8192.), 2);
-      value[i] = ell * pow(uHat(ell * theta), 2) * dev_limber_integrand_power_spectrum(ell, z, zbin1, zbin2, dev_g, dev_p, Ntomo) / correction;
+      value[i] = ell * pow(uHat(ell * theta), 2) * limber_integrand_power_spectrum(ell, z, zbin1, zbin2, dev_g, dev_p, Ntomo) / correction;
       if (zbin1 == zbin2)
       {
         value[i] += ell * pow(uHat(ell * theta)* dev_sigma_epsilon[zbin1], 2) * 0.5 / dev_ngal[zbin1] * pow(2.9088820866e-4, 2) / dev_z_max;
@@ -47,7 +42,7 @@ __global__ void integrand_Map2_kernel(const double *vars, unsigned ndim, int npt
     }
     else
     {
-      value[i] = ell * pow(uHat(ell * theta), 2) * dev_limber_integrand_power_spectrum(ell, z, zbin1, zbin2, dev_g, dev_p, Ntomo);
+      value[i] = ell * pow(uHat(ell * theta), 2) * limber_integrand_power_spectrum(ell, z, zbin1, zbin2, dev_g, dev_p, Ntomo);
       if (zbin1 == zbin2)
       {
         value[i] += ell * pow(uHat(ell * theta)* dev_sigma_epsilon[zbin1], 2) * 0.5 / dev_ngal[zbin1] * pow(2.9088820866e-4, 2) / dev_z_max;
@@ -95,7 +90,6 @@ int integrand_Map2(unsigned ndim, size_t npts, const double *vars, void *thisPtr
 
   // Calculate values
   integrand_Map2_kernel<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, theta, zbin1, zbin2, dev_g, dev_p, Ntomo, dev_sigma_epsilon, dev_ngal, dev_value);
-  CudaCheckError();
 
   cudaFree(dev_vars); // Free variables
 

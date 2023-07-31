@@ -65,6 +65,10 @@ cosmology::cosmology(const std::string &fn_parameters)
     {
       zmax = parameterValues.at(i);
     }
+    else if (parameterNames.at(i) == "A_IA")
+    {
+      A_IA = parameterValues.at(i);
+    }
     else
     {
       std::cout << "Cosmology::Parameter file is not in the right format"
@@ -86,6 +90,7 @@ std::ostream &operator<<(std::ostream &out, const cosmology &cosmo)
   out << "w " << cosmo.w << std::endl;
   out << "Omega_m " << cosmo.om << std::endl;
   out << "z_max " << cosmo.zmax << std::endl;
+  out << "A_IA " << cosmo.A_IA << std::endl;
   return out;
 }
 

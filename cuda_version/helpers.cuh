@@ -69,5 +69,9 @@ double valueMap(const std::map<double, double> &map, double value);
  std::ostream &operator<<(std::ostream &out, const configGamma &config);
  
 
+void read_combis(const std::string &z_combi_file, const std::string &theta_combi_file, std::vector<std::vector<int>> &z_combis, std::vector<std::vector<double>> &theta_combis, int &n_combis);
+
+void read_shapenoise(const std::string &shapenoise_file, std::vector<double> &sigma_epsilon, std::vector<double> &neff);
+
 int factorial(int n);
 #endif // HELPERS_CUH

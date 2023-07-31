@@ -16,17 +16,12 @@
 
 // Declarations of  constant variables
 // Extern keyword is needed, so that the actual definition can happen in bispectrum.cu!
-extern bool constant_powerspectrum; //flag to calculate a shapenoise-only power spectrum
 extern __constant__ bool dev_constant_powerspectrum;
 
 // Cosmological Parameters
-extern __constant__ double dev_h, dev_sigma8, dev_omb, dev_omc, dev_ns, dev_w, dev_om, dev_ow, dev_norm;
+extern __constant__ double dev_h, dev_sigma8, dev_omb, dev_omc, dev_ns, dev_w, dev_om, dev_ow, dev_norm, dev_A_IA;
 extern cosmology cosmo;
 extern double norm_P;
-
-//galaxy shapenoise and number density for the shapenoise contribution to the power spectrum
-extern __constant__ double dev_sigma, dev_n;
-extern double sigma, n;
 
 extern __constant__ double dev_eps; //< Integration accuracy
 extern const double eps;
@@ -37,9 +32,7 @@ extern __constant__ int dev_n_kbins;
 const int n_kbins = 256;
 
 extern __constant__ double dev_f_K_array[n_redshift_bins]; // Array for comoving distance
-extern __constant__ double dev_g_array[n_redshift_bins];   // Array for lensing efficacy g
-extern double g_array[n_redshift_bins];
-extern double f_K_array[n_redshift_bins];
+extern double f_k_array[n_redshift_bins];
 
 // In case the power spectrum is given by an external module (e.g. CAMB): Array to store the power spectrum
 extern __constant__ bool dev_Pk_given;
@@ -89,7 +82,7 @@ void copyConstants();
  * @param nz_from_file If true: Uses lookup table for n(z), if false: uses analytical formula (Optional, default: False)
  * @param nz Vector containing values of n(z) for the redshiftbins used for all functions (Optional, but needs to be provided if nz_from_file==True)
  */
-void set_cosmology(cosmology cosmo, std::vector<double> *nz = NULL, std::vector<double> *P_k = NULL, double dk = 0, double kmin = 0,
+void set_cosmology(cosmology cosmo, double *dev_g_array, double *dev_p_array, std::vector<std::vector<double>> *nz = NULL, std::vector<double> *sigma_epsilon_per_bin = NULL, std::vector<double> *ngal_per_bin = NULL, double *dev_sigma_epsilon = NULL, double *dev_ngal = NULL, std::vector<double> *P_k = NULL, double dk = 0, double kmin = 0,
                    double kmax = 1e4);
 
 /**
@@ -110,7 +103,7 @@ __device__ double bispec(double k1, double k2, double k3, double z, int idx, dou
  * @param ell2 l_mode 2
  * @param ell3 l-mode 3
  */
-__device__ double bkappa(double ell1, double ell2, double ell3);
+__device__ double bkappa(double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3, double *dev_g, double *dev_p, int Ntomo);
 
 /**
  * 96 pt Gaussian Quadrature of integrand_bkappa along redshift
@@ -121,7 +114,7 @@ __device__ double bkappa(double ell1, double ell2, double ell3);
  * @param ell2 lmode 2
  * @param ell3 lmode 3
  */
-__device__ double GQ96_of_bdelta(double a, double b, double ell1, double ell2, double ell3);
+__device__ double GQ96_of_bdelta(double a, double b, double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3, double *dev_g, double *dev_p, int Ntomo);
 
 /**
  * Integrand of two-dimensional bispectrum in Limber equation
@@ -130,7 +123,7 @@ __device__ double GQ96_of_bdelta(double a, double b, double ell1, double ell2, d
  * @param ell2 lmode 2
  * @param ell3 lmode 3
  */
-__device__ double integrand_bkappa(double z, double ell1, double ell2, double ell3);
+__device__ double integrand_bkappa(double z, double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3, double *dev_g, double *dev_p, int Ntomo);
 
 /**
  * Gives the lens efficiency g at redshift corresponding to idx+didx.
@@ -138,7 +131,8 @@ __device__ double integrand_bkappa(double z, double ell1, double ell2, double el
  * @param idx index of redshift bin (lower border), int(z/z_max*(nbins-1))
  * @param didx distance between redshift and redshift bin, (z/z_max*(nbins-1))-idx
  */
-__host__ __device__ double g_interpolated(int idx, double didx);
+__host__ __device__ double g_interpolated(int idx, double didx, int zbin, double *dev_g, int Ntomo);
+__host__ __device__ double p_interpolated(int idx, double didx, int zbin, double *dev_p, int Ntomo);
 
 /**
  * Gives f_k at redshift corresponding to idx+didx.
@@ -186,7 +180,7 @@ __host__ __device__ double om_v_of_z(double z);
  * @param ell l-mode
  * @param value value of integrand
  */
-__global__ void limber_integrand_wrapper(const double *vars, unsigned ndim, size_t npts, double ell, double *value);
+__global__ void limber_integrand_wrapper(const double *vars, unsigned ndim, size_t npts, int zbin1, int zbin2, double ell, double *dev_g, double *dev_p, int Ntomo, double *value);
 
 /**
  * @brief Integrand of P_kappa for cubature library
@@ -207,7 +201,7 @@ int limber_integrand_wrapper(unsigned ndim, size_t npts, const double *vars, voi
  * @param ell l-mode
  * @return P(ell) 
  */
-__host__ __device__ double Pell(double ell);
+__host__ double Pell(double ell, int zbin1, int zbin2, double *dev_g, double *dev_p, int Ntomo, std::vector<double>* sigma_epsilon,  std::vector<double>* ngal);
 
 
 /**
@@ -348,7 +342,7 @@ __host__ __device__ double GQ96_of_Pk(double a, double b, double ell);
  * @param ell l-mode
  * @param z redshift
  */
-__host__ __device__ double limber_integrand_power_spectrum(double ell, double z);
+__host__ __device__ double limber_integrand_power_spectrum(double ell, double z, double zbin1, double zbin2, double * dev_g, double * dev_p, int Ntomo);
 
 /**
  * @brief prefactor for the limber-integration of the matter power spectrum
@@ -357,6 +351,23 @@ __host__ __device__ double limber_integrand_power_spectrum(double ell, double z)
  * @param g_value lensing efficiency at redshift z
  */
 __host__ __device__ double limber_integrand_prefactor(double z, double g_value);
+__host__ __device__ double limber_integrand_prefactor_delta(double z, double g_value);
 
+struct SpectraContainer
+{
+  /** Apertureradii [rad]*/
+  std::vector<int> zbins;
+
+  double ell;
+
+  double *dev_g, *dev_p;
+  int Ntomo;
+
+  // Integration borders
+  double lMin, lMax;     //[1/rad]
+  double phiMin, phiMax; //[rad]
+  double mMin, mMax;     //[Msun/h]
+  double zMin, zMax;     //[unitless]
+};
 
 #endif // BISPECTRUM_CUH

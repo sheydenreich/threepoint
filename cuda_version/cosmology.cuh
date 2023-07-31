@@ -22,6 +22,7 @@ public:
   double om;     /**< dimensionless matter density parameter*/
   double ow;     /**< dimensionless density parameter of Dark Energy*/
   double zmax;   /**< Maximal redshift of simulation */
+  double A_IA;   /**< Intrinsic alignment amplitude*/
 
   cosmology(){}; // Empty constructor
 

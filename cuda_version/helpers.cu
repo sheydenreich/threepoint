@@ -329,3 +329,97 @@ void read_n_of_z(const std::string &fn, const int &n_bins, const double &zMax, s
 #endif // CONVERT_TO_CENTROID
     return out;
   }
+  void read_combis(const std::string &z_combi_file, const std::string &theta_combi_file, std::vector<std::vector<int>> &z_combis, std::vector<std::vector<double>> &theta_combis, int &n_combis)
+//@todo At some point this needs to be changed, so you don't need to have three thetas in the theta combi file per row!
+{
+// Open file
+    std::ifstream input_z(z_combi_file.c_str());
+    if (input_z.fail())
+    {
+        std::cout << "read z combi failed: Could not open " << z_combi_file << std::endl;
+        exit(1);
+    };
+    std::vector<int> z_combis_1;
+    std::vector<int> z_combis_2;
+    std::vector<int> z_combis_3;
+    if (input_z.is_open())
+    {
+        std::string line;
+        while (std::getline(input_z, line))
+        {
+            if (line[0] == '#' || line.empty())
+                continue;
+            double zbin_1, zbin_2, zbin_3;
+            std::istringstream iss(line);
+            iss >> zbin_1 >> zbin_2 >> zbin_3;
+            z_combis_1.push_back(zbin_1);
+            z_combis_2.push_back(zbin_2);
+            z_combis_3.push_back(zbin_3);
+        };
+    };
+
+    n_combis = z_combis_1.size();
+
+    z_combis.push_back(z_combis_1);
+    z_combis.push_back(z_combis_2);
+    z_combis.push_back(z_combis_3);
+
+    // Open file
+    std::ifstream input_theta(theta_combi_file.c_str());
+    if (input_theta.fail())
+    {
+        std::cout << "read theta combi failed: Could not open " << theta_combi_file << std::endl;
+        exit(1);
+    };
+    std::vector<double> theta_combis_1;
+    std::vector<double> theta_combis_2;
+    std::vector<double> theta_combis_3;
+    if (input_theta.is_open())
+    {
+        std::string line;
+        while (std::getline(input_theta, line))
+        {
+            if (line[0] == '#' || line.empty())
+                continue;
+            double theta_1, theta_2, theta_3;
+            std::istringstream iss(line);
+            iss >> theta_1 >> theta_2 >> theta_3;
+            theta_combis_1.push_back(theta_1);
+            theta_combis_2.push_back(theta_2);
+            theta_combis_3.push_back(theta_3);
+        };
+    };
+
+    theta_combis.push_back(theta_combis_1);
+    theta_combis.push_back(theta_combis_2);
+    theta_combis.push_back(theta_combis_3);
+
+}
+
+
+void read_shapenoise(const std::string &shapenoise_file, std::vector<double> &sigma_epsilon, std::vector<double> &neff)
+{
+    // Open file
+    std::ifstream input_file(shapenoise_file.c_str());
+    if (input_file.fail())
+    {
+        std::cout << "read theta combi failed: Could not open " << shapenoise_file << std::endl;
+        exit(1);
+    };
+
+    if (input_file.is_open())
+    {
+        std::string line;
+        while (std::getline(input_file, line))
+        {
+            if (line[0] == '#' || line.empty())
+                continue;
+            double sigma_bin, neff_bin;
+            std::istringstream iss(line);
+            iss >> sigma_bin >> neff_bin;
+            sigma_epsilon.push_back(sigma_bin);
+            neff.push_back(neff_bin);
+        };
+    };
+
+}
