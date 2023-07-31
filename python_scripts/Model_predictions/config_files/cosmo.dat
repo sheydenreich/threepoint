@@ -1,0 +1,8 @@
+# TEMPORARY cosmology for calculation of aperture statistics in latin hypercube 
+h 0.7
+sigma_8 0.82
+Omega_b 0.0473
+n_s 0.969
+w -1.0
+Omega_m 0.279
+z_max 3.0

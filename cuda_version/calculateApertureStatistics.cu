@@ -11,11 +11,12 @@
 /**
  * @file calculateApertureStatistics.cu
  * This executable calculates <MapMapMap> from the
- * Takahashi+ Bispectrum
- * Aperture radii are read from file and <MapMapMap> is only calculated for
- * independent combis of thetas Code uses CUDA and cubature library  (See
+ * Takahashi+ Bispectrum for different tomographic bins
+ * Aperture radii are read from file
+ * Tomo bins are read from file
+ * Code uses CUDA and cubature library  (See
  * https://github.com/stevengj/cubature for documentation)
- * @author Laila Linke
+ * @author Pierre Burger
  */
 int main(int argc, char *argv[])
 {
@@ -38,96 +39,108 @@ Example:
     exit(1);
   };
 
-  std::string cosmo_paramfile, thetasfn, outfn, nzfn;
+  std::string cosmo_paramfile = argv[1];
+  std::string z_combi_file = argv[2];
+  std::string theta_combi_file = argv[3];
+  std::string output_file = argv[4];
+  int Ntomo = std::stoi(argv[5]);
 
-  cosmo_paramfile = argv[1];
-  thetasfn = argv[2];
-  outfn = argv[3];
-  nzfn = argv[4];
+  std::vector<std::string> nzfns;
+  for (int i = 0; i < Ntomo; i++)
+  {
+    std::string nzfn = argv[6 + i];
+    nzfns.push_back(nzfn);
+  }
+
+  std::string outputmode = "full";
+  if (argc == 7 + Ntomo)
+    outputmode = argv[6 + Ntomo]; // Either "full" or "mcmc"
+
+  // Check if output file can be opened
+  std::ofstream out;
+  out.open(output_file.c_str());
+  if (!out.is_open())
+  {
+    std::cerr << "Couldn't open " << output_file << std::endl;
+    exit(1);
+  };
+
+  std::vector<std::vector<double>> theta_combis;
+  std::vector<std::vector<int>> z_combis;
+  int n_combis;
+  read_combis(z_combi_file, theta_combi_file, z_combis, theta_combis, n_combis);
 
   // Read in cosmology
   cosmology cosmo(cosmo_paramfile);
 
   // Read in n_z
-  std::vector<double> nz;
-  read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
-
-  // Check if output file can be opened
-  std::ofstream out;
-  out.open(outfn.c_str());
-  if (!out.is_open())
+  std::vector<std::vector<double>> nzs;
+  for (int i = 0; i < Ntomo; i++)
   {
-    std::cerr << "Couldn't open " << outfn << std::endl;
-    exit(1);
-  };
-
-  // Read in thetas
-  std::vector<double> thetas;
-  read_thetas(thetasfn, thetas);
-  int N = thetas.size();
-
-  // User output
-  std::cerr << "Using cosmology from " << cosmo_paramfile << ":" << std::endl;
-  std::cerr << cosmo;
-  std::cerr << "Using thetas in " << thetasfn << std::endl;
-  std::cerr << "Writing to:" << outfn << std::endl;
-
-  // Initialize Bispectrum
+    std::vector<double> nz;
+    read_n_of_z(nzfns.at(i), n_redshift_bins, cosmo.zmax, nz);
+    nzs.push_back(nz);
+  }
 
   copyConstants();
+  double* dev_g_array, * dev_p_array;
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_g_array, Ntomo * n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_p_array, Ntomo * n_redshift_bins * sizeof(double)));
 
-  std::cerr << "Using n(z) from " << nzfn << std::endl;
-  set_cosmology(cosmo, &nz);
+  
 
-  // Set up vector for aperture statistics
-  int Ntotal = N * (N + 1) * (N + 2) / 6.; // Total number of bins that need to be calculated, = (N+3+1) ncr 3
-  std::vector<double> MapMapMaps;
+  set_cosmology(cosmo, dev_g_array, dev_p_array, &nzs);
 
-  // Needed for monitoring
-
-  int step = 0;
-
-  // Calculate <MapMapMap>(theta1, theta2, theta3) in three loops
-  // Calculation only for theta1<=theta2<=theta3
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < n_combis; i++)
   {
-    double theta1 = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
+    double theta_1_rad = convert_angle_to_rad(theta_combis[0][i]); // Conversion to rad
+    double theta_2_rad = convert_angle_to_rad(theta_combis[1][i]); // Conversion to rad
+    double theta_3_rad = convert_angle_to_rad(theta_combis[2][i]); // Conversion to rad
+    std::vector<double> thetas_calc = {theta_1_rad, theta_2_rad, theta_3_rad};
+    std::vector<int> zbins_calc = {z_combis[0][i], z_combis[1][i], z_combis[2][i]};
 
-    for (int j = i; j < N; j++)
+    if (z_combis[0][i]>=Ntomo || z_combis[1][i]>=Ntomo || z_combis[2][i]>=Ntomo)
     {
-      double theta2 = convert_angle_to_rad(thetas.at(j));
+      std::cerr<<"Issue with tomo bins! You want to access a zbin which is outside the number of tomographic bins!"<<std::endl;
+      std::cerr<<"Note that tomo bins must be numbered as 0,1,2,...!"<<std::endl;
+      std::cerr<<"Exiting."<<std::endl;
+      exit(1);
+    }
 
-      for (int k = j; k < N; k++)
-      {
+    double Map3_value = MapMapMap(thetas_calc, zbins_calc, dev_g_array, dev_p_array, Ntomo);
 
-        double theta3 = convert_angle_to_rad(thetas.at(k));
-        std::vector<double> thetas_calc = {theta1, theta2, theta3};
-        // Progress for the impatient user (Thetas in arcmin)
-        step += 1;
-        std::cerr << step << "/" << Ntotal << ": Thetas:" << thetas.at(i) << " "
-                  << thetas.at(j) << " " << thetas.at(k) << " \r";
-        std::cerr.flush();
-
-        double Map3 = MapMapMap(thetas_calc); // Do calculation
-        MapMapMaps.push_back(Map3);
-      };
-    };
-  };
-
-  // Output
-  step = 0;
-  for (int i = 0; i < N; i++)
-  {
-    for (int j = i; j < N; j++)
+    std::cerr << i << "/" << n_combis << ": Theta1= " << theta_combis[0][i] << " "
+              << ": Theta2= " << theta_combis[1][i] << " "
+              << ": Theta3= " << theta_combis[2][i] << " "
+              << ": zbin1= " << z_combis[0][i] << " "
+              << ": zbin2= " << z_combis[1][i] << " "
+              << ": zbin3= " << z_combis[2][i] << " "
+              << ": Map3= " << Map3_value << " \r";
+    std::cerr.flush();
+    if (outputmode == "full")
     {
-      for (int k = j; k < N; k++)
-      {
-        out << thetas[i] << " " << thetas[j] << " " << thetas[k] << " "
-            << MapMapMaps.at(step) << " " << std::endl;
-        step++;
-      };
+      out << theta_combis[0][i] << " "
+          << theta_combis[1][i] << " "
+          << theta_combis[2][i] << " "
+          << z_combis[0][i] << " "
+          << z_combis[1][i] << " "
+          << z_combis[2][i] << " "
+          << Map3_value << std::endl;
+    }
+    else if (outputmode == "mcmc")
+    {
+      out << Map3_value << " " << std::endl;
+    }
+    else
+    {
+      std::cerr << "Outputmode not specified. Exiting" << std::endl;
+      exit(1);
     };
-  };
+  }
+
+  cudaFree(dev_g_array);
+  cudaFree(dev_p_array);
+
 
   return 0;
 }
