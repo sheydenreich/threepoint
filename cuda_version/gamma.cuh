@@ -53,7 +53,7 @@ struct treecorr_bin
  * @param z_max maximum redshift of integration
  * @return std::complex<double> Gamma^0(x1,x2,x3)
  */
-std::complex<double> gamma0(double x1, double x2, double x3, double z_max);
+std::complex<double> gamma0(double x1, double x2, double x3, double z_max, int zbin1, int zbin2, int zbin3, double * dev_g, double * dev_p, int Ntomo);
 
 /**
  * @brief Second natural component of the shear 3pcf
@@ -66,7 +66,7 @@ std::complex<double> gamma0(double x1, double x2, double x3, double z_max);
  * @param z_max maximum redshift of integration
  * @return std::complex<double> Gamma^1(x1,x2,x3)
  */
-std::complex<double> gamma1(double x1, double x2, double x3, double z_max);
+std::complex<double> gamma1(double x1, double x2, double x3, double z_max, int zbin1, int zbin2, int zbin3, double * dev_g, double * dev_p, int Ntomo);
 
 /**
  * @brief Third natural component of the shear 3pcf
@@ -80,7 +80,7 @@ std::complex<double> gamma1(double x1, double x2, double x3, double z_max);
  * @param z_max maximum redshift of integration
  * @return std::complex<double> Gamma^2(x1,x2,x3)
  */
-std::complex<double> gamma2(double x1, double x2, double x3, double z_max);
+std::complex<double> gamma2(double x1, double x2, double x3, double z_max, int zbin1, int zbin2, int zbin3, double * dev_g, double * dev_p, int Ntomo);
 
 /**
  * @brief Fourth natural component of the shear 3pcf
@@ -94,7 +94,7 @@ std::complex<double> gamma2(double x1, double x2, double x3, double z_max);
  * @param z_max maximum redshift of integration
  * @return std::complex<double> Gamma^3(x1,x2,x3)
  */
-std::complex<double> gamma3(double x1, double x2, double x3, double z_max);
+std::complex<double> gamma3(double x1, double x2, double x3, double z_max, int zbin1, int zbin2, int zbin3, double * dev_g, double * dev_p, int Ntomo);
 
 /**
  * @brief Wrapper to perform the integration for the calculation of Gamma^0/1

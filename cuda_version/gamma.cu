@@ -95,7 +95,7 @@ double height_of_triangle(double x1, double x2, double x3)
   return 0.5 * sqrt(2 * pow(x1, 2) + 2 * pow(x2, 2) - pow(x3, 2));
 }
 
-std::complex<double> gamma0(double x1, double x2, double x3, double z_max)
+std::complex<double> gamma0(double x1, double x2, double x3, double z_max, int zbin1, int zbin2, int zbin3, double *dev_g, double *dev_p, int Ntomo)
 {
   double vals_min[3] = {0, 0, 0};
   double vals_max[3] = {z_max, 2 * M_PI, M_PI / 2};
@@ -106,6 +106,13 @@ std::complex<double> gamma0(double x1, double x2, double x3, double z_max)
   params.x1 = x1;
   params.x2 = x2;
   params.x3 = x3;
+  params.zbin1 = zbin1;
+  params.zbin2 = zbin2;
+  params.zbin3 = zbin3;
+  params.dev_g = dev_g;
+  params.dev_p = dev_p;
+  params.Ntomo = Ntomo;
+
   double epsabs = 0;
   hcubature_v(2, integrand_gamma0, &params, 3, vals_min, vals_max, 0, epsabs, 1e-3, ERROR_L1, result, error);
   complexResult = std::complex<double>(result[0], result[1]);
@@ -116,7 +123,7 @@ std::complex<double> gamma0(double x1, double x2, double x3, double z_max)
   return complexResult * 27. / 8. * pow(om, 3) * pow(100. / 299792., 5) / 3. / (2 * pow(2 * M_PI, 3));
 }
 
-std::complex<double> gamma1(double x1, double x2, double x3, double z_max)
+std::complex<double> gamma1(double x1, double x2, double x3, double z_max, int zbin1, int zbin2, int zbin3, double *dev_g, double *dev_p, int Ntomo)
 {
   double vals_min[3] = {0, 0, 0};
   double vals_max[3] = {z_max, 2 * M_PI, M_PI / 2};
@@ -127,6 +134,12 @@ std::complex<double> gamma1(double x1, double x2, double x3, double z_max)
   params.x1 = x1;
   params.x2 = x2;
   params.x3 = x3;
+  params.zbin1 = zbin1;
+  params.zbin2 = zbin2;
+  params.zbin3 = zbin3;
+  params.dev_g = dev_g;
+  params.dev_p = dev_p;
+  params.Ntomo = Ntomo;
   double epsabs = 0;
   hcubature_v(2, integrand_gamma1, &params, 3, vals_min, vals_max, 0, epsabs, 1e-3, ERROR_L1, result, error);
   complexResult = std::complex<double>(result[0], result[1]);
@@ -137,14 +150,14 @@ std::complex<double> gamma1(double x1, double x2, double x3, double z_max)
   return complexResult * 27. / 8. * pow(om, 3) * pow(100. / 299792., 5) / 3. / (2 * pow(2 * M_PI, 3));
 }
 
-std::complex<double> gamma2(double x1, double x2, double x3, double z_max)
+std::complex<double> gamma2(double x1, double x2, double x3, double z_max, int zbin1, int zbin2, int zbin3, double *dev_g, double *dev_p, int Ntomo)
 {
-  return gamma1(x2, x3, x1, z_max);
+  return gamma1(x2, x3, x1, z_max, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo);
 }
 
-std::complex<double> gamma3(double x1, double x2, double x3, double z_max)
+std::complex<double> gamma3(double x1, double x2, double x3, double z_max, int zbin1, int zbin2, int zbin3, double *dev_g, double *dev_p, int Ntomo)
 {
-  return gamma1(x3, x1, x2, z_max);
+  return gamma1(x3, x1, x2, z_max, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo);
 }
 
 int integrand_gamma0(unsigned ndim, size_t npts, const double *vars, void *fdata, unsigned fdim, double *value)
@@ -157,14 +170,13 @@ int integrand_gamma0(unsigned ndim, size_t npts, const double *vars, void *fdata
   double x2 = params.x2;
   double x3 = params.x3;
 
-  int zbin1=params.zbin1;
-  int zbin2=params.zbin2;
-  int zbin3=params.zbin3;
+  int zbin1 = params.zbin1;
+  int zbin2 = params.zbin2;
+  int zbin3 = params.zbin3;
 
-  double *dev_g=params.dev_g;
-  double *dev_p=params.dev_p;
-  int Ntomo=params.Ntomo;
-
+  double *dev_g = params.dev_g;
+  double *dev_p = params.dev_p;
+  int Ntomo = params.Ntomo;
 
   double *d_vars;
   double *d_value;
@@ -223,14 +235,13 @@ int integrand_gamma1(unsigned ndim, size_t npts, const double *vars, void *fdata
   double x2 = params.x2;
   double x3 = params.x3;
 
-  int zbin1=params.zbin1;
-  int zbin2=params.zbin2;
-  int zbin3=params.zbin3;
+  int zbin1 = params.zbin1;
+  int zbin2 = params.zbin2;
+  int zbin3 = params.zbin3;
 
-  double *dev_g=params.dev_g;
-  double *dev_p=params.dev_p;
-  int Ntomo=params.Ntomo;
-
+  double *dev_g = params.dev_g;
+  double *dev_p = params.dev_p;
+  int Ntomo = params.Ntomo;
 
   double *d_vars;
   double *d_value;
