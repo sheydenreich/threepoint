@@ -5,7 +5,6 @@
 #include "cuda_helpers.cuh"
 #include "halomodel.cuh"
 
-
 #include <iostream>
 #include <chrono>
 
@@ -45,64 +44,62 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
   };
 
   std::string cosmo_paramfile = argv[1]; // Parameter file
-  std::string thetasfn = argv[2];
-  std::string nzfn = argv[3];
+  std::string z_combi_file = argv[2];
+  std::string theta_combi_file = argv[3];
   std::string out_folder = argv[4];
   std::string covariance_paramfile = argv[5];
-  bool calculate_T1 = std::stoi(argv[6]);
-  bool calculate_T2 = std::stoi(argv[7]);
-  bool calculate_T4 = std::stoi(argv[8]);
-  bool calculate_T5 = std::stoi(argv[9]);
-  bool calculate_T6 = std::stoi(argv[10]);
-  bool calculate_T7 = std::stoi(argv[11]);
-  bool calculate_T7_2h = std::stoi(argv[12]);
-  std::string type_str = argv[13];
+  int Ntomo = std::stoi(argv[6]);
+  bool calculate_T1 = std::stoi(argv[7]);
+  bool calculate_T2 = std::stoi(argv[8]);
+  bool calculate_T4 = std::stoi(argv[9]);
+  bool calculate_T5 = std::stoi(argv[10]);
+  bool calculate_T6 = std::stoi(argv[11]);
+  bool calculate_T7 = std::stoi(argv[12]);
+  bool calculate_T7_2h = std::stoi(argv[13]);
 
-  std::cerr<<"Calculating term1:"<<calculate_T1<<std::endl;
-  std::cerr<<"Calculating term2:"<<calculate_T2<<std::endl;
-  std::cerr<<"Calculating term4:"<<calculate_T4<<std::endl;
-  std::cerr<<"Calculating term5:"<<calculate_T5<<std::endl;
-  std::cerr<<"Calculating term6:"<<calculate_T6<<std::endl;
-  std::cerr<<"Calculating term7:"<<calculate_T7<<std::endl;
-  std::cerr<<"Calculating term7 (2h):"<<calculate_T7_2h<<std::endl;
+  std::string type_str = argv[14];
+  std::vector<std::string> nzfns;
+  for (int i = 0; i < Ntomo; i++)
+  {
+    std::string nzfn = argv[15 + i];
+    nzfns.push_back(nzfn);
+  }
+  std::string shape_noise_file = argv[15 + Ntomo];
 
-
+  std::cerr << "Calculating term1:" << calculate_T1 << std::endl;
+  std::cerr << "Calculating term2:" << calculate_T2 << std::endl;
+  std::cerr << "Calculating term4:" << calculate_T4 << std::endl;
+  std::cerr << "Calculating term5:" << calculate_T5 << std::endl;
+  std::cerr << "Calculating term6:" << calculate_T6 << std::endl;
+  std::cerr << "Calculating term7:" << calculate_T7 << std::endl;
+  std::cerr << "Calculating term7 (2h):" << calculate_T7_2h << std::endl;
 
   std::cerr << "Using cosmology from " << cosmo_paramfile << std::endl;
-  std::cerr << "Using thetas from " << thetasfn << std::endl;
-  std::cerr << "Using n(z) from " << nzfn << std::endl;
   std::cerr << "Results are written to " << out_folder << std::endl;
   std::cerr << "Using covariance parameters from" << covariance_paramfile << std::endl;
 
   // Initializations
   covarianceParameters covPar(covariance_paramfile);
-  constant_powerspectrum = covPar.shapenoiseOnly;
-
-  if (constant_powerspectrum)
-  {
-    std::cerr << "WARNING: Uses constant powerspectrum" << std::endl;
-  };
 
   thetaMax = covPar.thetaMax;
-  sigma = covPar.shapenoise_sigma;
-  n = covPar.galaxy_density;
   lMin = 0;
   thetaMax_smaller = covPar.thetaMax_smaller;
   area = covPar.area;
 
+  std::vector<double> sigma_epsilon_per_bin;
+  std::vector<double> ngal_per_bin;
+  read_shapenoise(shape_noise_file, sigma_epsilon_per_bin, ngal_per_bin);
+
   // Set Cosmology
   cosmology cosmo(cosmo_paramfile);
 
-  // Read in n(z)
-  std::vector<double> nz;
-  try
+  // Read in n_z
+  std::vector<std::vector<double>> nzs;
+  for (int i = 0; i < Ntomo; i++)
   {
-    read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
-  }
-  catch (const std::exception &e)
-  {
-    std::cerr << e.what() << '\n';
-    return -1;
+    std::vector<double> nz;
+    read_n_of_z(nzfns.at(i), n_redshift_bins, cosmo.zmax, nz);
+    nzs.push_back(nz);
   }
 
   // Set survey geometry
@@ -128,22 +125,33 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
     exit(-1);
   };
 
-  std::cerr<<"Using survey geometry "<<type_str<<std::endl;
+  std::cerr << "Using survey geometry " << type_str << std::endl;
 
-  set_cosmology(cosmo, &nz);
+  copyConstants();
+  double *dev_g_array, *dev_p_array;
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_g_array, Ntomo * n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_p_array, Ntomo * n_redshift_bins * sizeof(double)));
 
-  // Set aperture radii
-  std::vector<double> thetas;
+  double *dev_sigma_epsilon, *dev_ngal;
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_sigma_epsilon, Ntomo * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_ngal, Ntomo * sizeof(double)));
 
-  try
+  set_cosmology(cosmo, dev_g_array, dev_p_array, &nzs, &sigma_epsilon_per_bin, &ngal_per_bin, dev_sigma_epsilon, dev_ngal);
+
+  double shapenoise[Ntomo];
+
+  for (int i = 0; i < Ntomo; i++)
   {
-    read_thetas(thetasfn, thetas);
-  }
-  catch (const std::exception &e)
-  {
-    std::cerr << e.what() << '\n';
-    return -1;
-  }
+    shapenoise[i] = 0.5 * sigma_epsilon_per_bin.at(i) * sigma_epsilon_per_bin.at(i) / ngal_per_bin.at(i);
+  };
+  double *dev_shapenoise;
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_shapenoise, Ntomo * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpy(dev_shapenoise, shapenoise, Ntomo * sizeof(double), cudaMemcpyHostToDevice));
+
+  std::vector<std::vector<double>> theta_combis;
+  std::vector<std::vector<int>> z_combis;
+  int n_combis;
+  read_combis(z_combi_file, theta_combi_file, z_combis, theta_combis, n_combis);
 
   // Initialize Covariance
   initCovariance();
@@ -156,31 +164,22 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
 
   std::cerr << "Finished copying constants" << std::endl;
 
-  std::cerr << "Using n(z) from " << nzfn << std::endl;
-
   std::cerr << "Finished initializations" << std::endl;
 
   // Calculations
 
-  int N = thetas.size();
-
   std::vector<double> Cov_term1s, Cov_term2s, Cov_term4s, Cov_term5s, Cov_term6s, Cov_term7s, Cov_term7_2hs;
 
-  std::vector<std::vector<double>> theta_combis;
-  for (int i = 0; i < N; i++)
-  {
-    double theta1 = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
-    for (int j = i; j < N; j++)
-    {
-      double theta2 = convert_angle_to_rad(thetas.at(j));
-      for (int k = j; k < N; k++)
-      {
-        double theta3 = convert_angle_to_rad(thetas.at(k));
-        std::vector<double> thetas_123 = {theta1, theta2, theta3};
+  std::vector<std::vector<double>> theta_combis_rad;
 
-        theta_combis.push_back(thetas_123);
-      }
-    }
+  for (int i = 0; i < n_combis; i++)
+  {
+    double theta1 = convert_angle_to_rad(theta_combis[0][i]); // Conversion to rad
+    double theta2 = convert_angle_to_rad(theta_combis[1][i]); // Conversion to rad
+    double theta3 = convert_angle_to_rad(theta_combis[2][i]); // Conversion to rad
+    std::vector<double> thetas_123 = {theta1, theta2, theta3};
+
+    theta_combis_rad.push_back(thetas_123);
   }
 
   int N_ind = theta_combis.size(); // Number of independent theta-combinations
@@ -197,37 +196,37 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
       {
         if (calculate_T1)
         {
-          double term1 = T1_total(theta_combis.at(i), theta_combis.at(j));
+          double term1 = T1_total(theta_combis.at(i), theta_combis.at(j), z_combis.at(i), z_combis.at(j), dev_g_array, Ntomo, dev_shapenoise);
           Cov_term1s.push_back(term1);
         };
         if (calculate_T2)
         {
-          double term2 = T2_total(theta_combis.at(i), theta_combis.at(j));
+          double term2 = T2_total(theta_combis.at(i), theta_combis.at(j), z_combis.at(i), z_combis.at(j), dev_g_array, Ntomo, dev_shapenoise);
           Cov_term2s.push_back(term2);
         };
         if (calculate_T4)
         {
-          double term4 = T4_total(theta_combis.at(i), theta_combis.at(j));
+          double term4 = T4_total(theta_combis.at(i), theta_combis.at(j), z_combis.at(i), z_combis.at(j), dev_g_array, Ntomo);
           Cov_term4s.push_back(term4);
         };
         if (calculate_T5)
         {
-          double term5 = T5_total(theta_combis.at(i), theta_combis.at(j));
+          double term5 = T5_total(theta_combis.at(i), theta_combis.at(j), z_combis.at(i), z_combis.at(j), dev_g_array, Ntomo, dev_shapenoise);
           Cov_term5s.push_back(term5);
         }
         if (calculate_T6)
         {
-          double term6 = T6_total(theta_combis.at(i), theta_combis.at(j));
+          double term6 = T6_total(theta_combis.at(i), theta_combis.at(j), z_combis.at(i), z_combis.at(j), dev_g_array, Ntomo, dev_shapenoise);
           Cov_term6s.push_back(term6);
         }
         if (calculate_T7)
         {
-          double term7 = T7_total(theta_combis.at(i), theta_combis.at(j));
+          double term7 = T7_total(theta_combis.at(i), theta_combis.at(j), z_combis.at(i), z_combis.at(j), dev_g_array, Ntomo);
           Cov_term7s.push_back(term7);
         }
         if (calculate_T7_2h)
         {
-          double term7_2h = T7_2h_total(theta_combis.at(i), theta_combis.at(j));
+          double term7_2h = T7_2h_total(theta_combis.at(i), theta_combis.at(j), z_combis.at(i), z_combis.at(j), dev_g_array, Ntomo);
           Cov_term7_2hs.push_back(term7_2h);
         }
       }
@@ -252,20 +251,15 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
     }
   }
 
-
-
-
-
   // Output
 
   char filename[255];
-  double n_deg = n / convert_rad_to_angle(1, "deg") / convert_rad_to_angle(1, "deg");
   double thetaMax_deg = convert_rad_to_angle(thetaMax, "deg");
 
   if (calculate_T1)
   {
-    sprintf(filename, "cov_%s_term1Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
-            type_str.c_str(), sigma, n_deg, thetaMax_deg);
+    sprintf(filename, "cov_%s_term1Numerical_thetaMax_%.2f_gpu.dat",
+            type_str.c_str(), thetaMax_deg);
     std::cerr << "Writing Term1 to " << out_folder + filename << std::endl;
     try
     {
@@ -281,8 +275,8 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
 
   if (calculate_T2)
   {
-    sprintf(filename, "cov_%s_term2Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
-            type_str.c_str(), sigma, n_deg, thetaMax_deg);
+    sprintf(filename, "cov_%s_term2Numerical_thetaMax_%.2f_gpu.dat",
+            type_str.c_str(), thetaMax_deg);
     std::cerr << "Writing Term2 to " << out_folder + filename << std::endl;
 
     try
@@ -299,8 +293,8 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
 
   if (calculate_T4)
   {
-    sprintf(filename, "cov_%s_term4Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
-            type_str.c_str(), sigma, n_deg, thetaMax_deg);
+    sprintf(filename, "cov_%s_term4Numerical_thetaMax_%.2f_gpu.dat",
+            type_str.c_str(), thetaMax_deg);
 
     try
     {
@@ -316,8 +310,9 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
 
   if (calculate_T5)
   {
-    sprintf(filename, "cov_%s_term5Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
-            type_str.c_str(), sigma, n_deg, thetaMax_deg);
+
+    sprintf(filename, "cov_%s_term5Numerical_thetaMax_%.2f_gpu.dat",
+            type_str.c_str(), thetaMax_deg);
 
     try
     {
@@ -333,8 +328,9 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
 
   if (calculate_T6)
   {
-    sprintf(filename, "cov_%s_term6Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
-            type_str.c_str(), sigma, n_deg, thetaMax_deg);
+
+    sprintf(filename, "cov_%s_term6Numerical_thetaMax_%.2f_gpu.dat",
+            type_str.c_str(), thetaMax_deg);
 
     try
     {
@@ -350,8 +346,9 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
 
   if (calculate_T7)
   {
-    sprintf(filename, "cov_%s_term7Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
-            type_str.c_str(), sigma, n_deg, thetaMax_deg);
+
+    sprintf(filename, "cov_%s_term7Numerical_thetaMax_%.2f_gpu.dat",
+            type_str.c_str(), thetaMax_deg);
 
     try
     {
@@ -365,10 +362,11 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
     }
   };
 
-    if (calculate_T7_2h)
+  if (calculate_T7_2h)
   {
-    sprintf(filename, "cov_%s_term7_2h_Numerical_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
-            type_str.c_str(), sigma, n_deg, thetaMax_deg);
+
+    sprintf(filename, "cov_%s_term7_2h_Numerical_thetaMax_%.2f_gpu.dat",
+            type_str.c_str(), thetaMax_deg);
 
     try
     {
@@ -381,7 +379,6 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
       writeCov(Cov_term7_2hs, N_ind, filename);
     }
   };
-
 
   return 0;
 }

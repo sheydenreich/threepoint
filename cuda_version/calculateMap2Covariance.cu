@@ -40,48 +40,52 @@ Argument 8: Survey geometry, either circle, square, infinite, or rectangular
   };
 
   std::string cosmo_paramfile = argv[1]; // Parameter file
-  std::string thetasfn = argv[2];
-  std::string nzfn = argv[3];
+  std::string z_combi_file = argv[2];
+  std::string theta_combi_file = argv[3];
   std::string out_folder = argv[4];
   std::string covariance_paramfile = argv[5];
-  bool calculate_Gauss = std::stoi(argv[6]);
-  bool calculate_NonGauss = std::stoi(argv[7]);
-  std::string type_str = argv[8];
+    int Ntomo = std::stoi(argv[6]);
+  bool calculate_Gauss = std::stoi(argv[7]);
+  bool calculate_NonGauss = std::stoi(argv[8]);
+  std::string type_str = argv[9];
+    std::vector<std::string> nzfns;
+  for (int i = 0; i < Ntomo; i++)
+  {
+    std::string nzfn = argv[10 + i];
+    nzfns.push_back(nzfn);
+  }
+  std::string shape_noise_file = argv[10 + Ntomo];
 
   std::cerr << "Using cosmology from " << cosmo_paramfile << std::endl;
-  std::cerr << "Using thetas from " << thetasfn << std::endl;
-  std::cerr << "Using n(z) from " << nzfn << std::endl;
   std::cerr << "Results are written to " << out_folder << std::endl;
   std::cerr << "Using covariance parameters from" << covariance_paramfile << std::endl;
 
   // Initializations
   covarianceParameters covPar(covariance_paramfile);
-  constant_powerspectrum = covPar.shapenoiseOnly;
 
-  if (constant_powerspectrum)
-  {
-    std::cerr << "WARNING: Uses constant powerspectrum" << std::endl;
-  };
 
   thetaMax = covPar.thetaMax;
-  sigma = covPar.shapenoise_sigma;
-  n = covPar.galaxy_density;
   lMin = 0;
   thetaMax_smaller = covPar.thetaMax_smaller;
   area = covPar.area;
 
+    std::vector<double> sigma_epsilon_per_bin;
+  std::vector<double> ngal_per_bin;
+  read_shapenoise(shape_noise_file, sigma_epsilon_per_bin, ngal_per_bin);
+
   cosmology cosmo(cosmo_paramfile);
 
-  std::vector<double> nz;
-  try
+  // Read in n_z
+  std::vector<std::vector<double>> nzs;
+  for (int i = 0; i < Ntomo; i++)
   {
-    read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
+    std::vector<double> nz;
+    read_n_of_z(nzfns.at(i), n_redshift_bins, cosmo.zmax, nz);
+    nzs.push_back(nz);
   }
-  catch (const std::exception &e)
-  {
-    std::cerr << e.what() << '\n';
-    return -1;
-  }
+
+
+
 
   if (type_str == "circle")
   {
@@ -105,19 +109,33 @@ Argument 8: Survey geometry, either circle, square, infinite, or rectangular
     exit(-1);
   };
 
-  set_cosmology(cosmo, &nz);
 
-  std::vector<double> thetas;
+  copyConstants();
+  double *dev_g_array, *dev_p_array;
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_g_array, Ntomo * n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_p_array, Ntomo * n_redshift_bins * sizeof(double)));
 
-  try
+  double *dev_sigma_epsilon, *dev_ngal;
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_sigma_epsilon, Ntomo * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_ngal, Ntomo * sizeof(double)));
+
+  set_cosmology(cosmo, dev_g_array, dev_p_array, &nzs, &sigma_epsilon_per_bin, &ngal_per_bin, dev_sigma_epsilon, dev_ngal);
+
+  double shapenoise[Ntomo];
+
+  for (int i = 0; i < Ntomo; i++)
   {
-    read_thetas(thetasfn, thetas);
-  }
-  catch (const std::exception &e)
-  {
-    std::cerr << e.what() << '\n';
-    return -1;
-  }
+    shapenoise[i] = 0.5 * sigma_epsilon_per_bin.at(i) * sigma_epsilon_per_bin.at(i) / ngal_per_bin.at(i);
+  };
+  double *dev_shapenoise;
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_shapenoise, Ntomo * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpy(dev_shapenoise, shapenoise, Ntomo * sizeof(double), cudaMemcpyHostToDevice));
+
+  std::vector<std::vector<double>> theta_combis;
+  std::vector<std::vector<int>> z_combis;
+  int n_combis;
+  read_combis(z_combi_file, theta_combi_file, z_combis, theta_combis, n_combis);
+
 
   // Initialize Covariance
   initCovariance();
@@ -127,22 +145,18 @@ Argument 8: Survey geometry, either circle, square, infinite, or rectangular
     initHalomodel();
   }
 
-  std::cerr << "Finished copying constants" << std::endl;
-
-  std::cerr << "Using n(z) from " << nzfn << std::endl;
-
   std::cerr << "Finished initializations" << std::endl;
 
   // Calculations
 
-  int N = thetas.size();
+  int N = theta_combis.size();
 
   std::vector<double> Cov_Gauss, Cov_NonGauss;
 
   std::vector<double> theta_rad;
   for (int i = 0; i < N; i++)
   {
-    double theta1 = convert_angle_to_rad(thetas.at(i)); // Conversion to rad
+    double theta1 = convert_angle_to_rad(theta_combis.at(i).at(0)); // Conversion to rad
     theta_rad.push_back(theta1);
   }
 
@@ -160,12 +174,12 @@ Argument 8: Survey geometry, either circle, square, infinite, or rectangular
       {
         if (calculate_Gauss)
         {
-          double term1 = Cov_Map2_Gauss(theta_rad.at(i), theta_rad.at(j));
+          double term1 = Cov_Map2_Gauss(theta_rad.at(i), theta_rad.at(j), z_combis.at(i).at(0), z_combis.at(j).at(0), dev_g_array, Ntomo, dev_shapenoise);
           Cov_Gauss.push_back(term1);
         };
         if (calculate_NonGauss)
         {
-          double term1 = Cov_Map2_NonGauss(theta_rad.at(i), theta_rad.at(j));
+          double term1 = Cov_Map2_NonGauss(theta_rad.at(i), theta_rad.at(j), z_combis.at(i).at(0), z_combis.at(j).at(0), dev_g_array, Ntomo);
           Cov_NonGauss.push_back(term1);
           std::cerr<<term1<<std::endl;
         };
@@ -185,20 +199,19 @@ Argument 8: Survey geometry, either circle, square, infinite, or rectangular
               static_cast<int>(progress * 100),
               elapsed.count() * 1e-9 / 3600,
               (N_total - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
-              elapsed.count() * 1e-9 / completed_steps, thetas.at(i), thetas.at(j), "arcmin");
+              elapsed.count() * 1e-9 / completed_steps, convert_rad_to_angle(theta_rad.at(i)), convert_rad_to_angle(theta_rad.at(j)), "arcmin");
     }
   }
 
   // Output
 
   char filename[255];
-  double n_deg = n / convert_rad_to_angle(1, "deg") / convert_rad_to_angle(1, "deg");
   double thetaMax_deg = convert_rad_to_angle(thetaMax, "deg");
 
   if (calculate_Gauss)
   {
-    sprintf(filename, "covMap2_%s_Gauss_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
-            type_str.c_str(), sigma, n_deg, thetaMax_deg);
+    sprintf(filename, "covMap2_%s_Gauss_thetaMax_%.2f_gpu.dat",
+            type_str.c_str(), thetaMax_deg);
     std::cerr << "Writing Gaussian term to " << out_folder + filename << std::endl;
     try
     {
@@ -214,8 +227,8 @@ Argument 8: Survey geometry, either circle, square, infinite, or rectangular
 
   if (calculate_NonGauss)
   {
-    sprintf(filename, "covMap2_%s_NonGauss_sigma_%.2f_n_%.2f_thetaMax_%.2f_gpu.dat",
-            type_str.c_str(), sigma, n_deg, thetaMax_deg);
+    sprintf(filename, "covMap2_%s_NonGauss_thetaMax_%.2f_gpu.dat",
+            type_str.c_str(), thetaMax_deg);
     std::cerr << "Writing Non-Gaussian term to " << out_folder + filename << std::endl;
     try
     {

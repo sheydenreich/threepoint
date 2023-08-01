@@ -53,15 +53,7 @@ Example:
   outfn = argv[2];
   nzfn = argv[3];
 
-  // Read in cosmology
-  cosmology cosmo(cosmo_paramfile);
-
-  sigma = 0;
-  n = 1;
-
-  // Read in n_z
-  std::vector<double> nz;
-  read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
+  std::string shape_noise_file = argv[4];
 
   // Check if output file can be opened
   std::ofstream out;
@@ -72,24 +64,32 @@ Example:
     exit(1);
   };
 
-  // User output
-  std::cerr << "Using cosmology from " << cosmo_paramfile << ":" << std::endl;
-  std::cerr << cosmo;
-  std::cerr << "Writing to:" << outfn << std::endl;
+  // Read in cosmology
+  cosmology cosmo(cosmo_paramfile);
+
+  // Read in n_z
+  std::vector<std::vector<double>> nzs;
+  std::vector<double> nz;
+  read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
+  nzs.push_back(nz);
+
+  std::vector<double> sigma_epsilon_per_bin;
+  std::vector<double> ngal_per_bin;
+  read_shapenoise(shape_noise_file, sigma_epsilon_per_bin, ngal_per_bin);
 
   // Initialize Bispectrum
-
   copyConstants();
-
-  std::cerr << "Using n(z) from " << nzfn << std::endl;
-  set_cosmology(cosmo, &nz);
+  double *dev_g_array, *dev_p_array;
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_g_array,  n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_p_array,  n_redshift_bins * sizeof(double)));
+  set_cosmology(cosmo, dev_g_array, dev_p_array, &nzs);
 
   for (double ell = 1; ell < 5. * pow(10, 4); ell *= 1.05)
   {
     // double ell = ells[i];
     printf("\b\b\b\b\b\b\b\b\b\b\b\b [%.3e]", ell);
     // Output
-    out << ell << " " << Pell(ell) << " " << std::endl;
+    out << ell << " " << Pell(ell, 0, 0, dev_g_array, dev_p_array, 1, sigma_epsilon_per_bin.data(), ngal_per_bin.data()) << " " << std::endl;
   }
   out.close();
 
