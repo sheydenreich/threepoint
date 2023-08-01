@@ -9,20 +9,18 @@
  * @author Laila Linke
  */
 
-
 // General definitions
 
-const double logMmin = 9; // Minimal halo mass (log(M/(Msun/h)))
-const double logMmax = 17; // Maximal halo mass (log(M/(Msun/h)))
-const int n_mbins = 128; // Number of bins for halo masses
+const double logMmin = 9;                          // Minimal halo mass (log(M/(Msun/h)))
+const double logMmax = 17;                         // Maximal halo mass (log(M/(Msun/h)))
+const int n_mbins = 128;                           // Number of bins for halo masses
 extern __constant__ double devLogMmin, devLogMmax; // Same as logMmin and logMmax for Device
-extern int __constant__ dev_n_mbins; // Same as n_mbins for Device
+extern int __constant__ dev_n_mbins;               // Same as n_mbins for Device
 
-extern double sigma2_array[n_mbins]; // \sigma^2(m), i.e. fluctuations at mass scale
+extern double sigma2_array[n_mbins];    // \sigma^2(m), i.e. fluctuations at mass scale
 extern double dSigma2dm_array[n_mbins]; // d\sigma²/dm i.e. derivative of fluctuations wrt mass scale
 
-
-extern __constant__ double dev_sigma2_array[n_mbins]; // Same as sigma2_array for Device
+extern __constant__ double dev_sigma2_array[n_mbins];    // Same as sigma2_array for Device
 extern __constant__ double dev_dSigma2dm_array[n_mbins]; // Same as dSigma2dm_array for device
 
 /**
@@ -151,10 +149,7 @@ __host__ __device__ double get_sigma2(const double &m, const double &z);
  */
 __host__ __device__ double get_dSigma2dm(const double &m, const double &z);
 
-
-__host__ __device__ double halo_bias(const double& m, const double& z);
-
-
+__host__ __device__ double halo_bias(const double &m, const double &z);
 
 /**
  * @brief 1-Halo Term integrand for 2D-Trispectrum. Needs to be integrated over mass m and redshift z to give total 2D-Trispectrum
@@ -167,8 +162,10 @@ __host__ __device__ double halo_bias(const double& m, const double& z);
  * @param l4 ell4 [1/rad]
  * @return Integrand for Projected trispectrum (1-halo term only)
  */
-__device__ double trispectrum_integrand(double m, double z, double l1, double l2,
-                                        double l3, double l4);
+__device__ double trispectrum_integrand(double m, double z,
+                                        double l1, double l2, double l3, double l4,
+                                        int zbin1, int zbin2, int zbin3, int zbin4,
+                                        double *dev_g, int Ntomo);
 
 /**
  * @brief 1-Halo Term of projected Trispectrum with performed Limber Integration. Needs to be integrated over mass m for total 2D-Trispectrum
@@ -183,8 +180,10 @@ __device__ double trispectrum_integrand(double m, double z, double l1, double l2
  * @param l4 ell4 [1/rad]
  * @return Integrand for Projected trispectrum (1-halo term only)
  */
-__device__ double trispectrum_limber_integrated(double a, double b, double m, double l1, double l2, double l3, double l4);
-
+__device__ double trispectrum_limber_integrated(double a, double b, double m,
+                                                double l1, double l2, double l3, double l4,
+                                                int zbin1, int zbin2, int zbin3, int zbin4,
+                                                double *dev_g, int Ntomo);
 
 /**
  * @brief 1-Halo Term integrand for 2D-Tetraspectrum. Needs to be integrated over mass m and redshift z to give total 2D-Tetraspectrum
@@ -198,7 +197,9 @@ __device__ double trispectrum_limber_integrated(double a, double b, double m, do
  * @param l5 ell5 [1/rad]
  * @return Integrand for Projected Tetraspectrum (1-halo term only)
  */
-__device__ double tetraspectrum_integrand(double m, double z, double l1, double l2, double l3, double l4, double l5);
+__device__ double tetraspectrum_integrand(double m, double z, double l1, double l2, double l3, double l4, double l5,
+                                          int zbin1, int zbin2, int zbin3, int zbin4, int zbin5,
+                                          double *dev_g, int Ntomo);
 
 /**
  * @brief 1-Halo Term of projected Tetraspectrum with performed Limber Integration. Needs to be integrated over mass m for total 2D-Pentaspectrum
@@ -215,8 +216,9 @@ __device__ double tetraspectrum_integrand(double m, double z, double l1, double 
  * @param l6 ell6 [1/rad]
  * @return Integrand for Projected Tetraspectrum (1-halo term only)
  */
-__device__ double tetraspectrum_limber_integrated(double a, double b, double m, double l1, double l2, double l3, double l4, double l5);
-
+__device__ double tetraspectrum_limber_integrated(double a, double b, double m, double l1, double l2, double l3, double l4, double l5,
+                                                  int zbin1, int zbin2, int zbin3, int zbin4, int zbin5,
+                                                  double *dev_g, int Ntomo);
 
 /**
  * @brief 1-Halo Term integrand for 2D-Pentaspectrum. Needs to be integrated over mass m and redshift z to give total 2D-Pentaspectrum
@@ -231,11 +233,13 @@ __device__ double tetraspectrum_limber_integrated(double a, double b, double m, 
  * @param l6 ell6 [1/rad]
  * @return Integrand for Projected Pentaspectrum (1-halo term only)
  */
-__device__ double pentaspectrum_integrand(double m, double z, double l1, double l2, double l3, double l4, double l5, double l6);
+__device__ double pentaspectrum_integrand(double m, double z, double l1, double l2, double l3, double l4, double l5, double l6,
+                                          int zbin1, int zbin2, int zbin3, int zbin4, int zbin5, int zbin6,
+                                          double *dev_g, int Ntomo);
 
-__device__ double pentaspectrum_integrand_ssc(double mmin, double mmax, double z, double l1, double l2, double l3, double l4, double l5, double l6);
-
-
+__device__ double pentaspectrum_integrand_ssc(double mmin, double mmax, double z, double l1, double l2, double l3, double l4, double l5, double l6,
+                                              int zbin1, int zbin2, int zbin3, int zbin4, int zbin5, int zbin6,
+                                              double *dev_g, int Ntomo);
 
 /**
  * @brief 1-Halo Term of projected Pentaspectrum with performed Limber Integration. Needs to be integrated over mass m for total 2D-Pentaspectrum
@@ -252,11 +256,13 @@ __device__ double pentaspectrum_integrand_ssc(double mmin, double mmax, double z
  * @param l6 ell6 [1/rad]
  * @return Integrand for Projected Pentaspectrum (1-halo term only)
  */
-__device__ double pentaspectrum_limber_integrated(double a, double b, double m, double l1, double l2, double l3, double l4, double l5, double l6);
+__device__ double pentaspectrum_limber_integrated(double a, double b, double m, double l1, double l2, double l3, double l4, double l5, double l6,
+                                                  int zbin1, int zbin2, int zbin3, int zbin4, int zbin5, int zbin6,
+                                                  double *dev_g, int Ntomo);
 
-
-__device__ double pentaspectrum_limber_integrated_ssc(double zmin, double zmax, double mmin, double mmax, double l1, double l2, double l3, double l4, double l5, double l6);
-
+__device__ double pentaspectrum_limber_integrated_ssc(double zmin, double zmax, double mmin, double mmax, double l1, double l2, double l3, double l4, double l5, double l6,
+                                                      int zbin1, int zbin2, int zbin3, int zbin4, int zbin5, int zbin6,
+                                                      double *dev_g, int Ntomo);
 
 /**
  * @brief 1-Halo Term of projected Pentaspectrum with performed Limber and Mass Integration.
@@ -274,7 +280,9 @@ __device__ double pentaspectrum_limber_integrated_ssc(double zmin, double zmax, 
  * @param l6 ell6 [1/rad]
  * @return Integrand for Projected Pentaspectrum (1-halo term only)
  */
-__device__ double pentaspectrum_limber_mass_integrated(double zmin, double zmax, double logMmin, double logMmax, double l1, double l2, double l3, double l4, double l5, double l6);
+__device__ double pentaspectrum_limber_mass_integrated(double zmin, double zmax, double logMmin, double logMmax, double l1, double l2, double l3, double l4, double l5, double l6,
+                                                       int zbin1, int zbin2, int zbin3, int zbin4, int zbin5, int zbin6,
+                                                       double *dev_g, int Ntomo);
 
 /**
  * @brief 1-Halo Term integrand for 2D-Powerspectrum. Needs to be integrated over mass m and redshift z to give total 2D-Pentaspectrum
@@ -284,8 +292,7 @@ __device__ double pentaspectrum_limber_mass_integrated(double zmin, double zmax,
  * @param l ell [1/rad]
  * @return Integrand for Projected Powerspectrum (1-halo term only)
  */
-__device__ double powerspectrum_integrand(double m, double z, double l);
-
+__device__ double powerspectrum_integrand(double m, double z, double l, int zbin1, int zbin2, double *dev_g, int Ntomo);
 
 /**
  * @brief 1-Halo Term of projected Powerspectrum with performed Limber Integration. Needs to be integrated over mass m for total 2D-Pentaspectrum
@@ -297,8 +304,7 @@ __device__ double powerspectrum_integrand(double m, double z, double l);
  * @param l ell [1/rad]
  * @return Integrand for Projected Powerspectrum (1-halo term only)
  */
-__device__ double powerspectrum_limber_integrated(double a, double b, double m, double l);
-
+__device__ double powerspectrum_limber_integrated(double a, double b, double m, double l, int zbin1, int zbin2, double *dev_g, int Ntomo);
 
 /**
  * @brief Wrapper for integrand_powerspectrum for cubature library
@@ -321,15 +327,14 @@ int integrand_Powerspectrum(unsigned ndim, size_t npts, const double *vars, void
  * @param l ell-value[1/rad]
  * @param value value of integrand
  */
-__global__ void integrand_Powerspectrum_kernel(const double *vars, unsigned ndim, int npts, double l, double *value);
+__global__ void integrand_Powerspectrum_kernel(const double *vars, unsigned ndim, int npts, double l, int zbin1, int zbin2, double *dev_g, int Ntomo, double *value);
 
 /**
  * @brief 1-halo term of projected Powerspectrum
- * 
+ *
  * @param l ell-value [1/rad]
  */
-double Powerspectrum(const double &l);
-
+double Powerspectrum(const double &l, int zbin1, int zbin2, double *dev_g, int Ntomo);
 
 /**
  * @brief Wrapper for integrand_trispectrum for cubature library
@@ -352,33 +357,33 @@ int integrand_Trispectrum(unsigned ndim, size_t npts, const double *vars, void *
  * @param l ell-value[1/rad]
  * @param value value of integrand
  */
-__global__ void integrand_Trispectrum_kernel(const double *vars, unsigned ndim, int npts, double l1, double l2, double l3, double l4, double *value);
+__global__ void integrand_Trispectrum_kernel(const double *vars, unsigned ndim, int npts, double l1, double l2, double l3, double l4, int zbin1, int zbin2, int zbin3, int zbin4,
+                                             double *dev_g, int Ntomo, double *value);
 
 /**
  * @brief 1-halo term of projected Trispectrum
- * 
+ *
  * @param l1 ell1-value [1/rad]
  * @param l2 ell1-value [1/rad]
  * @param l3 ell1-value [1/rad]
  * @param l4 ell1-value [1/rad]
- * 
+ *
  */
-double Trispectrum(const double &l1, const double &l2, const double &l3, const double &l4);
-
+double Trispectrum(const double &l1, const double &l2, const double &l3, const double &l4, int zbin1, int zbin2, int zbin3, int zbin4, double *dev_g, int Ntomo);
 
 /**
  * @brief 1-halo term of projected Pentaspectrum
- * 
+ *
  * @param l1 ell1-value [1/rad]
  * @param l2 ell1-value [1/rad]
  * @param l3 ell1-value [1/rad]
  * @param l4 ell1-value [1/rad]
  * @param l5 ell1-value [1/rad]
  * @param l6 ell1-value [1/rad]
- 
- */
-double Pentaspectrum(const double &l1, const double &l2, const double &l3, const double &l4, const double &l5, const double &l6);
 
+ */
+double Pentaspectrum(const double &l1, const double &l2, const double &l3, const double &l4, const double &l5, const double &l6,
+                     int zbin1, int zbin2, int zbin3, int zbin4, int zbin5, int zbin6, double *dev_g, int Ntomo);
 
 /**
  * @brief Wrapper for integrand_pentaspectrum for cubature library
@@ -401,11 +406,13 @@ int integrand_Pentaspectrum(unsigned ndim, size_t npts, const double *vars, void
  * @param l ell-value[1/rad]
  * @param value value of integrand
  */
-__global__ void integrand_Pentaspectrum_kernel(const double *vars, unsigned ndim, int npts, double l1, double l2, double l3, double l4, double l5, double l6, double *value);
+__global__ void integrand_Pentaspectrum_kernel(const double *vars, unsigned ndim, int npts, double l1, double l2, double l3, double l4, double l5, double l6,
+                                               int zbin1, int zbin2, int zbin3, int zbin4, int zbin5, int zbin6, double *dev_g, int Ntomo,
+                                               double *value);
 
 /**
  * @brief Container for \sigma²(m) Integration
- * 
+ *
  */
 struct SigmaContainer
 {
@@ -415,17 +422,20 @@ struct SigmaContainer
 
 /**
  * @brief Container for powerspec Integration
- * 
+ *
  */
 
 struct PowerspecContainer
 {
   double l;
+  int zbin1, zbin2;
+  double *dev_g;
+  int Ntomo;
 };
 
 /**
  * @brief Container for Trispec Integration
- * 
+ *
  */
 struct TrispecContainer
 {
@@ -433,6 +443,9 @@ struct TrispecContainer
   double l2;
   double l3;
   double l4;
+  int zbin1, zbin2, zbin3, zbin4;
+  double *dev_g;
+  int Ntomo;
 };
 
 // struct TrispecContainer3D
@@ -446,7 +459,7 @@ struct TrispecContainer
 
 /**
  * @brief Container for Pentaspecspec Integration
- * 
+ *
  */
 struct PentaspecContainer
 {
@@ -456,42 +469,38 @@ struct PentaspecContainer
   double l4;
   double l5;
   double l6;
+  int zbin1, zbin2, zbin3, zbin4, zbin5, zbin6;
+  double *dev_g;
+  int Ntomo;
 };
 
+__host__ __device__ double integrand_I_40(const double &k1, const double &k2, const double &k3, const double &k4, const double &m, const double &z);
 
-__host__ __device__ double integrand_I_40(const double& k1, const double& k2, const double& k3, const double& k4, const double& m, const double& z);
+__host__ __device__ double I_40(const double &k1, const double &k2, const double &k3, const double &k4, const double &mmin, const double &mmax, const double &z);
 
-__host__ __device__ double I_40(const double& k1, const double& k2, const double& k3, const double& k4, const double& mmin, const double& mmax, const double& z);
+__host__ __device__ double integrand_I_31(const double &k1, const double &k2, const double &k3, const double &m, const double &z);
 
+__host__ __device__ double I_31(const double &k1, const double &k2, const double &k3, const double &mmin, const double &mmax, const double &z);
 
+__host__ __device__ double integrand_I_21(const double &k1, const double &k2, const double &m, const double &z);
 
-__host__ __device__ double integrand_I_31(const double& k1, const double& k2, const double& k3, const double& m, const double& z);
+__host__ __device__ double I_21(const double &k1, const double &k2, const double &mmin, const double &mmax, const double &z);
 
-__host__ __device__ double I_31(const double& k1, const double& k2, const double& k3, const double& mmin, const double& mmax, const double& z);
+__host__ __device__ double integrand_I_11(const double &k, const double &m, const double &z);
 
+__host__ __device__ double I_11(const double &k, const double &mmin, const double &mmax, const double &z);
 
-__host__ __device__ double integrand_I_21(const double& k1, const double& k2, const double& m, const double& z);
+// __host__ __device__ double trispectrum_1halo_integrand(const double &z, const double &mmin, const double &mmax, const double &l1, const double &l2, const double &l3, const double &l4);
 
+// __host__ __device__ double trispectrum_1halo(const double &zmin, const double &zmax, const double &mmin, const double &mmax, const double &l1, const double &l2, const double &l3, const double &l4);
 
-__host__ __device__ double I_21(const double& k1, const double& k2, const double& mmin, const double& mmax, const double& z);
+// __host__ __device__ double trispectrum_2halo_integrand(const double &z,
+//                                                        const double &mmin, const double &mmax, const double &l1x, const double &l1y,
+//                                                        const double &l2x, const double &l2y, const double &l3x, const double &l3y,
+//                                                        const double &l4x, const double &l4y);
 
-
-__host__ __device__ double integrand_I_11(const double& k, const double& m, const double& z);
-
-
-__host__ __device__ double I_11(const double& k, const double& mmin, const double& mmax, const double& z);
-
-__host__ __device__ double trispectrum_1halo_integrand(const double& z, const double& mmin, const double& mmax, const double& l1, const double& l2, const double& l3, const double& l4);
-
-__host__ __device__ double trispectrum_1halo(const double& zmin, const double& zmax, const double& mmin, const double& mmax, const double& l1, const double& l2, const double& l3, const double& l4);
-
-__host__ __device__ double trispectrum_2halo_integrand(const double& z, 
-const double& mmin, const double& mmax, const double& l1x, const double& l1y, 
-const double& l2x, const double& l2y, const double& l3x, const double& l3y,
-const double& l4x, const double& l4y);
-
-__host__ __device__ double trispectrum_2halo(const double& zmin, const double& zmax, 
-const double& mmin, const double& mmax, const double& l1x, const double& l1y, 
-const double& l2x, const double& l2y, const double& l3x, const double& l3y,
-const double& l4x, const double& l4y);
+// __host__ __device__ double trispectrum_2halo(const double &zmin, const double &zmax,
+//                                              const double &mmin, const double &mmax, const double &l1x, const double &l1y,
+//                                              const double &l2x, const double &l2y, const double &l3x, const double &l3y,
+//                                              const double &l4x, const double &l4y);
 #endif // HALOMODEL_CUH
