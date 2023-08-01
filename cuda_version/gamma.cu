@@ -157,6 +157,15 @@ int integrand_gamma0(unsigned ndim, size_t npts, const double *vars, void *fdata
   double x2 = params.x2;
   double x3 = params.x3;
 
+  int zbin1=params.zbin1;
+  int zbin2=params.zbin2;
+  int zbin3=params.zbin3;
+
+  double *dev_g=params.dev_g;
+  double *dev_p=params.dev_p;
+  int Ntomo=params.Ntomo;
+
+
   double *d_vars;
   double *d_value;
 
@@ -192,8 +201,7 @@ int integrand_gamma0(unsigned ndim, size_t npts, const double *vars, void *fdata
             << std::endl;
 #endif // DEBUG_OUTPUT
 
-  compute_integrand_gamma0<<<blocksPerGrid, threadsPerBlock>>>(d_vars, d_value, npts, x1, x2, x3);
-
+  compute_integrand_gamma0<<<blocksPerGrid, threadsPerBlock>>>(d_vars, d_value, npts, x1, x2, x3, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo);
 
   // copy the result
   CUDA_SAFE_CALL(cudaMemcpy(value, d_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
@@ -214,6 +222,15 @@ int integrand_gamma1(unsigned ndim, size_t npts, const double *vars, void *fdata
   double x1 = params.x1;
   double x2 = params.x2;
   double x3 = params.x3;
+
+  int zbin1=params.zbin1;
+  int zbin2=params.zbin2;
+  int zbin3=params.zbin3;
+
+  double *dev_g=params.dev_g;
+  double *dev_p=params.dev_p;
+  int Ntomo=params.Ntomo;
+
 
   double *d_vars;
   double *d_value;
@@ -250,7 +267,7 @@ int integrand_gamma1(unsigned ndim, size_t npts, const double *vars, void *fdata
             << std::endl;
 #endif // DEBUG_OUTPUT
 
-  compute_integrand_gamma1<<<blocksPerGrid, threadsPerBlock>>>(d_vars, d_value, npts, x1, x2, x3);
+  compute_integrand_gamma1<<<blocksPerGrid, threadsPerBlock>>>(d_vars, d_value, npts, x1, x2, x3, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo);
 
   // copy the result
   CUDA_SAFE_CALL(cudaMemcpy(value, d_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
@@ -264,7 +281,8 @@ int integrand_gamma1(unsigned ndim, size_t npts, const double *vars, void *fdata
 
 #ifdef PERFORM_SUM_REDUCTION
 
-__global__ void compute_integrand_gamma0(double *dev_vars, double *dev_result_array, unsigned int npts, double x1, double x2, double x3)
+__global__ void compute_integrand_gamma0(double *dev_vars, double *dev_result_array, unsigned int npts, double x1, double x2, double x3, int zbin1, int zbin2, int zbin3,
+                                         double *dev_g, double *dev_p, int Ntomo)
 {
   unsigned int idx = blockDim.y * blockIdx.y + threadIdx.y;
   unsigned int k = blockDim.x * blockIdx.x + threadIdx.x + 1;
@@ -286,7 +304,7 @@ __global__ void compute_integrand_gamma0(double *dev_vars, double *dev_result_ar
     double phi = dev_vars[i * 3 + 1];
     double psi = dev_vars[i * 3 + 2];
 
-    cuDoubleComplex result = full_integrand_gamma0(phi, psi, z, k, x1, x2, x3);
+    cuDoubleComplex result = full_integrand_gamma0(phi, psi, z, k, x1, x2, x3, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo);
 
     // perform sum reduction
 
@@ -313,7 +331,8 @@ __global__ void compute_integrand_gamma0(double *dev_vars, double *dev_result_ar
   return;
 }
 
-__global__ void compute_integrand_gamma1(double *dev_vars, double *dev_result_array, unsigned int npts, double x1, double x2, double x3)
+__global__ void compute_integrand_gamma1(double *dev_vars, double *dev_result_array, unsigned int npts, double x1, double x2, double x3, int zbin1, int zbin2, int zbin3,
+                                         double *dev_g, double *dev_p, int Ntomo)
 {
   unsigned int idx = blockDim.y * blockIdx.y + threadIdx.y;
   unsigned int k = blockDim.x * blockIdx.x + threadIdx.x + 1;
@@ -335,7 +354,7 @@ __global__ void compute_integrand_gamma1(double *dev_vars, double *dev_result_ar
     double phi = dev_vars[i * 3 + 1];
     double psi = dev_vars[i * 3 + 2];
 
-    cuDoubleComplex result = full_integrand_gamma1(phi, psi, z, k, x1, x2, x3);
+    cuDoubleComplex result = full_integrand_gamma1(phi, psi, z, k, x1, x2, x3, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo);
 
     // perform sum reduction
 
@@ -364,7 +383,8 @@ __global__ void compute_integrand_gamma1(double *dev_vars, double *dev_result_ar
 
 #else
 
-__global__ void compute_integrand_gamma0(double *dev_vars, double *dev_result_array, unsigned int npts, double x1, double x2, double x3)
+__global__ void compute_integrand_gamma0(double *dev_vars, double *dev_result_array, unsigned int npts, double x1, double x2, double x3, int zbin1, int zbin2, int zbin3,
+                                         double *dev_g, double *dev_p, int Ntomo)
 {
   unsigned int idx = blockDim.y * blockIdx.y + threadIdx.y;
   unsigned int k = blockDim.x * blockIdx.x + threadIdx.x + 1;
@@ -380,7 +400,7 @@ __global__ void compute_integrand_gamma0(double *dev_vars, double *dev_result_ar
     double phi = dev_vars[i * 3 + 1];
     double psi = dev_vars[i * 3 + 2];
 
-    cuDoubleComplex result = full_integrand_gamma0(phi, psi, z, k, x1, x2, x3);
+    cuDoubleComplex result = full_integrand_gamma0(phi, psi, z, k, x1, x2, x3, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo);
 
     atomicAdd(&dev_result_array[i * 2], cuCreal(result));
     atomicAdd(&dev_result_array[i * 2 + 1], cuCimag(result));
@@ -389,7 +409,8 @@ __global__ void compute_integrand_gamma0(double *dev_vars, double *dev_result_ar
   return;
 }
 
-__global__ void compute_integrand_gamma1(double *dev_vars, double *dev_result_array, unsigned int npts, double x1, double x2, double x3)
+__global__ void compute_integrand_gamma1(double *dev_vars, double *dev_result_array, unsigned int npts, double x1, double x2, double x3, int zbin1, int zbin2, int zbin3,
+                                         double *dev_g, double *dev_p, int Ntomo)
 {
   unsigned int idx = blockDim.y * blockIdx.y + threadIdx.y;
   unsigned int k = blockDim.x * blockIdx.x + threadIdx.x + 1;
@@ -405,7 +426,7 @@ __global__ void compute_integrand_gamma1(double *dev_vars, double *dev_result_ar
     double phi = dev_vars[i * 3 + 1];
     double psi = dev_vars[i * 3 + 2];
 
-    cuDoubleComplex result = full_integrand_gamma1(phi, psi, z, k, x1, x2, x3);
+    cuDoubleComplex result = full_integrand_gamma1(phi, psi, z, k, x1, x2, x3, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo);
 
     atomicAdd(&dev_result_array[i * 2], cuCreal(result));
     atomicAdd(&dev_result_array[i * 2 + 1], cuCimag(result));
@@ -416,7 +437,8 @@ __global__ void compute_integrand_gamma1(double *dev_vars, double *dev_result_ar
 
 #endif // PERFORM_SUM_REDUCTION
 
-__device__ cuDoubleComplex full_integrand_gamma1(double phi, double psi, double z, unsigned int k, double x1, double x2, double x3)
+__device__ cuDoubleComplex full_integrand_gamma1(double phi, double psi, double z, unsigned int k, double x1, double x2, double x3, int zbin1, int zbin2, int zbin3,
+                                                 double *dev_g, double *dev_p, int Ntomo)
 {
 
   double varbetabar = betabar(psi, phi);
@@ -444,23 +466,28 @@ __device__ cuDoubleComplex full_integrand_gamma1(double phi, double psi, double 
     ell3 = sqrt(ell3);
 
   cuDoubleComplex integrand_3 = exp_of_imag(varpsi1 - varpsi2 + 2 * varpsi3 + 2 * (varbetabar - phi - alpha3));
-  integrand_3 = cuCmul(integrand_3, integrand_bkappa(z, ell1 / A3, ell2 / A3, ell3 / A3) * M_PI / pow(A3, 4));
+  integrand_3 = cuCmul(integrand_3, integrand_bkappa(z, ell1 / A3, ell2 / A3, ell3 / A3, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo) * M_PI / pow(A3, 4));
 
   cuDoubleComplex integrand_1 = exp_of_imag(varpsi3 - varpsi2 - 2 * (varbetabar + alpha1));
-  integrand_1 = cuCmul(integrand_1, integrand_bkappa(z, ell1 / A1, ell2 / A1, ell3 / A1) * M_PI / pow(A1, 4));
+  integrand_1 = cuCmul(integrand_1, integrand_bkappa(z, ell1 / A1, ell2 / A1, ell3 / A1, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo) * M_PI / pow(A1, 4));
 
   cuDoubleComplex integrand_2 = exp_of_imag(varpsi3 - varpsi1 - 2 * varpsi2 + 2 * (varbetabar + phi - alpha2));
-  integrand_2 = cuCmul(integrand_2, integrand_bkappa(z, ell1 / A2, ell2 / A2, ell3 / A2) * M_PI / pow(A2, 4));
+  integrand_2 = cuCmul(integrand_2, integrand_bkappa(z, ell1 / A2, ell2 / A2, ell3 / A2, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo) * M_PI / pow(A2, 4));
 
   return cuCmul(cuCadd(integrand_1, cuCadd(integrand_2, integrand_3)), sin(2 * psi) * dev_array_product_J2[k]);
 }
 
-__device__ __inline__ cuDoubleComplex full_integrand_gamma0(double phi, double psi, double z, unsigned int k, double x1, double x2, double x3)
+__device__ __inline__ cuDoubleComplex full_integrand_gamma0(double phi, double psi, double z, unsigned int k, double x1, double x2, double x3, int zbin1, int zbin2, int zbin3,
+                                                            double *dev_g, double *dev_p, int Ntomo)
 {
-  return cuCadd(cuCadd(one_integrand_gamma0(phi, psi, z, k, x1, x2, x3), one_integrand_gamma0(phi, psi, z, k, x2, x3, x1)), one_integrand_gamma0(phi, psi, z, k, x3, x1, x2));
+  // This might need to be checked for tomographic cases! Not sure if the permutations work out here!
+  return cuCadd(cuCadd(one_integrand_gamma0(phi, psi, z, k, x1, x2, x3, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo),
+                       one_integrand_gamma0(phi, psi, z, k, x2, x3, x1, zbin2, zbin3, zbin1, dev_g, dev_p, Ntomo)),
+                one_integrand_gamma0(phi, psi, z, k, x3, x1, x2, zbin3, zbin1, zbin2, dev_g, dev_p, Ntomo));
 }
 
-__device__ cuDoubleComplex one_integrand_gamma0(double phi, double psi, double z, unsigned int k, double x1, double x2, double x3)
+__device__ cuDoubleComplex one_integrand_gamma0(double phi, double psi, double z, unsigned int k, double x1, double x2, double x3, int zbin1, int zbin2, int zbin3,
+                                                double *dev_g, double *dev_p, int Ntomo)
 {
   double varpsi = interior_angle(x1, x2, x3);
   double A3 = A(psi, x1, x2, phi, varpsi);
@@ -473,10 +500,10 @@ __device__ cuDoubleComplex one_integrand_gamma0(double phi, double psi, double z
   else
     ell3 = sqrt(ell3);
 
-  double bis = integrand_bkappa(z, ell1, ell2, ell3) * dev_array_product[k] * M_PI / pow(A3, 4);
+  double bis = integrand_bkappa(z, ell1, ell2, ell3, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo) * dev_array_product[k] * M_PI / pow(A3, 4);
 
   if (isnan(cuCreal(prefac)) || isnan(cuCimag(prefac)) || isnan(bis))
-    printf("%.3e, %.3e, %.3e, %d, %.3e, %.3e, %.3e, %.3e, %.3e, %.3e, %.3e \n", phi, psi, z, k, ell1, ell2, ell3, integrand_bkappa(z, ell1, ell2, ell3), dev_array_product[k],
+    printf("%.3e, %.3e, %.3e, %d, %.3e, %.3e, %.3e, %.3e, %.3e, %.3e, %.3e \n", phi, psi, z, k, ell1, ell2, ell3, integrand_bkappa(z, ell1, ell2, ell3, zbin1, zbin2, zbin3, dev_g, dev_p, Ntomo), dev_array_product[k],
            cuCreal(prefac), cuCimag(prefac));
   return cuCmul(prefac, bis);
 }

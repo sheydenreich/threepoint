@@ -105,8 +105,10 @@ std::complex<double> gamma3(double x1, double x2, double x3, double z_max);
  * @param x2 second triangle sidelength [rad]
  * @param x3 third triangle sidelength [rad]
  */
-__global__ void compute_integrand_gamma0(double *d_vars, double *d_result_array, unsigned int max_idx, double x1, double x2, double x3);
-__global__ void compute_integrand_gamma1(double *d_vars, double *d_result_array, unsigned int max_idx, double x1, double x2, double x3);
+__global__ void compute_integrand_gamma0(double *d_vars, double *d_result_array, unsigned int max_idx, double x1, double x2, double x3, int zbin1, int zbin2, int zbin3, 
+double *dev_g, double *dev_p, int Ntomo);
+__global__ void compute_integrand_gamma1(double *d_vars, double *d_result_array, unsigned int max_idx, double x1, double x2, double x3, int zbin1, int zbin2, int zbin3, 
+double *dev_g, double *dev_p, int Ntomo);
 
 /**
  * @brief One of the three terms for the integration of Gamma^0
@@ -118,7 +120,8 @@ __global__ void compute_integrand_gamma1(double *d_vars, double *d_result_array,
  * @param x2 second triangle sidelength [rad]
  * @param x3 third triangle sidelength [rad]
  */
-__device__ cuDoubleComplex one_integrand_gamma0(double phi, double psi, double z, unsigned int k, double x1, double x2, double x3);
+__device__ cuDoubleComplex one_integrand_gamma0(double phi, double psi, double z, unsigned int k, double x1, double x2, double x3, int zbin1, int zbin2, int zbin3, 
+double *dev_g, double *dev_p, int Ntomo);
 
 /**
  * @brief Sum of the three terms for the integration of Gamma^0
@@ -130,7 +133,8 @@ __device__ cuDoubleComplex one_integrand_gamma0(double phi, double psi, double z
  * @param x2 second triangle sidelength [rad]
  * @param x3 third triangle sidelength [rad]
  */
-__device__ __inline__ cuDoubleComplex full_integrand_gamma0(double phi, double psi, double z, unsigned int k, double x1, double x2, double x3);
+__device__ __inline__ cuDoubleComplex full_integrand_gamma0(double phi, double psi, double z, unsigned int k, double x1, double x2, double x3, int zbin1, int zbin2, int zbin3, 
+double *dev_g, double *dev_p, int Ntomo);
 
 /**
  * @brief Sum of the three terms for the integration of Gamma^1
@@ -142,7 +146,8 @@ __device__ __inline__ cuDoubleComplex full_integrand_gamma0(double phi, double p
  * @param x2 second triangle sidelength [rad]
  * @param x3 third triangle sidelength [rad]
  */
-__device__ cuDoubleComplex full_integrand_gamma1(double phi, double psi, double z, unsigned int k, double x1, double x2, double x3);
+__device__ cuDoubleComplex full_integrand_gamma1(double phi, double psi, double z, unsigned int k, double x1, double x2, double x3, int zbin1, int zbin2, int zbin3, 
+double *dev_g, double *dev_p, int Ntomo);
 
 /**
  * @brief Multiplication of two complex numbers
@@ -297,6 +302,9 @@ void compute_weights_bessel();
 struct GammaCudaContainer
 {
     double x1, x2, x3;
+    int zbin1, zbin2, zbin3;
+    double *dev_g, *dev_p;
+    int Ntomo;
 };
 
 #endif // GAMMA_GPU_CUH
