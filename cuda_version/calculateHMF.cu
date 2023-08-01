@@ -41,15 +41,9 @@ Example:
   cosmo_paramfile = argv[1];
   outfn = argv[2];
   nzfn = argv[3];
+  int Ntomo=1;
 
-  // Read in cosmology
-  cosmology cosmo(cosmo_paramfile);
-
-  // Read in n_z
-  std::vector<double> nz;
-  read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
-
-  // Check if output file can be opened
+    // Check if output file can be opened
   std::ofstream out;
   out.open(outfn.c_str());
   if (!out.is_open())
@@ -58,17 +52,24 @@ Example:
     exit(1);
   };
 
-  // User output
-  std::cerr << "Using cosmology from " << cosmo_paramfile << ":" << std::endl;
-  std::cerr << cosmo;
-  std::cerr << "Writing to:" << outfn << std::endl;
+  // Read in cosmology
+  cosmology cosmo(cosmo_paramfile);
+
+  // Read in n_z
+  std::vector<std::vector<double>> nzs;
+  std::vector<double> nz;
+  read_n_of_z(nzfn, n_redshift_bins, cosmo.zmax, nz);
+  nzs.push_back(nz);
+
 
   // Initialize Bispectrum
 
   copyConstants();
+ double* dev_g_array, * dev_p_array;
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_g_array, Ntomo * n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_p_array, Ntomo * n_redshift_bins * sizeof(double)));
+  set_cosmology(cosmo, dev_g_array, dev_p_array, &nzs);
 
-  std::cerr << "Using n(z) from " << nzfn << std::endl;
-  set_cosmology(cosmo, &nz);
 
   initHalomodel();
 
@@ -84,6 +85,11 @@ Example:
     double u = hmf(m, z);
     out << m << " " << u << std::endl;
   }
+
+
+  cudaFree(dev_g_array);
+  cudaFree(dev_p_array);
+
 
   return 0;
 }

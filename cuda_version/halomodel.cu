@@ -1,7 +1,7 @@
 #include "halomodel.cuh"
 #include "cuda_helpers.cuh"
 #include "bispectrum.cuh"
-// #include "apertureStatisticsCovariance.cuh"
+#include "apertureStatisticsCovariance.cuh"
 #include "cubature.h"
 
 #include <iostream>
@@ -508,7 +508,7 @@ __device__ double pentaspectrum_integrand_ssc(double mmin, double mmax, double z
 
   double chi = f_K_interpolated(idx, didx);
 
-  double sigma2 = 1;//dev_sigma2_from_windowfunction_array[idx] * (1 - didx) + dev_sigma2_from_windowfunction_array[idx + 1] * didx;
+  double sigma2 = dev_sigma2_from_windowfunction_array[idx] * (1 - didx) + dev_sigma2_from_windowfunction_array[idx + 1] * didx;
   double rhobar = 2.7754e11; // critical density[Msun*h²/Mpc³]
   rhobar *= dev_om;
 

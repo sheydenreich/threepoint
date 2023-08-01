@@ -134,5 +134,9 @@ Example:
         << v << std::endl;
   }
 
+
+  cudaFree(dev_g_array);
+  cudaFree(dev_p_array);
+
   return 0;
 }

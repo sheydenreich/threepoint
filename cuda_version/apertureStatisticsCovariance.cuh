@@ -43,8 +43,7 @@ extern double thetaMax_smaller;
 extern __constant__ double dev_lMin; // Minimal ell for integrations [1/rad]. Defined on Device
 extern double lMin;                  // Same as dev_lMin but for host
 
-extern __constant__ double dev_sigma2_from_windowfunction_array[n_redshift_bins]; 
-
+extern __constant__ double dev_sigma2_from_windowfunction_array[n_redshift_bins];
 
 /**
  * @brief Initialization for covariance
@@ -63,8 +62,7 @@ void initCovariance();
  */
 void writeCov(const std::vector<double> &values, const int &N, const std::string &filename);
 
-void writeCrossCov(const std::vector<double> &values, const int &Ninner, const int& Nouter, const std::string &filename);
-
+void writeCrossCov(const std::vector<double> &values, const int &Ninner, const int &Nouter, const std::string &filename);
 
 /**
  * @brief Geometric factor for circular survey
@@ -89,15 +87,11 @@ __host__ __device__ double G_square(const double &ellX, const double &ellY);
  */
 __host__ __device__ double G_rectangle(const double &ellX, const double &ellY);
 
-
-
-
 double sigma2_from_windowFunction(double chi);
 
 int integrand_sigma2_from_windowFunction(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
 
 __global__ void integrand_sigma2_from_windowFunction(const double *vars, unsigned ndim, int npts, int type, double chi, double *value);
-
 
 struct Sigma2Container
 {
@@ -113,69 +107,75 @@ struct Sigma2Container
  * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
  * @return double T_1, total(theta1, theta2, theta3, theta4, theta5, theta6) = T_1 + 5 Permutations
  */
-double T1_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
+double T1_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456, const std::vector<int> &zbins_123, const std::vector<int> &zbins_456,
+                double *dev_g, int Ntomo, double *dev_shapenoise);
 
 /**
- * @brief Calculates T_PPP,2, the second Term in the Gaussian Covariance of Map³ with all permutations. 
+ * @brief Calculates T_PPP,2, the second Term in the Gaussian Covariance of Map³ with all permutations.
  * Returns 0 for type='infinite'
  *
  * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
  * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
  * @return double T_2, total(theta1, theta2, theta3, theta4, theta5, theta6) = T_2 + 8 Permutations
  */
-double T2_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
+double T2_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456, const std::vector<int> &zbins_123, const std::vector<int> &zbins_456,
+                double *dev_g, int Ntomo, double *dev_shapenoise);
 
 /**
- * @brief Calculates T_BB, the first Term in the NonGaussian Covariance of Map³ with all permutations. 
+ * @brief Calculates T_BB, the first Term in the NonGaussian Covariance of Map³ with all permutations.
  * Only coded for infinite survey, throws an exception if other type is used.
  *
  * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
  * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
  * @return double T_4, total(theta1, theta2, theta3, theta4, theta5, theta6) = T_4 + 8 Permutations
  */
-double T4_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
+double T4_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456, const std::vector<int> &zbins_123, const std::vector<int> &zbins_456,
+                double *dev_g, int Ntomo);
 
 /**
- * @brief Calculates T_PT,1, the second Term in the Non-Gaussian Covariance of Map³ with all permutations. 
+ * @brief Calculates T_PT,1, the second Term in the Non-Gaussian Covariance of Map³ with all permutations.
  * Only coded for infinite survey, throws an exception if other type is used.
  *
  * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
  * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
  * @return double T_5, total(theta1, theta2, theta3, theta4, theta5, theta6) = T_5 + 8 Permutations
  */
-double T5_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
+double T5_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456, const std::vector<int> &zbins_123, const std::vector<int> &zbins_456,
+                double *dev_g, int Ntomo, double *dev_shapenoise);
 
 /**
- * @brief Calculates T_PT,2, the third Term in the Non-Gaussian Covariance of Map³ with all permutations. 
+ * @brief Calculates T_PT,2, the third Term in the Non-Gaussian Covariance of Map³ with all permutations.
  * Returns 0 for type='infinite'
  *
  * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
  * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
  * @return double T_6, total(theta1, theta2, theta3, theta4, theta5, theta6) = T_6 + 5 Permutations
  */
-double T6_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
+double T6_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456, const std::vector<int> &zbins_123, const std::vector<int> &zbins_456,
+                double *dev_g, int Ntomo, double *dev_shapenoise);
 
 /**
- * @brief Calculates T_P6, the fourth Term in the Non-Gaussian Covariance of Map³ with all permutations. 
- * Only coded for infinite survey, throws an exception if other type is used. 
+ * @brief Calculates T_P6, the fourth Term in the Non-Gaussian Covariance of Map³ with all permutations.
+ * Only coded for infinite survey, throws an exception if other type is used.
  * Only uses 1-halo term, use T7_2h to get 2 halo term.
  *
  * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
  * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
  * @return double T_7, total(theta1, theta2, theta3, theta4, theta5, theta6) = T_7 (doesnt have any permutations)
  */
-double T7_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
+double T7_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456, const std::vector<int> &zbins_123, const std::vector<int> &zbins_456,
+                double *dev_g, int Ntomo);
 
 /**
- * @brief Calculates T_P6,2h, the 2halo part of the fourth Term in the Non-Gaussian Covariance of Map³ with all permutations. 
+ * @brief Calculates T_P6,2h, the 2halo part of the fourth Term in the Non-Gaussian Covariance of Map³ with all permutations.
  * Returns 0 for type='infinite'
  *
  * @param thetas_123 First three aperture radii [rad]. Exception thrown if not exactly three values.
  * @param thetas_456 Second three aperture radii [rad]. Exception thrown if not exactly three values.
  * @return double T_7_2h_total(theta1, theta2, theta3, theta4, theta5, theta6) = T_7_2h (doesnt have any permutations)
  */
-double T7_2h_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456);
-
+double T7_2h_total(const std::vector<double> &thetas_123, const std::vector<double> &thetas_456, const std::vector<int> &zbins_123, const std::vector<int> &zbins_456,
+                   double *dev_g, int Ntomo);
 
 /**
  * @brief T_PPP,1 ,First Term of Gaussian Covariance of Map³ for one permutation
@@ -187,7 +187,9 @@ double T7_2h_total(const std::vector<double> &thetas_123, const std::vector<doub
  * @param theta5 Aperture radius [rad]
  * @param theta6 Aperture radius [rad]
  */
-double T1(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
+double T1(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6,
+          const int &z1, const int &z2, const int &z3, const int &z4, const int &z5, const int &z6,
+          double *dev_g, int Ntomo, double *dev_shapenoise);
 
 /**
  * @brief T_PPP,2 Second Term of Gaussian Covariance of Map³ for one permutation
@@ -200,7 +202,9 @@ double T1(const double &theta1, const double &theta2, const double &theta3, cons
  * @param theta5 Aperture radius [rad]
  * @param theta6 Aperture radius [rad]
  */
-double T2(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
+double T2(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6,
+          const int &z1, const int &z2, const int &z3, const int &z4, const int &z5, const int &z6,
+          double *dev_g, int Ntomo, double *dev_shapenoise);
 
 /**
  * @brief T_BB, First Term of NonGaussian Covariance of Map³ for one permutation
@@ -213,7 +217,9 @@ double T2(const double &theta1, const double &theta2, const double &theta3, cons
  * @param theta5 Aperture radius [rad]
  * @param theta6 Aperture radius [rad]
  */
-double T4(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
+double T4(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6,
+          const int &z1, const int &z2, const int &z3, const int &z4, const int &z5, const int &z6,
+          double *dev_g, int Ntomo);
 
 /**
  * @brief T_PT,1 Second Term of NonGaussian Covariance of Map³ for one permutation
@@ -226,7 +232,9 @@ double T4(const double &theta1, const double &theta2, const double &theta3, cons
  * @param theta5 Aperture radius [rad]
  * @param theta6 Aperture radius [rad]
  */
-double T5(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
+double T5(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6,
+          const int &z1, const int &z2, const int &z3, const int &z4, const int &z5, const int &z6,
+          double *dev_g, int Ntomo, double *dev_shapenoise);
 
 /**
  * @brief T_PT, 2 Third Term of NonGaussian Covariance of Map³ for one permutation
@@ -239,7 +247,9 @@ double T5(const double &theta1, const double &theta2, const double &theta3, cons
  * @param theta5 Aperture radius [rad]
  * @param theta6 Aperture radius [rad]
  */
-double T6(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
+double T6(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6,
+          const int &z1, const int &z2, const int &z3, const int &z4, const int &z5, const int &z6,
+          double *dev_g, int Ntomo, double *dev_shapenoise);
 
 /**
  * @brief T_P_6, Fourth Term of NonGaussian Covariance of Map³ for one permutation
@@ -252,7 +262,9 @@ double T6(const double &theta1, const double &theta2, const double &theta3, cons
  * @param theta5 Aperture radius [rad]
  * @param theta6 Aperture radius [rad]
  */
-double T7(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
+double T7(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6,
+          const int &z1, const int &z2, const int &z3, const int &z4, const int &z5, const int &z6,
+          double *dev_g, int Ntomo);
 
 /**
  * @brief T_P_6_2h, 2-halo part of Fourth Term of NonGaussian Covariance of Map³ for one permutation
@@ -264,8 +276,9 @@ double T7(const double &theta1, const double &theta2, const double &theta3, cons
  * @param theta5 Aperture radius [rad]
  * @param theta6 Aperture radius [rad]
  */
-double T7_2h(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6);
-
+double T7_2h(const double &theta1, const double &theta2, const double &theta3, const double &theta4, const double &theta5, const double &theta6,
+             const int &z1, const int &z2, const int &z3, const int &z4, const int &z5, const int &z6,
+             double *dev_g, int Ntomo);
 
 /**
  * @brief Wrapper of integrand_T1 for the cubature library
@@ -371,7 +384,6 @@ int integrand_T7(unsigned ndim, size_t npts, const double *vars, void *container
  */
 int integrand_T7_2h(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
 
-
 /**
  * @brief Integrand of Term1 for circular survey
  *
@@ -386,7 +398,11 @@ int integrand_T7_2h(unsigned ndim, size_t npts, const double *vars, void *contai
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T1_circle(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double *value);
+__global__ void integrand_T1_circle(const double *vars, unsigned ndim, int npts,
+                                    double theta1, double theta2, double theta3, double theta4, double theta5, double theta6,
+                                    int z1, int z2, int z3, int z4, int z5, int z6,
+                                    double *dev_g, int Ntomo, double *dev_shapenoise,
+                                    double *value);
 
 /**
  * @brief Integrand of Term1 for square survey
@@ -402,8 +418,11 @@ __global__ void integrand_T1_circle(const double *vars, unsigned ndim, int npts,
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T1_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double *value);
-
+__global__ void integrand_T1_square(const double *vars, unsigned ndim, int npts,
+                                    double theta1, double theta2, double theta3, double theta4, double theta5, double theta6,
+                                    int z1, int z2, int z3, int z4, int z5, int z6,
+                                    double *dev_g, int Ntomo, double *dev_shapenoise,
+                                    double *value);
 /**
  * @brief Integrand of Term1 for infinite survey
  *
@@ -418,8 +437,11 @@ __global__ void integrand_T1_square(const double *vars, unsigned ndim, int npts,
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T1_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double *value);
-
+__global__ void integrand_T1_infinite(const double *vars, unsigned ndim, int npts,
+                                      double theta1, double theta2, double theta3, double theta4, double theta5, double theta6,
+                                      int z1, int z2, int z3, int z4, int z5, int z6,
+                                      double *dev_g, int Ntomo, double *dev_shapenoise,
+                                      double *value);
 /**
  * @brief Integrand of Term1 for rectangular survey
  *
@@ -434,8 +456,11 @@ __global__ void integrand_T1_infinite(const double *vars, unsigned ndim, int npt
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T1_rectangle(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double theta5, double theta6, double *value);
-
+__global__ void integrand_T1_rectangle(const double *vars, unsigned ndim, int npts,
+                                       double theta1, double theta2, double theta3, double theta4, double theta5, double theta6,
+                                       int z1, int z2, int z3, int z4, int z5, int z6,
+                                       double *dev_g, int Ntomo, double *dev_shapenoise,
+                                       double *value);
 /**
  * @brief Integrand for first part of Term2, applicable to both circular and square survey
  *
@@ -450,8 +475,11 @@ __global__ void integrand_T1_rectangle(const double *vars, unsigned ndim, int np
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T2_part1(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
-
+__global__ void integrand_T2_part1(const double *vars, unsigned ndim, int npts,
+                                   double theta1, double theta2,
+                                   int z1, int z2,
+                                   double *dev_g, int Ntomo, double *dev_shapenoise,
+                                   double *value);
 /**
  * @brief Integrand for second part of Term2 for circular survey
  *
@@ -466,7 +494,11 @@ __global__ void integrand_T2_part1(const double *vars, unsigned ndim, int npts, 
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T2_part2_circle(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+__global__ void integrand_T2_part2_circle(const double *vars, unsigned ndim, int npts,
+                                          double theta1, double theta2,
+                                          int z1, int z2,
+                                          double *dev_g, int Ntomo, double *dev_shapenoise,
+                                          double *value);
 
 /**
  * @brief Integrand for second part of Term2 for square survey
@@ -482,7 +514,11 @@ __global__ void integrand_T2_part2_circle(const double *vars, unsigned ndim, int
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T2_part2_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+__global__ void integrand_T2_part2_square(const double *vars, unsigned ndim, int npts,
+                                          double theta1, double theta2,
+                                          int z1, int z2,
+                                          double *dev_g, int Ntomo, double *dev_shapenoise,
+                                          double *value);
 
 /**
  * @brief Integrand for second part of Term2 for rectangular survey
@@ -498,7 +534,11 @@ __global__ void integrand_T2_part2_square(const double *vars, unsigned ndim, int
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T2_part2_rectangle(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+__global__ void integrand_T2_part2_rectangle(const double *vars, unsigned ndim, int npts,
+                                             double theta1, double theta2,
+                                             int z1, int z2,
+                                             double *dev_g, int Ntomo, double *dev_shapenoise,
+                                             double *value);
 
 /**
  * @brief Integrand for Term 4 for infinite survey
@@ -514,8 +554,11 @@ __global__ void integrand_T2_part2_rectangle(const double *vars, unsigned ndim, 
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T4_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
-                                      double theta4, double theta5, double theta6, double *value);
+__global__ void integrand_T4_infinite(const double *vars, unsigned ndim, int npts,
+                                      double theta1, double theta2, double theta3, double theta4, double theta5, double theta6,
+                                      int z1, int z2, int z3, int z4, int z5, int z6,
+                                      double *dev_g, int Ntomo,
+                                      double *value);
 
 /**
  * @brief Integrand for Term 5 for infinite survey
@@ -531,8 +574,11 @@ __global__ void integrand_T4_infinite(const double *vars, unsigned ndim, int npt
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T5_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
-                                      double theta4, double theta5, double theta6, double *value);
+__global__ void integrand_T5_infinite(const double *vars, unsigned ndim, int npts,
+                                      double theta1, double theta2, double theta3, double theta4, double theta5, double theta6,
+                                      int z1, int z2, int z3, int z4, int z5, int z6,
+                                      double *dev_g, int Ntomo, double *dev_shapenoise,
+                                      double *value);
 
 /**
  * @brief Integrand for Term 6 for square survey
@@ -548,8 +594,11 @@ __global__ void integrand_T5_infinite(const double *vars, unsigned ndim, int npt
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T6_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
-                                    double theta4, double theta5, double theta6, double *value);
+__global__ void integrand_T6_square(const double *vars, unsigned ndim, int npts,
+                                    double theta1, double theta2, double theta3, double theta4, double theta5, double theta6,
+                                    int z1, int z2, int z3, int z4, int z5, int z6,
+                                    double *dev_g, int Ntomo, double *dev_shapenoise,
+                                    double *value);
 
 /**
  * @brief Integrand for Term 6 for rectangular survey
@@ -565,8 +614,11 @@ __global__ void integrand_T6_square(const double *vars, unsigned ndim, int npts,
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T6_rectangle(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
-                                       double theta4, double theta5, double theta6, double *value);
+__global__ void integrand_T6_rectangle(const double *vars, unsigned ndim, int npts,
+                                       double theta1, double theta2, double theta3, double theta4, double theta5, double theta6,
+                                       int z1, int z2, int z3, int z4, int z5, int z6,
+                                       double *dev_g, int Ntomo, double *dev_shapenoise,
+                                       double *value);
 
 /**
  * @brief Integrand for Term 7 for infinite survey
@@ -582,12 +634,11 @@ __global__ void integrand_T6_rectangle(const double *vars, unsigned ndim, int np
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T7_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
-                                      double theta4, double theta5, double theta6, double *value, double mMin, double mMax);
-
-
-
-
+__global__ void integrand_T7_infinite(const double *vars, unsigned ndim, int npts,
+                                      double theta1, double theta2, double theta3, double theta4, double theta5, double theta6,
+                                      int z1, int z2, int z3, int z4, int z5, int z6,
+                                      double *dev_g, int Ntomo,
+                                      double *value, double mMin, double mMax);
 
 /**
  * @brief Integrand for Term 7 (2 halo term) for square survey
@@ -603,9 +654,11 @@ __global__ void integrand_T7_infinite(const double *vars, unsigned ndim, int npt
  * @param theta6 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_T7_2h(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3,
-                                      double theta4, double theta5, double theta6, 
-                                      double *value, double mMin, double mMax, double zMin, double zMax);
+__global__ void integrand_T7_2h(const double *vars, unsigned ndim, int npts,
+                                double theta1, double theta2, double theta3, double theta4, double theta5, double theta6,
+                                int z1, int z2, int z3, int z4, int z5, int z6,
+                                double *dev_g, int Ntomo,
+                                double *value, double mMin, double mMax, double zMin, double zMax);
 
 /**
  * @brief Container for variables needed for the Map³ Cov calculation
@@ -619,14 +672,19 @@ struct ApertureStatisticsCovarianceContainer
    // Second aperture radii [rad]
    std::vector<double> thetas_456;
 
+   std::vector<int> zbins_123;
+   std::vector<int> zbins_456;
+
+   double *dev_g;
+   int Ntomo;
+   double *dev_shapenoise;
+
    // Integration borders
    double lMin, lMax;     //[1/rad]
    double phiMin, phiMax; //[rad]
    double mMin, mMax;     //[Msun/h]
    double zMin, zMax;     //[unitless]
 };
-
-
 
 /************************** FOR <Map²> COVARIANCE ***************************************/
 
@@ -638,7 +696,7 @@ struct ApertureStatisticsCovarianceContainer
  * @param theta2 Second aperture Radius [rad]
  * @return double C_G(theta_1, theta2)
  */
-double Cov_Map2_Gauss(const double &theta1, const double &theta2);
+double Cov_Map2_Gauss(const double &theta1, const double &theta2, const int &zbin1, const int &zbin2, double *dev_g, int Ntomo, double *dev_shapenoise);
 
 /**
  * @brief Calculates the Non-Gaussian Covariance of Map²
@@ -648,7 +706,7 @@ double Cov_Map2_Gauss(const double &theta1, const double &theta2);
  * @param theta2 Second aperture Radius [rad]
  * @return double C_NG(theta_1, theta2)
  */
-double Cov_Map2_NonGauss(const double &theta1, const double &theta2);
+double Cov_Map2_NonGauss(const double &theta1, const double &theta2, const int &zbin1, const int &zbin2, double *dev_g, int Ntomo);
 
 /**
  * @brief Wrapper of integrand_Cov_Map2_Gauss for the cubature library
@@ -686,7 +744,8 @@ int integrand_Cov_Map2_NonGauss(unsigned ndim, size_t npts, const double *vars, 
  * @param theta2 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_Cov_Map2_Gauss_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+__global__ void integrand_Cov_Map2_Gauss_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2,
+                                                  int zbin1, int zbin2, double *dev_g, int Ntomo, double *dev_shapenoise, double *value);
 
 /**
  * @brief Integrand of Gaussian Cov of Map2 for square survey
@@ -698,7 +757,8 @@ __global__ void integrand_Cov_Map2_Gauss_infinite(const double *vars, unsigned n
  * @param theta2 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_Cov_Map2_Gauss_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+__global__ void integrand_Cov_Map2_Gauss_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2,
+                                                int zbin1, int zbin2, double *dev_g, int Ntomo, double *dev_shapenoise, double *value);
 
 /**
  * @brief Integrand of Non-Gaussian Cov of Map2 for infinite survey
@@ -710,19 +770,21 @@ __global__ void integrand_Cov_Map2_Gauss_square(const double *vars, unsigned ndi
  * @param theta2 Aperture radius [rad]
  * @param value Value of integral
  */
-__global__ void integrand_Cov_Map2_NonGauss_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+__global__ void integrand_Cov_Map2_NonGauss_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, 
+int zbin1, int zbin2, double *dev_g, int Ntomo, double *value);
 
-/**
- * @brief Integrand of Non-Gaussian Cov of Map2 for infinite survey
- *
- * @param vars Integration Parameters (7D)
- * @param ndim Number of integration dimensions
- * @param npts Number of integration points
- * @param theta1 Aperture radius [rad]
- * @param theta2 Aperture radius [rad]
- * @param value Value of integral
- */
-__global__ void integrand_Cov_Map2_NonGauss_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+// /**
+//  * @brief Integrand of Non-Gaussian Cov of Map2 for infinite survey
+//  *
+//  * @param vars Integration Parameters (7D)
+//  * @param ndim Number of integration dimensions
+//  * @param npts Number of integration points
+//  * @param theta1 Aperture radius [rad]
+//  * @param theta2 Aperture radius [rad]
+//  * @param value Value of integral
+//  */
+// __global__ void integrand_Cov_Map2_NonGauss_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, 
+// int zbin1, int zbin2, double *dev_g, int Ntomo, double *value);
 
 /**
  * @brief Container for variables needed for the Map³ Cov calculation
@@ -732,161 +794,156 @@ struct CovMap2Container
 {
    double theta1, theta2; //[rad]
 
+   int zbin1, zbin2;
+
+   double *dev_g;
+   int Ntomo;
+   double *dev_shapenoise;
+
    // Integration borders
    double lMin, lMax; //[1/rad]
 };
 
+// /************************** FOR <Map²-Map3> CROSS-COVARIANCE ***************************************/
 
-/************************** FOR <Map²-Map3> CROSS-COVARIANCE ***************************************/
+// /**
+//  * @brief Calculates the Term T2 of the of Map³-Map² cross covariance with all permutations
+//  *
+//  * @param thetas_123 Three aperture radii of Map3 [rad]. Exception thrown if not exactly three values.
+//  * @param theta4 Aperture radius of Map2 [rad].
+//  * @return double T_2, total(theta1, theta2, theta3, theta4) = T_2 + 2 Permutations
+//  * @todo Can be sped up by calculating less permutations!
+//  */
+// double Map2Map3_T2_total(const std::vector<double> &thetas_123, const double &theta_4);
 
+// /**
+//  * @brief Calculates the Term T2 of the of Map³-Map² cross covariance for one permutation
+//  *
+//  * @param theta1 Aperture radius [rad]
+//  * @param theta2 Aperture radius [rad]
+//  * @param theta3 Aperture radius [rad]
+//  * @param theta4 Aperture radius [rad]
+//  */
+// double Map2Map3_T2(const double &theta1, const double &theta2, const double &theta3, const double &theta4);
 
-/**
- * @brief Calculates the Term T2 of the of Map³-Map² cross covariance with all permutations
- *
- * @param thetas_123 Three aperture radii of Map3 [rad]. Exception thrown if not exactly three values.
- * @param theta4 Aperture radius of Map2 [rad]. 
- * @return double T_2, total(theta1, theta2, theta3, theta4) = T_2 + 2 Permutations
- * @todo Can be sped up by calculating less permutations!
- */
-double Map2Map3_T2_total(const std::vector<double> &thetas_123, const double &theta_4);
+// /**
+//  * @brief Wrapper of integrand_Map2Map3_T2 for the cubature library
+//  * See https://github.com/stevengj/cubature for documentation
+//  * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
+//  * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+//  * @param vars Array containing integration variables
+//  * @param container Pointer to ApertureStatisticsCovarianceContainer instance
+//  * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
+//  * @param value Value of integral
+//  * @return 0 on success
+//  */
+// int integrand_Map2Map3_T2(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
 
+// /**
+//  * @brief Integrand for Term T2 of the of Map³-Map² cross covariance for square survey
+//  *
+//  * @param vars Integration parameters (4 D)
+//  * @param ndim Number of integration dimensions (here: 4)
+//  * @param npts Number of integration points
+//  * @param theta1 Aperture radius [rad]
+//  * @param theta2 Aperture radius [rad]
+//  * @param value Value of integral
+//  */
+// __global__ void integrand_Map2Map3_T2_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
 
-/**
- * @brief Calculates the Term T2 of the of Map³-Map² cross covariance for one permutation
- *
- * @param theta1 Aperture radius [rad]
- * @param theta2 Aperture radius [rad]
- * @param theta3 Aperture radius [rad]
- * @param theta4 Aperture radius [rad]
- */
-double Map2Map3_T2(const double &theta1, const double &theta2, const double &theta3, const double &theta4);
+// /**
+//  * @brief  Calculates the Term T3 of the of Map³-Map² cross covariance with all permutations
+//  *
+//  * @param thetas_123 Three aperture radii of Map3 [rad]. Exception thrown if not exactly three values.
+//  * @param theta4 Aperture radius of Map2 [rad].
+//  * @return double T_3, total(theta1, theta2, theta3, theta4) = T_3 + 2 Permutations
+//  */
+// double Map2Map3_T3_total(const std::vector<double> &thetas_123, const double &theta_4);
 
+// /**
+//  * @brief Calculates the Term T3 of the of Map³-Map² cross covariance for one permutation
+//  *
+//  * @param theta1 Aperture radius [rad]
+//  * @param theta2 Aperture radius [rad]
+//  * @param theta3 Aperture radius [rad]
+//  * @param theta4 Aperture radius [rad]
+//  */
+// double Map2Map3_T3(const double &theta1, const double &theta2, const double &theta3, const double &theta4);
 
-/**
- * @brief Wrapper of integrand_Map2Map3_T2 for the cubature library
- * See https://github.com/stevengj/cubature for documentation
- * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
- * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
- * @param vars Array containing integration variables
- * @param container Pointer to ApertureStatisticsCovarianceContainer instance
- * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
- * @param value Value of integral
- * @return 0 on success
- */
-int integrand_Map2Map3_T2(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
+// /**
+//  * @brief Wrapper of integrand_Map2Map3_T3 for the cubature library
+//  * See https://github.com/stevengj/cubature for documentation
+//  * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
+//  * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+//  * @param vars Array containing integration variables
+//  * @param container Pointer to ApertureStatisticsCovarianceContainer instance
+//  * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
+//  * @param value Value of integral
+//  * @return 0 on success
+//  */
+// int integrand_Map2Map3_T3(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
 
-/**
- * @brief Integrand for Term T2 of the of Map³-Map² cross covariance for square survey
- *
- * @param vars Integration parameters (4 D)
- * @param ndim Number of integration dimensions (here: 4)
- * @param npts Number of integration points
- * @param theta1 Aperture radius [rad]
- * @param theta2 Aperture radius [rad]
- * @param value Value of integral
- */
-__global__ void integrand_Map2Map3_T2_square(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double *value);
+// /**
+//  * @brief Integrand for Term T3 of the of Map³-Map² cross covariance for infinite survey
+//  *
+//  * @param vars Integration parameters (3 D)
+//  * @param ndim Number of integration dimensions (here: 3)
+//  * @param npts Number of integration points
+//  * @param theta1 Aperture radius [rad]
+//  * @param theta2 Aperture radius [rad]
+//  * @param theta3 Aperture radius [rad]
+//  * @param theta4 Aperture radius [rad]
+//  * @param value Value of integral
+//  */
+// __global__ void integrand_Map2Map3_T3_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double *value);
 
+// /**
+//  * @brief  Calculates the Term T4 of the of Map³-Map² cross covariance.
+//  *
+//  * This is basically just a wrapper for Map2Map3_T4, because there are no permutations for this term
+//  *
+//  * @param thetas_123 Three aperture radii of Map3 [rad]. Exception thrown if not exactly three values.
+//  * @param theta4 Aperture radius of Map2 [rad].
+//  * @return double T_3, total(theta1, theta2, theta3, theta4) = T_4
+//  */
+// double Map2Map3_T4_total(const std::vector<double> &thetas_123, const double &theta_4);
 
+// /**
+//  * @brief Calculates the Term T4 of the of Map³-Map² cross covariance for one permutation
+//  *
+//  * @param theta1 Aperture radius [rad]
+//  * @param theta2 Aperture radius [rad]
+//  * @param theta3 Aperture radius [rad]
+//  * @param theta4 Aperture radius [rad]
+//  */
+// double Map2Map3_T4(const double &theta1, const double &theta2, const double &theta3, const double &theta4);
 
-/**
- * @brief  Calculates the Term T3 of the of Map³-Map² cross covariance with all permutations
- *
- * @param thetas_123 Three aperture radii of Map3 [rad]. Exception thrown if not exactly three values.
- * @param theta4 Aperture radius of Map2 [rad].
- * @return double T_3, total(theta1, theta2, theta3, theta4) = T_3 + 2 Permutations
- */
-double Map2Map3_T3_total(const std::vector<double> &thetas_123, const double &theta_4);
+// /**
+//  * @brief Wrapper of integrand_Map2Map3_T4 for the cubature library
+//  * See https://github.com/stevengj/cubature for documentation
+//  * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
+//  * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
+//  * @param vars Array containing integration variables
+//  * @param container Pointer to ApertureStatisticsCovarianceContainer instance
+//  * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
+//  * @param value Value of integral
+//  * @return 0 on success
+//  */
+// int integrand_Map2Map3_T4(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
 
-
-/**
- * @brief Calculates the Term T3 of the of Map³-Map² cross covariance for one permutation
- *
- * @param theta1 Aperture radius [rad]
- * @param theta2 Aperture radius [rad]
- * @param theta3 Aperture radius [rad]
- * @param theta4 Aperture radius [rad]
- */
-double Map2Map3_T3(const double &theta1, const double &theta2, const double &theta3, const double &theta4);
-
-/**
- * @brief Wrapper of integrand_Map2Map3_T3 for the cubature library
- * See https://github.com/stevengj/cubature for documentation
- * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
- * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
- * @param vars Array containing integration variables
- * @param container Pointer to ApertureStatisticsCovarianceContainer instance
- * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
- * @param value Value of integral
- * @return 0 on success
- */
-int integrand_Map2Map3_T3(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
-
-/**
- * @brief Integrand for Term T3 of the of Map³-Map² cross covariance for infinite survey
- *
- * @param vars Integration parameters (3 D)
- * @param ndim Number of integration dimensions (here: 3)
- * @param npts Number of integration points
- * @param theta1 Aperture radius [rad]
- * @param theta2 Aperture radius [rad]
- * @param theta3 Aperture radius [rad]
- * @param theta4 Aperture radius [rad]
- * @param value Value of integral
- */
-__global__ void integrand_Map2Map3_T3_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double *value);
-
-
-/**
- * @brief  Calculates the Term T4 of the of Map³-Map² cross covariance. 
- * 
- * This is basically just a wrapper for Map2Map3_T4, because there are no permutations for this term
- *
- * @param thetas_123 Three aperture radii of Map3 [rad]. Exception thrown if not exactly three values.
- * @param theta4 Aperture radius of Map2 [rad].
- * @return double T_3, total(theta1, theta2, theta3, theta4) = T_4
- */
-double Map2Map3_T4_total(const std::vector<double> &thetas_123, const double &theta_4);
-
-
-/**
- * @brief Calculates the Term T4 of the of Map³-Map² cross covariance for one permutation
- *
- * @param theta1 Aperture radius [rad]
- * @param theta2 Aperture radius [rad]
- * @param theta3 Aperture radius [rad]
- * @param theta4 Aperture radius [rad]
- */
-double Map2Map3_T4(const double &theta1, const double &theta2, const double &theta3, const double &theta4);
-
-/**
- * @brief Wrapper of integrand_Map2Map3_T4 for the cubature library
- * See https://github.com/stevengj/cubature for documentation
- * @param ndim Number of dimensions of integral (automatically determined by integration). Exception is thrown if this is not as expected.
- * @param npts Number of integration points that are evaluated at the same time (automatically determined by integration)
- * @param vars Array containing integration variables
- * @param container Pointer to ApertureStatisticsCovarianceContainer instance
- * @param fdim Dimensions of integral output (here: 1, automatically assigned by integration). Exception is thrown if this is not as expected
- * @param value Value of integral
- * @return 0 on success
- */
-int integrand_Map2Map3_T4(unsigned ndim, size_t npts, const double *vars, void *container, unsigned fdim, double *value);
-
-/**
- * @brief Integrand for Term T4 of the of Map³-Map² cross covariance for infinite survey.
- * @warning Uses 1-halo term only for Tetraspectrum!
- * 
- * @param vars Integration parameters (5 D)
- * @param ndim Number of integration dimensions (here: 5)
- * @param npts Number of integration points
- * @param theta1 Aperture radius [rad]
- * @param theta2 Aperture radius [rad]
- * @param theta3 Aperture radius [rad]
- * @param theta4 Aperture radius [rad]
- * @param value Value of integral
- */
-__global__ void integrand_Map2Map3_T4_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double *value);
-
-
+// /**
+//  * @brief Integrand for Term T4 of the of Map³-Map² cross covariance for infinite survey.
+//  * @warning Uses 1-halo term only for Tetraspectrum!
+//  *
+//  * @param vars Integration parameters (5 D)
+//  * @param ndim Number of integration dimensions (here: 5)
+//  * @param npts Number of integration points
+//  * @param theta1 Aperture radius [rad]
+//  * @param theta2 Aperture radius [rad]
+//  * @param theta3 Aperture radius [rad]
+//  * @param theta4 Aperture radius [rad]
+//  * @param value Value of integral
+//  */
+// __global__ void integrand_Map2Map3_T4_infinite(const double *vars, unsigned ndim, int npts, double theta1, double theta2, double theta3, double theta4, double *value);
 
 #endif // APERTURESTATISTICSCOVARIANCE_CUH

@@ -201,7 +201,7 @@ int limber_integrand_wrapper(unsigned ndim, size_t npts, const double *vars, voi
  * @param ell l-mode
  * @return P(ell) 
  */
-__host__ double Pell(double ell, int zbin1, int zbin2, double *dev_g, double *dev_p, int Ntomo, std::vector<double>* sigma_epsilon,  std::vector<double>* ngal);
+__host__ __device__ double Pell(double ell, int zbin1, int zbin2, double *dev_g, double *dev_p, int Ntomo, double* sigma_epsilon,  double* ngal);
 
 
 /**
@@ -334,7 +334,7 @@ __host__ __device__ double E_inv(double z);
  * @param ell l-mode
  * @return P_kappa(ell) 
  */
-__host__ __device__ double GQ96_of_Pk(double a, double b, double ell);
+__host__ __device__ double GQ96_of_Pk(double a, double b, double ell, double * dev_g, double * dev_p, int Ntomo);
 
 /**
  * @brief Integrand for the limber-integration of the matter power spectrum
