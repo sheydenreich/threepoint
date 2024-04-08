@@ -403,7 +403,7 @@ void read_shapenoise(const std::string &shapenoise_file, std::vector<double> &si
     std::ifstream input_file(shapenoise_file.c_str());
     if (input_file.fail())
     {
-        std::cout << "read theta combi failed: Could not open " << shapenoise_file << std::endl;
+        std::cout << "read_shapenoise failed: Could not open " << shapenoise_file << std::endl;
         exit(1);
     };
 

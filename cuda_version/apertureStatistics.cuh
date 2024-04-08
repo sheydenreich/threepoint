@@ -230,6 +230,13 @@ static int integrand_Map6(const int *ndim, const double *xx,
  */
 double Map6(const std::vector<double> &thetas, const double &phiMin = 0, const double &phiMax = 6.283185307, const double &lMin = 1);
 
+
+__global__ void integrand_NNM_IA_kernel(const double *vars, unsigned ndim, int npts, double R, double b, double *dev_p, double *value);
+
+static int integrand_NNM_IA(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
+
+double NNM_IA(double R, double b, double* dev_p);
+
 /**
  * @brief Container for variables needed in the aperture statistics integrations
  *
@@ -254,6 +261,13 @@ struct ApertureStatisticsContainer
   double phiMin, phiMax; //[rad]
   double mMin, mMax;     //[Msun/h]
   double zMin, zMax;     //[unitless]
+};
+
+struct NNM_IA_Container
+{
+  double R; //In Mpc/h
+  double b;
+  double *dev_p;
 };
 
 #endif // APERTURESTATISTICS_CUH

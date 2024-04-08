@@ -301,6 +301,42 @@ __device__ double bispec(double k1, double k2, double k3, double z, int idx, dou
   // else return 0;
 }
 
+__device__ double integrand_bispec_DeltaDeltaIA(double k1, double k2, double k3, double z, double *dev_p)
+{
+  if (k1 <= 1.0e-10 || k2 <= 1.0e-10 || k3 <= 1.0e-10)
+  {
+    return 0;
+  }
+  double didx = z / dev_z_max * (dev_n_redshift_bins);
+  int idx = didx;
+  didx = didx - idx;
+  double r_sigma, n_eff, D1, ncur;
+  compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff, &ncur);
+
+  double p_value_1 = p_interpolated(idx, didx, 0, dev_p,2);
+  double p_value_2 = p_interpolated(idx, didx, 0, dev_p,2);
+  double p_value_3 = p_interpolated(idx, didx, 1, dev_p,2);
+
+  double C1_rho_crit = 0.013873073650776856;
+  double f_IA = -dev_A_IA * dev_om * C1_rho_crit / D1;
+  // printf("%e, %e, %e\n", z, D1, p_value_1);
+  double dz_dchi = E(z) * dev_H0_over_c;
+
+  double bispectrum=bispec(k1, k2, k3, z, idx, didx);
+
+  return p_value_1*p_value_2*p_value_3*dz_dchi*dz_dchi*f_IA*bispectrum;
+}
+
+__device__ double GQ96_of_bispec_DeltaDeltaIA(double a, double b, double k1, double k2, double k3, double *dev_p)
+{
+  double cx = (a + b) / 2;
+  double dx = (b - a) / 2;
+  double q = 0;
+  for (int i = 0; i < 48; i++)
+    q += dev_W96[i] * (integrand_bispec_DeltaDeltaIA(k1, k2, k3, cx - dx * dev_A96[i], dev_p) + integrand_bispec_DeltaDeltaIA(k1, k2, k3, cx + dx * dev_A96[i], dev_p));
+  return q * dx;
+}
+
 __device__ double bkappa(double ell1, double ell2, double ell3, int zbin1, int zbin2, int zbin3, double *dev_g, double *dev_p, int Ntomo)
 {
   if (ell1 == 0 || ell2 == 0 || ell3 == 0)
@@ -623,12 +659,20 @@ int limber_integrand_wrapper(unsigned ndim, size_t npts, const double *vars, voi
 __host__ __device__ double Pell(double ell, int zbin1, int zbin2, double *dev_g, double *dev_p, int Ntomo, double *sigma_epsilon, double *ngal)
 {
   double Pshapenoise = 0;
-  if (zbin1 == zbin2)
+  if (zbin1 == zbin2 & sigma_epsilon!=NULL & ngal!=NULL)
   {
-    Pshapenoise = 0.5 * sigma_epsilon[zbin1]*sigma_epsilon[zbin1] / ngal[zbin1];
+    Pshapenoise = 0.5 * sigma_epsilon[zbin1] * sigma_epsilon[zbin1] / ngal[zbin1];
   };
 #ifdef __CUDA_ARCH__
-  double result = GQ96_of_Pk(0, dev_z_max, ell, dev_g, dev_p, Ntomo);
+  double result = GQ96_of_Pk(0, dev_z_max, ell, zbin1, zbin2, dev_g, dev_p, Ntomo);
+  if(isnan(result))
+  {
+    printf("Pell is Nan for ell=%e, zbin1=%d, zbin2=%d\n", ell, zbin1, zbin2);
+  }
+    if(isinf(result))
+  {
+    printf("Pell is Nan for ell=%e, zbin1=%d, zbin2=%d\n", ell, zbin1, zbin2);
+  }
   return result + Pshapenoise;
 #else
 
@@ -1052,7 +1096,7 @@ __host__ __device__ double E_inv(double z)
   return 1. / E(z);
 }
 
-__host__ __device__ double GQ96_of_Pk(double a, double b, double ell, double *dev_g, double *dev_p, int Ntomo)
+__host__ __device__ double GQ96_of_Pk(double a, double b, double ell, int zbin1, int zbin2, double *dev_g, double *dev_p, int Ntomo)
 { /* 96-pt Gauss qaudrature integrates bdelta(x,ells) from x=a to b */
   int i;
   double cx, dx, q;
@@ -1061,9 +1105,10 @@ __host__ __device__ double GQ96_of_Pk(double a, double b, double ell, double *de
   q = 0;
   for (i = 0; i < 48; i++)
 #ifndef __CUDA_ARCH__
-    q += W96[i] * (limber_integrand_power_spectrum(ell, cx - dx * A96[i], 0, 0, dev_g, dev_p, Ntomo) + limber_integrand_power_spectrum(ell, cx + dx * A96[i], 0, 0, dev_g, dev_p, Ntomo));
+    q += W96[i] * (limber_integrand_power_spectrum(ell, cx - dx * A96[i], zbin1, zbin2, dev_g, dev_p, Ntomo) + limber_integrand_power_spectrum(ell, cx + dx * A96[i], zbin1, zbin2, dev_g, dev_p, Ntomo));
 #else
-    q += dev_W96[i] * (limber_integrand_power_spectrum(ell, cx - dx * dev_A96[i], 0, 0, dev_g, dev_p, Ntomo) + limber_integrand_power_spectrum(ell, cx + dx * dev_A96[i], 0, 0, dev_g, dev_p, Ntomo));
+    q += dev_W96[i] * (limber_integrand_power_spectrum(ell, cx - dx * dev_A96[i], zbin1, zbin2, dev_g, dev_p, Ntomo) + limber_integrand_power_spectrum(ell, cx + dx * dev_A96[i], zbin1, zbin2, dev_g, dev_p, Ntomo));
+ 
 #endif
   return (q * dx);
 }
@@ -1072,6 +1117,7 @@ __host__ __device__ double limber_integrand_power_spectrum(double ell, double z,
 {
   if (z < 1e-5)
     return 0;
+  if (ell<1e-5) return 0;
 #ifndef __CUDA_ARCH__
   double didx = z / z_max * (n_redshift_bins);
 #else

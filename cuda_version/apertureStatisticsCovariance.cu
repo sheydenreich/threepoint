@@ -1272,7 +1272,8 @@ double T1(const double &theta1, const double &theta2, const double &theta3, cons
         double vals_min[3] = {lMin, lMin, 0};
         double vals_max[3] = {lMax, lMax, M_PI}; // use symmetry, integrate only from 0 to pi and multiply result by 2 in the end
 
-        hcubature_v(1, integrand_T1, &container, 3, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
+        hcubature_v(1, integrand_T1, &container, 3, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
+
         result *= 2 / area / pow(2 * M_PI, 3); // Factors: 2 because phi integral goes from 0 to Pi, 1/area because division by area, (2pi)^-3 because 3 integrals in ell-space
     }
     else if (type == 0 || type == 1 || type == 3)
@@ -1288,6 +1289,7 @@ double T1(const double &theta1, const double &theta2, const double &theta3, cons
     {
         throw std::logic_error("T1: Wrong survey geometry");
     };
+
 
     return result;
 }
@@ -1396,7 +1398,7 @@ double T4(const double &theta1, const double &theta2, const double &theta3, cons
         double vals_min[5] = {log(lMin), log(lMin), log(lMin), 0, 0};
         double vals_max[5] = {log(lMax), log(lMax), log(lMax), 2 * M_PI, 2 * M_PI};
 
-        hcubature_v(1, integrand_T4, &container, 5, vals_min, vals_max, 0, 0, 1e-2, ERROR_L1, &result, &error);
+        hcubature_v(1, integrand_T4, &container, 5, vals_min, vals_max, 0, 0, 1e-1, ERROR_L1, &result, &error);
         result = result / area / pow(2 * M_PI, 5);
     }
     else
@@ -1480,7 +1482,7 @@ double T6(const double &theta1, const double &theta2, const double &theta3, cons
 
     double vals_min1[1] = {lMin};
     double vals_max1[1] = {lMax};
-    hcubature_v(1, integrand_T2_part1, &container, 1, vals_min1, vals_max1, 0, 0, 1e-4, ERROR_L1, &result_A1, &error_A1);
+    hcubature_v(1, integrand_T2_part1, &container, 1, vals_min1, vals_max1, 0, 0, 1e-1, ERROR_L1, &result_A1, &error_A1);
     result_A1 /= (2 * M_PI);
 
     // Integral over ell3 to ell5
@@ -1661,10 +1663,11 @@ int integrand_T1(unsigned ndim, size_t npts, const double *vars, void *container
         exit(-1);
     };
 
-    cudaFree(dev_vars); // Free variables
 
     // Copy results to host
     CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
+
+    cudaFree(dev_vars); // Free variables
 
     cudaFree(dev_value); // Free values
 
@@ -2302,6 +2305,11 @@ __global__ void integrand_T1_infinite(const double *vars, unsigned ndim, int npt
             result *= uHat(l1 * theta1) * uHat(l2 * theta2) * uHat(l3 * theta3);
             result *= uHat(l1 * theta4) * uHat(l2 * theta5) * uHat(l3 * theta6);
             result *= l1 * l2;
+
+            if (isnan(result))
+            {
+                printf("integrand T1 inf is Nan for P1=%e, P2=%e, P3=%e, ell1=%e, ell2=%e, phi=%e, shapenoise=%e\n", P1, P2, P3, l1, l2, phi, dev_shapenoise[z1]);
+            }
             value[i] = result;
         };
     }

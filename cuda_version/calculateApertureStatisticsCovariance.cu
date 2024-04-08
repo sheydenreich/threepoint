@@ -37,7 +37,7 @@ Argument 12: Calculate T7_2H? (0 or 1)
 Argument 13: Survey geometry, either circle, square, infinite, or rectangular
 )";
 
-  if (argc != 14)
+  if (argc <= 14)
   {
     std::cerr << message << std::endl;
     exit(-1);
@@ -142,7 +142,7 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
 
   for (int i = 0; i < Ntomo; i++)
   {
-    shapenoise[i] = 0.5 * sigma_epsilon_per_bin.at(i) * sigma_epsilon_per_bin.at(i) / ngal_per_bin.at(i);
+    shapenoise[i] = 0.5 * sigma_epsilon_per_bin.at(i) * sigma_epsilon_per_bin.at(i) / ngal_per_bin.at(i) * convert_angle_to_rad(1) * convert_angle_to_rad(1);
   };
   double *dev_shapenoise;
   CUDA_SAFE_CALL(cudaMalloc((void **)&dev_shapenoise, Ntomo * sizeof(double)));
@@ -152,6 +152,8 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
   std::vector<std::vector<int>> z_combis;
   int n_combis;
   read_combis(z_combi_file, theta_combi_file, z_combis, theta_combis, n_combis);
+
+
 
   // Initialize Covariance
   initCovariance();
@@ -171,6 +173,7 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
   std::vector<double> Cov_term1s, Cov_term2s, Cov_term4s, Cov_term5s, Cov_term6s, Cov_term7s, Cov_term7_2hs;
 
   std::vector<std::vector<double>> theta_combis_rad;
+  std::vector<std::vector<int>> zs_combis;
 
   for (int i = 0; i < n_combis; i++)
   {
@@ -179,10 +182,18 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
     double theta3 = convert_angle_to_rad(theta_combis[2][i]); // Conversion to rad
     std::vector<double> thetas_123 = {theta1, theta2, theta3};
 
+    int z1=z_combis[0][i];
+    int z2=z_combis[1][i];
+    int z3=z_combis[2][i];
+    std::vector<int> z_123={z1,z2,z3};
+
     theta_combis_rad.push_back(thetas_123);
+    zs_combis.push_back(z_123);
   }
 
-  int N_ind = theta_combis.size(); // Number of independent theta-combinations
+
+
+  int N_ind = theta_combis_rad.size(); // Number of independent theta-combinations
   int N_total = N_ind * (N_ind + 1) / 2;
 
   int completed_steps = 0;
@@ -196,37 +207,50 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
       {
         if (calculate_T1)
         {
-          double term1 = T1_total(theta_combis.at(i), theta_combis.at(j), z_combis.at(i), z_combis.at(j), dev_g_array, Ntomo, dev_shapenoise);
+          double term1 = T1_total(theta_combis_rad.at(i), theta_combis_rad.at(j), zs_combis.at(i), zs_combis.at(j), dev_g_array, Ntomo, dev_shapenoise);
+          std::cerr<<"T1:"<<term1<<std::endl;
           Cov_term1s.push_back(term1);
         };
         if (calculate_T2)
         {
-          double term2 = T2_total(theta_combis.at(i), theta_combis.at(j), z_combis.at(i), z_combis.at(j), dev_g_array, Ntomo, dev_shapenoise);
+          double term2 = T2_total(theta_combis_rad.at(i), theta_combis_rad.at(j), zs_combis.at(i), zs_combis.at(j), dev_g_array, Ntomo, dev_shapenoise);
+          std::cerr<<"T2:"<<term2<<std::endl;
+          
           Cov_term2s.push_back(term2);
         };
         if (calculate_T4)
         {
-          double term4 = T4_total(theta_combis.at(i), theta_combis.at(j), z_combis.at(i), z_combis.at(j), dev_g_array, Ntomo);
+          double term4 = T4_total(theta_combis_rad.at(i), theta_combis_rad.at(j), zs_combis.at(i), zs_combis.at(j), dev_g_array, Ntomo);
+          std::cerr<<"T4:"<<term4<<std::endl;
+
           Cov_term4s.push_back(term4);
         };
         if (calculate_T5)
         {
-          double term5 = T5_total(theta_combis.at(i), theta_combis.at(j), z_combis.at(i), z_combis.at(j), dev_g_array, Ntomo, dev_shapenoise);
+          double term5 = T5_total(theta_combis_rad.at(i), theta_combis_rad.at(j), zs_combis.at(i), zs_combis.at(j), dev_g_array, Ntomo, dev_shapenoise);
+          std::cerr<<"T5:"<<term5<<std::endl;
+          
           Cov_term5s.push_back(term5);
         }
         if (calculate_T6)
         {
-          double term6 = T6_total(theta_combis.at(i), theta_combis.at(j), z_combis.at(i), z_combis.at(j), dev_g_array, Ntomo, dev_shapenoise);
+          double term6 = T6_total(theta_combis_rad.at(i), theta_combis_rad.at(j), zs_combis.at(i), zs_combis.at(j), dev_g_array, Ntomo, dev_shapenoise);
+          std::cerr<<"T6:"<<term6<<std::endl;
+          
           Cov_term6s.push_back(term6);
         }
         if (calculate_T7)
         {
-          double term7 = T7_total(theta_combis.at(i), theta_combis.at(j), z_combis.at(i), z_combis.at(j), dev_g_array, Ntomo);
+          double term7 = T7_total(theta_combis_rad.at(i), theta_combis_rad.at(j), zs_combis.at(i), zs_combis.at(j), dev_g_array, Ntomo);
+          std::cerr<<"T7:"<<term7<<std::endl;
+          
           Cov_term7s.push_back(term7);
         }
         if (calculate_T7_2h)
         {
-          double term7_2h = T7_2h_total(theta_combis.at(i), theta_combis.at(j), z_combis.at(i), z_combis.at(j), dev_g_array, Ntomo);
+          double term7_2h = T7_2h_total(theta_combis_rad.at(i), theta_combis_rad.at(j), zs_combis.at(i), zs_combis.at(j), dev_g_array, Ntomo);
+          std::cerr<<"T7_2h:"<<term7_2h<<std::endl;
+          
           Cov_term7_2hs.push_back(term7_2h);
         }
       }
@@ -241,13 +265,14 @@ Argument 13: Survey geometry, either circle, square, infinite, or rectangular
       completed_steps++;
       double progress = (completed_steps * 1.) / (N_total);
 
-      fprintf(stderr, "\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step. Last thetas: (%.2f, %.2f, %.2f, %.2f, %.2f, %.2f) [%s]",
+      fprintf(stderr, "\r [%3d%%] in %.2f h. Est. remaining: %.2f h. Average: %.2f s per step. Last thetas: (%.2f, %.2f, %.2f, %.2f, %.2f, %.2f) [%s]. Last zs: (%d, %d, %d, %d, %d, %d)",
               static_cast<int>(progress * 100),
               elapsed.count() * 1e-9 / 3600,
               (N_total - completed_steps) * elapsed.count() * 1e-9 / 3600 / completed_steps,
               elapsed.count() * 1e-9 / completed_steps,
-              convert_rad_to_angle(theta_combis.at(i).at(0)), convert_rad_to_angle(theta_combis.at(i).at(1)), convert_rad_to_angle(theta_combis.at(i).at(2)),
-              convert_rad_to_angle(theta_combis.at(j).at(0)), convert_rad_to_angle(theta_combis.at(j).at(1)), convert_rad_to_angle(theta_combis.at(j).at(2)), "arcmin");
+              convert_rad_to_angle(theta_combis_rad.at(i).at(0)), convert_rad_to_angle(theta_combis_rad.at(i).at(1)), convert_rad_to_angle(theta_combis_rad.at(i).at(2)),
+              convert_rad_to_angle(theta_combis_rad.at(j).at(0)), convert_rad_to_angle(theta_combis_rad.at(j).at(1)), convert_rad_to_angle(theta_combis_rad.at(j).at(2)), "arcmin",
+              zs_combis.at(i).at(0), zs_combis.at(i).at(1), zs_combis.at(i).at(2), zs_combis.at(j).at(0), zs_combis.at(j).at(1), zs_combis.at(j).at(2));
     }
   }
 

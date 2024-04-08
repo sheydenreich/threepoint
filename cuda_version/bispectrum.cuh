@@ -1,7 +1,7 @@
 #ifndef BISPECTRUM_CUH
 #define BISPECTRUM_CUH
 
-#define T17_CORRECTION true
+#define T17_CORRECTION false
 
 #include "cosmology.cuh"
 
@@ -96,6 +96,11 @@ void set_cosmology(cosmology cosmo, double *dev_g_array, double *dev_p_array, st
  * @return Bispectrum at (k1, k2, k3, z) [(Mpc/h)^6]
  */
 __device__ double bispec(double k1, double k2, double k3, double z, int idx, double didx);
+
+
+__device__ double integrand_bispec_DeltaDeltaIA(double k1, double k2, double k3, double z, double *dev_p);
+
+__device__ double GQ96_of_bispec_DeltaDeltaIA(double a, double b, double k1, double k2, double k3, double *dev_p);
 
 /**
  * 2D Bispectrum B_kappa, integrated from bispec
@@ -334,7 +339,7 @@ __host__ __device__ double E_inv(double z);
  * @param ell l-mode
  * @return P_kappa(ell) 
  */
-__host__ __device__ double GQ96_of_Pk(double a, double b, double ell, double * dev_g, double * dev_p, int Ntomo);
+__host__ __device__ double GQ96_of_Pk(double a, double b, double ell, int zbin1, int zbin2, double * dev_g, double * dev_p, int Ntomo);
 
 /**
  * @brief Integrand for the limber-integration of the matter power spectrum
