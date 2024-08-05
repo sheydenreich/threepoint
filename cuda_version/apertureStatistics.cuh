@@ -237,6 +237,14 @@ static int integrand_NNM_IA(unsigned ndim, size_t npts, const double *vars, void
 
 double NNM_IA(double R, double b, double* dev_p);
 
+
+__global__ void integrand_NNM_IA_kernel_nonlinearBias(const double *vars, unsigned ndim, int npts, double R, double b1, double b2, double *dev_p, double *value);
+
+static int integrand_NNM_IA_nonlinearBias(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value);
+
+double NNM_IA_nonlinearBias(double R, double b1, double b2, double* dev_p);
+
+
 /**
  * @brief Container for variables needed in the aperture statistics integrations
  *
@@ -267,6 +275,7 @@ struct NNM_IA_Container
 {
   double R; //In Mpc/h
   double b;
+  double b2;
   double *dev_p;
 };
 

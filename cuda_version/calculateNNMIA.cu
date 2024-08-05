@@ -33,7 +33,7 @@ Example:
 ./calculateApertureStatistics.x ../necessary_files/MR_cosmo.dat ../necessary_files/HOWLS_thetas.dat ../../results_MR/MapMapMap_bispec_gpu_nz.dat ../necessary_files/nz_MR.dat
 )";
 
-    if (argc < 6) // Give out error message if too few CLI arguments
+    if (argc < 7) // Give out error message if too few CLI arguments
     {
         std::cerr << message << std::endl;
         exit(1);
@@ -45,6 +45,7 @@ Example:
     std::string nz_lenses = argv[4];
     std::string nz_sources = argv[5];
     double b = std::stod(argv[6]);
+    double b2 = std::stod(argv[7]);
 
     std::vector<std::string> nzfns;
     nzfns.push_back(nz_lenses);
@@ -84,11 +85,14 @@ Example:
     for (int i = 0; i < Rs.size(); i++)
     {
         double NNM = NNM_IA(Rs.at(i), b, dev_p_array);
-        std::cerr << i << "/" << Rs.size() << ": R=" << Rs.at(i) << " "
-                  << "NNM=" << NNM << std::endl; //" \r";
-        //std::cerr.flush();
+        double NNM_corr = NNM_IA_nonlinearBias(Rs.at(i), b, b2, dev_p_array);
 
-        out << Rs.at(i) << " " << NNM << std::endl;
+        std::cerr << i << "/" << Rs.size() << ": R=" << Rs.at(i) << " "
+                  << "NNM=" << NNM << " "
+                  << "NNM_corr=" << NNM_corr << " " << std::endl;
+        // std::cerr.flush();
+
+        out << Rs.at(i) << " " << NNM << " " << NNM_corr << std::endl;
     };
     cudaFree(dev_g_array);
     cudaFree(dev_p_array);

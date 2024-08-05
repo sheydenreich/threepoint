@@ -102,6 +102,11 @@ __device__ double integrand_bispec_DeltaDeltaIA(double k1, double k2, double k3,
 
 __device__ double GQ96_of_bispec_DeltaDeltaIA(double a, double b, double k1, double k2, double k3, double *dev_p);
 
+
+__device__ double integrand_bispec_DeltaDeltaIA_nonlinearBias(double k1, double k2, double k3, double z, double *dev_p);
+
+__device__ double GQ96_of_bispec_DeltaDeltaIA_nonlinearBias(double a, double b, double k1, double k2, double k3, double *dev_p);
+
 /**
  * 2D Bispectrum B_kappa, integrated from bispec
  * @param ell1 l-mode 1

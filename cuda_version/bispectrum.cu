@@ -327,6 +327,39 @@ __device__ double integrand_bispec_DeltaDeltaIA(double k1, double k2, double k3,
   return p_value_1*p_value_2*p_value_3*dz_dchi*dz_dchi*f_IA*bispectrum;
 }
 
+
+__device__ double integrand_bispec_DeltaDeltaIA_nonlinearBias(double k1, double k2, double k3, double z, double *dev_p)
+{
+  if (k1 <= 1.0e-10 || k2 <= 1.0e-10 || k3 <= 1.0e-10)
+  {
+    return 0;
+  }
+  double didx = z / dev_z_max * (dev_n_redshift_bins);
+  int idx = didx;
+  didx = didx - idx;
+  double r_sigma, n_eff, D1, ncur;
+  compute_coefficients(idx, didx, &D1, &r_sigma, &n_eff, &ncur);
+
+  double p_value_1 = p_interpolated(idx, didx, 0, dev_p,2);
+  double p_value_2 = p_interpolated(idx, didx, 0, dev_p,2);
+  double p_value_3 = p_interpolated(idx, didx, 1, dev_p,2);
+
+  double C1_rho_crit = 0.013873073650776856;
+  double f_IA = -dev_A_IA * dev_om * C1_rho_crit / D1;
+  // printf("%e, %e, %e\n", z, D1, p_value_1);
+  double dz_dchi = E(z) * dev_H0_over_c;
+
+  double p1=P_k_nonlinear(k1, z);
+  double p2=P_k_nonlinear(k2, z);
+  double p3=P_k_nonlinear(k3, z);
+
+
+
+  return p_value_1*p_value_2*p_value_3*dz_dchi*dz_dchi*f_IA*(p1*p2+p1*p3+p2*p3)/3;
+}
+
+
+
 __device__ double GQ96_of_bispec_DeltaDeltaIA(double a, double b, double k1, double k2, double k3, double *dev_p)
 {
   double cx = (a + b) / 2;
@@ -334,6 +367,18 @@ __device__ double GQ96_of_bispec_DeltaDeltaIA(double a, double b, double k1, dou
   double q = 0;
   for (int i = 0; i < 48; i++)
     q += dev_W96[i] * (integrand_bispec_DeltaDeltaIA(k1, k2, k3, cx - dx * dev_A96[i], dev_p) + integrand_bispec_DeltaDeltaIA(k1, k2, k3, cx + dx * dev_A96[i], dev_p));
+  return q * dx;
+}
+
+
+
+__device__ double GQ96_of_bispec_DeltaDeltaIA_nonlinearBias(double a, double b, double k1, double k2, double k3, double *dev_p)
+{
+  double cx = (a + b) / 2;
+  double dx = (b - a) / 2;
+  double q = 0;
+  for (int i = 0; i < 48; i++)
+    q += dev_W96[i] * (integrand_bispec_DeltaDeltaIA_nonlinearBias(k1, k2, k3, cx - dx * dev_A96[i], dev_p) + integrand_bispec_DeltaDeltaIA_nonlinearBias(k1, k2, k3, cx + dx * dev_A96[i], dev_p));
   return q * dx;
 }
 

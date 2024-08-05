@@ -295,3 +295,81 @@ double NNM_IA(double R, double b, double* dev_p)
 
   return result / 8 / M_PI / M_PI / M_PI; // Divided by (2*pi)³
 }
+
+
+
+__global__ void integrand_NNM_IA_kernel_nonlinearBias(const double *vars, unsigned ndim, int npts, double R, double b1, double b2, double *dev_p, double *value)
+{
+  // index of thread
+  int thread_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+  // Grid-Stride loop, so I get npts evaluations
+  for (int i = thread_index; i < npts; i += blockDim.x * gridDim.x)
+  {
+    double k1 = vars[i * ndim];
+    double k2 = vars[i * ndim + 1];
+    double phi = vars[i * ndim + 2];
+    double k3 = sqrt(k1 * k1 + k2 * k2 + 2 * k1 * k2 * cos(phi));
+    
+    value[i] = b1 * b2 * k1 * k2 * uHat(k1 * R) * uHat(k2 * R) * uHat(k3 * R) * GQ96_of_bispec_DeltaDeltaIA_nonlinearBias(0, dev_z_max, k1, k2, k3, dev_p);
+  }
+}
+
+int integrand_NNM_IA_nonlinearBias(unsigned ndim, size_t npts, const double *vars, void *thisPtr, unsigned fdim, double *value)
+{
+  if (fdim != 1)
+  {
+    std::cerr << "integrand: Wrong number of function dimensions" << std::endl;
+    exit(1);
+  };
+  // printf("%d\n", npts);
+  // Read data for integration
+  NNM_IA_Container *container = (NNM_IA_Container *)thisPtr;
+
+  double R = container->R;
+  double b1 = container->b;
+  double b2 = container->b2;
+  double *dev_p = container->dev_p;
+
+  // Allocate memory on device for integrand values
+  double *dev_value;
+  CUDA_SAFE_CALL(cudaMalloc((void **)&dev_value, fdim * npts * sizeof(double)));
+
+  // Copy integration variables to device
+  double *dev_vars;
+  CUDA_SAFE_CALL(cudaMalloc(&dev_vars, ndim * npts * sizeof(double)));                              // alocate memory
+  CUDA_SAFE_CALL(cudaMemcpy(dev_vars, vars, ndim * npts * sizeof(double), cudaMemcpyHostToDevice)); // copying
+
+  // Calculate values
+  integrand_NNM_IA_kernel_nonlinearBias<<<BLOCKS, THREADS>>>(dev_vars, ndim, npts, R, b1, b2, dev_p, dev_value);
+
+  // Copy results to host
+  CUDA_SAFE_CALL(cudaMemcpy(value, dev_value, fdim * npts * sizeof(double), cudaMemcpyDeviceToHost));
+
+  cudaFree(dev_vars); // Free variables
+
+  cudaFree(dev_value); // Free values
+
+  return 0; // Success :)
+}
+
+
+double NNM_IA_nonlinearBias(double R, double b1, double b2, double* dev_p)
+{
+
+  double kMax=10./R;
+  NNM_IA_Container container;
+  container.R=R;
+  container.b=b1;
+  container.b2=b2;
+  container.dev_p = dev_p;
+
+  double result, error;
+
+  double vals_min[3] = {0, 0, 0};
+  double vals_max[3] = {kMax, kMax, 2*M_PI};
+
+  hcubature_v(1, integrand_NNM_IA_nonlinearBias, &container, 3, vals_min, vals_max, 0, 0, 1e-4, ERROR_L1, &result, &error);
+
+  return result / 8 / M_PI / M_PI / M_PI; // Divided by (2*pi)³
+}
