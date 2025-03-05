@@ -11,13 +11,13 @@ NVCCFLAGS = -g -Xcompiler -fPIC
 
 # define library paths in addition to /usr/lib 
 # Needed: Cosmosis and Cuba!
-LFLAGS= -L /home/laila/cosmosis/cosmosis/datablock/ -Xcompiler \"-Wl,-R,/home/laila/cosmosis/cosmosis/datablock/\"  -L /usr/local/lib/ -L /usr/local/Cuba-4.2.2/
+LFLAGS=  -L /usr/local/lib/ -L /usr/local/Cuba-4.2.2/
 
 # define any libraries
-LIBS = -lm -lgsl -lgslcblas -lcosmosis -lcuba
+LIBS = -lm -lgsl -lgslcblas  -lcuba 
 
 # define Path for includes
-INCLUDES = -I /home/laila/cosmosis/cosmosis/datablock/
+INCLUDES = 
 
 # define the cuda source files
 SRCS_CU = $(wildcard *.cu)
@@ -26,7 +26,7 @@ SRCS_CU = $(wildcard *.cu)
 SRCS_CPP = $(wildcard *.cpp)
 
 # define the CUDA executables (ADD ALL HERE)
-EXECS_CU = calculateApertureStatistics.x calculateApertureStatisticsCovariance.x calculateGamma.x calculateHMF.x calculateMap4.x calculateMap6.x calculateNFW.x calculatePentaspectrum_halomodel.x calculatePowerspectrum_halomodel.x calculatePowerspectrum.x calculateSecondOrderAperturestatistics.x calculateTrispectrum_halomodel.x
+EXECS_CU = calculateApertureStatistics.x calculateApertureStatisticsCovariance.x calculateApertureStatisticsCovariance_equiOnly.x calculateGamma.x calculateHMF.x calculateMap4.x calculateMap6.x calculateNFW.x calculatePentaspectrum_halomodel.x calculatePowerspectrum_halomodel.x calculatePowerspectrum.x calculateSecondOrderAperturestatistics.x calculateTrispectrum_halomodel.x calculate3DTrispectrum.x
 
 
 # define cpp object files
@@ -41,7 +41,10 @@ DEPS = $(OBJS:%.o=%.d)
 
 
 # First make target, will be compiled, if "make" is called without arguments
-all: threepoint_gpu.so $(EXECS_CU)
+# all: threepoint_gpu.so $(EXECS_CU)
+# 	@echo Successfully compiled whole project
+
+all: $(EXECS_CU)
 	@echo Successfully compiled whole project
 
 threepoint_gpu.so: $(OBJS_CU) $(OBJS_CPP)

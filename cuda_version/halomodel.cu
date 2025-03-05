@@ -15,6 +15,7 @@ __constant__ double dev_dSigma2dm_array[n_mbins];
 double sigma2_array[n_mbins];
 double dSigma2dm_array[n_mbins];
 
+
 void initHalomodel()
 {
   copyConstants();
@@ -36,8 +37,6 @@ __host__ __device__ double hmf(const double &m, const double &z)
 
   // Get sigma^2(m, z)
   double sigma2 = get_sigma2(m, z);
-  // printf("%f %f\n", m, sigma2);
-
   // Get dsigma^2/dm
   double dsigma2 = get_dSigma2dm(m, z);
 
@@ -311,6 +310,7 @@ __host__ __device__ double get_sigma2(const double &m, const double &z)
     idx = n_mbins - 2;
     didx = 1.;
   }
+
   double sigma = sigma2_array[idx] * (1 - didx) + sigma2_array[idx + 1] * didx;
 
   didx = z / z_max * (n_redshift_bins - 1);
@@ -321,8 +321,8 @@ __host__ __device__ double get_sigma2(const double &m, const double &z)
     idx = n_redshift_bins - 2;
     didx = 1.;
   }
-
   double D1 = D1_array[idx] * (1 - didx) + D1_array[idx + 1] * didx;
+  std::cerr<<D1<<std::endl;
 #endif
 
   sigma *= D1 * D1;
@@ -364,6 +364,7 @@ __host__ __device__ double get_dSigma2dm(const double &m, const double &z)
     idx = n_mbins - 2;
     didx = 1.;
   }
+
   double dsigma = dSigma2dm_array[idx] * (1 - didx) + dSigma2dm_array[idx + 1] * didx;
 
   didx = z / z_max * (n_redshift_bins - 1);
@@ -880,7 +881,7 @@ __host__ __device__ double I_40(const double& k1, const double& k2, const double
     double m2 = exp(cx + dx * dev_A96[i]);
     q += dev_W96[i] * (m1* integrand_I_40(k1, k2, k3, k4, m1, z) + m2*integrand_I_40(k1, k2, k3, k4, m2,z));
     #else
-        double m1 = exp(cx - dx * A96[i]);
+    double m1 = exp(cx - dx * A96[i]);
     double m2 = exp(cx + dx * A96[i]);
     q += W96[i] * (m1* integrand_I_40(k1, k2, k3, k4, m1, z) + m2*integrand_I_40(k1, k2, k3, k4, m2,z));
     #endif

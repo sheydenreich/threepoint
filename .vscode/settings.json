@@ -56,7 +56,17 @@
         "map": "cpp",
         "*.cu": "cpp",
         "*.cuh": "cpp",
-        "list": "cpp"
+        "list": "cpp",
+        "bitset": "cpp",
+        "codecvt": "cpp",
+        "condition_variable": "cpp",
+        "cstring": "cpp",
+        "mutex": "cpp",
+        "numbers": "cpp",
+        "semaphore": "cpp",
+        "stop_token": "cpp",
+        "thread": "cpp",
+        "__nullptr": "cpp"
     },
     "python.pythonPath": "/home/laila/anaconda3/bin/python"
 }

@@ -218,6 +218,58 @@ void set_cosmology(cosmology cosmo_arg, std::vector<double> *nz, std::vector<dou
   CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_ncur_array, ncur_array, n_redshift_bins * sizeof(double)));
 }
 
+
+
+void set_cosmology_noZ(cosmology cosmo_arg)
+{
+#if T17_CORRECTION
+  std::cerr << "*****************************************************" << std::endl;
+  std::cerr << "WARNING: Applying T+17 corrections to power spectrum!" << std::endl;
+  std::cerr << "*****************************************************" << std::endl;
+#endif
+
+  // set cosmology
+  cosmo = cosmo_arg;
+
+  // Copy Cosmological Parameters (constant memory)
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_h, &cosmo.h, sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_sigma8, &cosmo.sigma8, sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_omb, &cosmo.omb, sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_omc, &cosmo.omc, sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_ns, &cosmo.ns, sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_w, &cosmo.w, sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_om, &cosmo.om, sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_ow, &cosmo.ow, sizeof(double)));
+
+  // Copy redshift binning
+  z_max = cosmo.zmax;
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_z_max, &z_max, sizeof(double)));
+  // Calculate Norm and copy
+  norm_P = 1; // Initial setting, is overridden in next step
+  norm_P = cosmo.sigma8 / sigmam(8., 0);
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_norm, &norm_P, sizeof(double)));
+
+
+  #pragma omp parallel for
+  for (int i = 0; i < n_redshift_bins; i++)
+  {
+    double z_now = (i + 0.5) * dz;
+
+    D1_array[i] = lgr(z_now) / lgr(0.);           // linear growth factor
+    r_sigma_array[i] = calc_r_sigma(D1_array[i]); // =1/k_NL [Mpc/h] in Eq.(B1)
+    double d1 = -2. * pow(D1_array[i] * sigmam(r_sigma_array[i], 2), 2);
+    n_eff_array[i] = -3. + 2. * pow(D1_array[i] * sigmam(r_sigma_array[i], 2), 2); // n_eff in Eq.(B2)
+    ncur_array[i] = d1 * d1 + 4. * sigmam(r_sigma_array[i], 3) * pow(D1_array[i], 2);
+  }
+  std::cerr << "Finished calculating non linear scales" << std::endl;
+  // Copy non-linear scales to device
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_D1_array, D1_array, n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_r_sigma_array, r_sigma_array, n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_n_eff_array, n_eff_array, n_redshift_bins * sizeof(double)));
+  CUDA_SAFE_CALL(cudaMemcpyToSymbol(dev_ncur_array, ncur_array, n_redshift_bins * sizeof(double)));
+
+}
+
 __device__ double bispec(double k1, double k2, double k3, double z, int idx, double didx)
 {
   int i, j;

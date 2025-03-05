@@ -1,7 +1,7 @@
 #ifndef BISPECTRUM_CUH
 #define BISPECTRUM_CUH
 
-#define T17_CORRECTION true
+#define T17_CORRECTION false
 
 #include "cosmology.cuh"
 
@@ -91,6 +91,9 @@ void copyConstants();
  */
 void set_cosmology(cosmology cosmo, std::vector<double> *nz = NULL, std::vector<double> *P_k = NULL, double dk = 0, double kmin = 0,
                    double kmax = 1e4);
+
+
+void set_cosmology_noZ(cosmology cosmo);
 
 /**
  * Non-linear Bispectrum w/o baryons according to Takahashi et al (2019)

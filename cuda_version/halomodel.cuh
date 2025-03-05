@@ -12,8 +12,8 @@
 
 // General definitions
 
-const double logMmin = 9; // Minimal halo mass (log(M/(Msun/h)))
-const double logMmax = 17; // Maximal halo mass (log(M/(Msun/h)))
+const double logMmin = log10(1); // Minimal halo mass (log(M/(Msun/h)))
+const double logMmax = log10(1e25); // Maximal halo mass (log(M/(Msun/h)))
 const int n_mbins = 128; // Number of bins for halo masses
 extern __constant__ double devLogMmin, devLogMmax; // Same as logMmin and logMmax for Device
 extern int __constant__ dev_n_mbins; // Same as n_mbins for Device
